@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { buildDashboardSummary, getAllCustomerAnalyses } from "@/lib/analytics";
-import { cached, invalidateCache } from "@/lib/cache";
+import { buildDashboardSummary } from "@/lib/analytics";
 import { isOdooConfigured } from "@/lib/odoo";
+import { getCustomersSnapshot } from "@/lib/sync";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -12,12 +12,12 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  if (searchParams.get("refresh") === "1") invalidateCache("customers");
+  const forceRefresh = searchParams.get("refresh") === "1";
 
   try {
-    const customers = await cached("customers", 15 * 60 * 1000, getAllCustomerAnalyses);
-    const summary = buildDashboardSummary(customers);
-    return NextResponse.json({ summary });
+    const snapshot = await getCustomersSnapshot(forceRefresh);
+    const summary = buildDashboardSummary(snapshot.customers);
+    return NextResponse.json({ summary, syncedAt: snapshot.syncedAt });
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : "خطأ غير معروف" }, { status: 502 });
   }

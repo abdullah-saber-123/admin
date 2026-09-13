@@ -9,19 +9,31 @@ import { KpiCard } from "@/components/KpiCard";
 import { AgingChart } from "@/components/AgingChart";
 import { GradeBadge } from "@/components/GradeBadge";
 import { LoadingView, ErrorView } from "@/components/StateViews";
+import { SyncStatus } from "@/components/SyncStatus";
 
 export default function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [syncedAt, setSyncedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    fetch("/api/dashboard")
+  function load(forceRefresh = false) {
+    if (forceRefresh) setRefreshing(true);
+    fetch(`/api/dashboard${forceRefresh ? "?refresh=1" : ""}`)
       .then((r) => r.json())
       .then((data) => {
         if (data.error) setError(data.error);
-        else setSummary(data.summary);
+        else {
+          setSummary(data.summary);
+          setSyncedAt(data.syncedAt ?? null);
+        }
       })
-      .catch((e) => setError(String(e)));
+      .catch((e) => setError(String(e)))
+      .finally(() => setRefreshing(false));
+  }
+
+  useEffect(() => {
+    load(false);
   }, []);
 
   if (error) return <ErrorView message={error} />;
@@ -31,9 +43,12 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-bold">لوحة تحكم العملاء</h1>
-        <p className="text-sm text-[var(--ink-muted)]">نظرة عامة على أداء السداد والتحصيل وأعمار الديون لكافة العملاء</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold">لوحة تحكم العملاء</h1>
+          <p className="text-sm text-[var(--ink-muted)]">نظرة عامة على أداء السداد والتحصيل وأعمار الديون لكافة العملاء</p>
+        </div>
+        <SyncStatus syncedAt={syncedAt} refreshing={refreshing} onRefresh={() => load(true)} />
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">

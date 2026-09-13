@@ -52,7 +52,10 @@ async function fetchCustomerPayments(partnerIds?: number[]): Promise<{ id: numbe
   const domain: unknown[] = [
     ["payment_type", "=", "inbound"],
     ["partner_type", "=", "customer"],
-    ["state", "=", "posted"],
+    // account.payment's `state` values differ across Odoo versions
+    // ("posted" pre-17, "paid"/"in_process" from 17 on) - exclude only the
+    // states that are clearly not a real receipt instead of matching one.
+    ["state", "not in", ["draft", "cancel", "canceled", "cancelled", "rejected"]],
   ];
   if (partnerIds?.length) domain.push(["partner_id", "in", partnerIds]);
 
@@ -166,9 +169,11 @@ function analyzeCustomer(
   const monthlySalesMap = new Map<string, number>();
   let lastInvoiceDate: Date | null = null;
 
+  let refundTotal = 0;
   for (const inv of invoices) {
     const sign = inv.move_type === "out_refund" ? -1 : 1;
     totalSales += sign * inv.amount_total;
+    if (inv.move_type === "out_refund") refundTotal += inv.amount_total;
 
     if (inv.invoice_date) {
       const d = new Date(inv.invoice_date);
@@ -178,10 +183,12 @@ function analyzeCustomer(
     }
   }
 
+  // Best-effort monthly trend from account.payment - shown as a chart shape
+  // only. The headline totalCollected figure below never depends on this,
+  // since account.payment's `state` values differ across Odoo versions and
+  // an unmatched filter would otherwise make real payments disappear.
   const monthlyCollectionsMap = new Map<string, number>();
-  let totalCollected = 0;
   for (const p of payments) {
-    totalCollected += p.amount;
     const key = monthKey(p.date);
     monthlyCollectionsMap.set(key, (monthlyCollectionsMap.get(key) ?? 0) + p.amount);
   }
@@ -192,6 +199,7 @@ function analyzeCustomer(
   // manual journal entries, write-offs, and partial reconciliations that
   // invoices alone would miss.
   let totalOutstanding = 0;
+  let creditSum = 0;
   let dueCount = 0;
   let onTimeCount = 0;
   let overdueCount = 0;
@@ -199,6 +207,7 @@ function analyzeCustomer(
 
   for (const line of receivableLines) {
     totalOutstanding += line.amountResidual;
+    creditSum += line.credit;
     const isCharge = line.debit > line.credit;
     const isOpen = Math.abs(line.amountResidual) > RECONCILED_EPSILON;
     const dueDate = new Date(line.dateMaturity ?? line.date);
@@ -222,6 +231,12 @@ function analyzeCustomer(
       else aging.d90_plus += line.amountResidual;
     }
   }
+
+  // totalCollected is derived from the same receivable ledger as everything
+  // else above (credits on the account, net of credit-note refunds) rather
+  // than summed from account.payment directly, so it is never zero just
+  // because that model's `state` domain didn't match this Odoo version.
+  const totalCollected = Math.max(0, creditSum - refundTotal);
 
   const paymentRatePct =
     totalSales > 0 ? Math.max(0, Math.min(100, ((totalSales - totalOutstanding) / totalSales) * 100)) : 100;

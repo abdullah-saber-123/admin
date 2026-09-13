@@ -1,4 +1,5 @@
 import { odooSearchReadAll } from "./odoo";
+import { buildPartnerFamilies } from "./partner-family";
 import { fetchReceivableLines, type ReceivableLine } from "./receivables";
 import type {
   AgingBuckets,
@@ -319,16 +320,17 @@ function analyzeCustomer(
 export async function getAllCustomerAnalyses(): Promise<CustomerAnalysis[]> {
   const partners = await fetchPartners();
   const partnerIds = partners.map((p) => p.id);
+  const { familyIds, ownerOf } = await buildPartnerFamilies(partnerIds);
   const [invoices, payments, receivableLines] = await Promise.all([
-    fetchInvoices(partnerIds),
-    fetchCustomerPayments(partnerIds),
-    fetchReceivableLines(partnerIds),
+    fetchInvoices(familyIds),
+    fetchCustomerPayments(familyIds),
+    fetchReceivableLines(familyIds),
   ]);
 
   const invoicesByPartner = new Map<number, OdooInvoice[]>();
   for (const inv of invoices) {
     if (!inv.partner_id) continue;
-    const pid = inv.partner_id[0];
+    const pid = ownerOf.get(inv.partner_id[0]) ?? inv.partner_id[0];
     if (!invoicesByPartner.has(pid)) invoicesByPartner.set(pid, []);
     invoicesByPartner.get(pid)!.push(inv);
   }
@@ -336,7 +338,7 @@ export async function getAllCustomerAnalyses(): Promise<CustomerAnalysis[]> {
   const paymentsByPartner = new Map<number, { amount: number; date: string; ref: string | null; journal: string | null }[]>();
   for (const p of payments) {
     if (!p.partner_id) continue;
-    const pid = p.partner_id[0];
+    const pid = ownerOf.get(p.partner_id[0]) ?? p.partner_id[0];
     if (!paymentsByPartner.has(pid)) paymentsByPartner.set(pid, []);
     paymentsByPartner.get(pid)!.push({
       amount: p.amount,
@@ -348,8 +350,9 @@ export async function getAllCustomerAnalyses(): Promise<CustomerAnalysis[]> {
 
   const linesByPartner = new Map<number, ReceivableLine[]>();
   for (const line of receivableLines) {
-    if (!linesByPartner.has(line.partnerId)) linesByPartner.set(line.partnerId, []);
-    linesByPartner.get(line.partnerId)!.push(line);
+    const pid = ownerOf.get(line.partnerId) ?? line.partnerId;
+    if (!linesByPartner.has(pid)) linesByPartner.set(pid, []);
+    linesByPartner.get(pid)!.push(line);
   }
 
   return partners
@@ -373,10 +376,12 @@ export async function getCustomerAnalysis(partnerId: number): Promise<CustomerAn
   const partner = partners[0];
   if (!partner) return null;
 
+  const { familyIds } = await buildPartnerFamilies([partnerId]);
+
   const [invoices, payments, receivableLines] = await Promise.all([
-    fetchInvoices([partnerId]),
-    fetchCustomerPayments([partnerId]),
-    fetchReceivableLines([partnerId]),
+    fetchInvoices(familyIds),
+    fetchCustomerPayments(familyIds),
+    fetchReceivableLines(familyIds),
   ]);
 
   return analyzeCustomer(

@@ -1,4 +1,5 @@
 import { odooSearchRead, odooSearchReadAll } from "./odoo";
+import { buildPartnerFamilies } from "./partner-family";
 import type { LedgerEntry, PartnerLedger } from "./types";
 
 interface PartnerAccountInfo {
@@ -31,8 +32,13 @@ export async function getPartnerLedger(partnerId: number): Promise<PartnerLedger
     ? partner.property_account_receivable_id[0]
     : null;
 
+  // Include child contacts (branches, delivery/invoice addresses) sharing
+  // this customer's commercial_partner_id - Odoo sometimes books a payment
+  // against one of those rather than the top-level company record.
+  const { familyIds } = await buildPartnerFamilies([partnerId]);
+
   const domain: unknown[] = [
-    ["partner_id", "=", partnerId],
+    ["partner_id", "in", familyIds],
     ["parent_state", "=", "posted"],
   ];
   if (receivableAccountId) {
@@ -52,7 +58,7 @@ export async function getPartnerLedger(partnerId: number): Promise<PartnerLedger
   } catch (err) {
     if (receivableAccountId || !String(err).includes("account_type")) throw err;
     const fallbackDomain = [
-      ["partner_id", "=", partnerId],
+      ["partner_id", "in", familyIds],
       ["parent_state", "=", "posted"],
       ["account_id.internal_type", "in", ["receivable", "payable"]],
     ];

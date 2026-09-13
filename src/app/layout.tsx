@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Cairo } from "next/font/google";
 import Link from "next/link";
 import { LayoutDashboard, Users } from "lucide-react";
+import { HeaderSearch } from "@/components/HeaderSearch";
 import "./globals.css";
 
 const cairo = Cairo({
@@ -19,14 +20,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="ar" dir="rtl" className={`${cairo.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-[var(--page)] text-[var(--ink)] font-sans">
         <header className="sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--surface)]/90 backdrop-blur">
-          <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
-            <Link href="/" className="flex items-center gap-2 font-bold text-[15px]">
+          <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4 sm:px-6">
+            <Link href="/" className="flex shrink-0 items-center gap-2 font-bold text-[15px]">
               <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[var(--brand)] text-white text-sm">
                 س
               </span>
-              منصة تحليل العملاء
+              <span className="hidden sm:inline">منصة تحليل العملاء</span>
             </Link>
-            <nav className="flex items-center gap-1 text-sm">
+            <div className="flex-1">
+              <HeaderSearch />
+            </div>
+            <nav className="flex shrink-0 items-center gap-1 text-sm">
               <Link
                 href="/"
                 className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[var(--ink-secondary)] hover:bg-[var(--hover)] hover:text-[var(--ink)]"

@@ -1,4 +1,5 @@
 import { odooSearchReadAll } from "./odoo";
+import { fetchReceivableLines, type ReceivableLine } from "./receivables";
 import type {
   AgingBuckets,
   CustomerAnalysis,
@@ -150,56 +151,30 @@ function buildRecommendations(input: {
   return recs;
 }
 
+const RECONCILED_EPSILON = 0.01;
+
 function analyzeCustomer(
   partner: OdooPartner,
   invoices: OdooInvoice[],
-  payments: { amount: number; date: string }[]
+  payments: { amount: number; date: string }[],
+  receivableLines: ReceivableLine[]
 ): CustomerAnalysis {
   const today = new Date();
   const aging = emptyAging();
 
   let totalSales = 0;
-  let totalResidual = 0;
-  let dueCount = 0;
-  let onTimeOrPaidCount = 0;
-  let overdueCount = 0;
-  let overdueDelaySum = 0;
   const monthlySalesMap = new Map<string, number>();
   let lastInvoiceDate: Date | null = null;
 
   for (const inv of invoices) {
     const sign = inv.move_type === "out_refund" ? -1 : 1;
     totalSales += sign * inv.amount_total;
-    totalResidual += sign * inv.amount_residual;
 
     if (inv.invoice_date) {
       const d = new Date(inv.invoice_date);
       if (!lastInvoiceDate || d > lastInvoiceDate) lastInvoiceDate = d;
       const key = monthKey(inv.invoice_date);
       monthlySalesMap.set(key, (monthlySalesMap.get(key) ?? 0) + sign * inv.amount_total);
-    }
-
-    const dueDate = inv.invoice_date_due ? new Date(inv.invoice_date_due) : null;
-    if (dueDate && dueDate <= today) {
-      dueCount += 1;
-      if (inv.payment_state === "paid") {
-        onTimeOrPaidCount += 1;
-      } else if (inv.amount_residual > 0) {
-        overdueCount += 1;
-        overdueDelaySum += daysBetween(today, dueDate);
-      }
-    }
-
-    if (inv.amount_residual > 0 && dueDate) {
-      const delay = daysBetween(today, dueDate);
-      const bucketAmount = sign * inv.amount_residual;
-      if (delay <= 0) aging.current += bucketAmount;
-      else if (delay <= 30) aging.d1_30 += bucketAmount;
-      else if (delay <= 60) aging.d31_60 += bucketAmount;
-      else if (delay <= 90) aging.d61_90 += bucketAmount;
-      else aging.d90_plus += bucketAmount;
-    } else if (inv.amount_residual > 0) {
-      aging.current += sign * inv.amount_residual;
     }
   }
 
@@ -211,13 +186,51 @@ function analyzeCustomer(
     monthlyCollectionsMap.set(key, (monthlyCollectionsMap.get(key) ?? 0) + p.amount);
   }
 
-  const paymentRatePct = totalSales > 0 ? Math.max(0, Math.min(100, ((totalSales - totalResidual) / totalSales) * 100)) : 100;
-  const commitmentPct = dueCount > 0 ? (onTimeOrPaidCount / dueCount) * 100 : 100;
+  // Outstanding balance, aging, and commitment come from the customer's
+  // receivable-account journal items (matching Odoo's own Partner Ledger /
+  // Aged Receivable reports), not from invoice header fields - this covers
+  // manual journal entries, write-offs, and partial reconciliations that
+  // invoices alone would miss.
+  let totalOutstanding = 0;
+  let dueCount = 0;
+  let onTimeCount = 0;
+  let overdueCount = 0;
+  let overdueDelaySum = 0;
+
+  for (const line of receivableLines) {
+    totalOutstanding += line.amountResidual;
+    const isCharge = line.debit > line.credit;
+    const isOpen = Math.abs(line.amountResidual) > RECONCILED_EPSILON;
+    const dueDate = new Date(line.dateMaturity ?? line.date);
+
+    if (isCharge && dueDate <= today) {
+      dueCount += 1;
+      if (isOpen) {
+        overdueCount += 1;
+        overdueDelaySum += daysBetween(today, dueDate);
+      } else {
+        onTimeCount += 1;
+      }
+    }
+
+    if (isOpen) {
+      const delay = daysBetween(today, dueDate);
+      if (delay <= 0) aging.current += line.amountResidual;
+      else if (delay <= 30) aging.d1_30 += line.amountResidual;
+      else if (delay <= 60) aging.d31_60 += line.amountResidual;
+      else if (delay <= 90) aging.d61_90 += line.amountResidual;
+      else aging.d90_plus += line.amountResidual;
+    }
+  }
+
+  const paymentRatePct =
+    totalSales > 0 ? Math.max(0, Math.min(100, ((totalSales - totalOutstanding) / totalSales) * 100)) : 100;
+  const commitmentPct = dueCount > 0 ? (onTimeCount / dueCount) * 100 : 100;
   const avgDelayDays = overdueCount > 0 ? overdueDelaySum / overdueCount : 0;
-  const dso = totalSales > 0 ? (totalResidual / totalSales) * 365 : 0;
+  const dso = totalSales > 0 ? (totalOutstanding / totalSales) * 365 : 0;
 
   const severeOverdue = aging.d61_90 + aging.d90_plus;
-  const overdueSeverity = totalResidual > 0 ? Math.min(100, (severeOverdue / totalResidual) * 100) : 0;
+  const overdueSeverity = totalOutstanding > 0 ? Math.min(100, (severeOverdue / totalOutstanding) * 100) : 0;
 
   const score = Math.max(
     0,
@@ -243,7 +256,7 @@ function analyzeCustomer(
     totalSales,
     invoiceCount: invoices.length,
     totalCollected,
-    totalOutstanding: totalResidual,
+    totalOutstanding,
 
     paymentRatePct,
     commitmentPct,
@@ -260,7 +273,7 @@ function analyzeCustomer(
     monthlyCollections: sortedMonths(monthlyCollectionsMap),
 
     recommendations: buildRecommendations({
-      totalOutstanding: totalResidual,
+      totalOutstanding,
       creditLimit: partner.credit_limit ?? 0,
       aging,
       commitmentPct,
@@ -274,9 +287,10 @@ function analyzeCustomer(
 export async function getAllCustomerAnalyses(): Promise<CustomerAnalysis[]> {
   const partners = await fetchPartners();
   const partnerIds = partners.map((p) => p.id);
-  const [invoices, payments] = await Promise.all([
+  const [invoices, payments, receivableLines] = await Promise.all([
     fetchInvoices(partnerIds),
     fetchCustomerPayments(partnerIds),
+    fetchReceivableLines(partnerIds),
   ]);
 
   const invoicesByPartner = new Map<number, OdooInvoice[]>();
@@ -295,9 +309,20 @@ export async function getAllCustomerAnalyses(): Promise<CustomerAnalysis[]> {
     paymentsByPartner.get(pid)!.push({ amount: p.amount, date: p.date });
   }
 
+  const linesByPartner = new Map<number, ReceivableLine[]>();
+  for (const line of receivableLines) {
+    if (!linesByPartner.has(line.partnerId)) linesByPartner.set(line.partnerId, []);
+    linesByPartner.get(line.partnerId)!.push(line);
+  }
+
   return partners
     .map((partner) =>
-      analyzeCustomer(partner, invoicesByPartner.get(partner.id) ?? [], paymentsByPartner.get(partner.id) ?? [])
+      analyzeCustomer(
+        partner,
+        invoicesByPartner.get(partner.id) ?? [],
+        paymentsByPartner.get(partner.id) ?? [],
+        linesByPartner.get(partner.id) ?? []
+      )
     )
     .filter((c) => c.invoiceCount > 0 || c.totalOutstanding !== 0);
 }
@@ -311,15 +336,17 @@ export async function getCustomerAnalysis(partnerId: number): Promise<CustomerAn
   const partner = partners[0];
   if (!partner) return null;
 
-  const [invoices, payments] = await Promise.all([
+  const [invoices, payments, receivableLines] = await Promise.all([
     fetchInvoices([partnerId]),
     fetchCustomerPayments([partnerId]),
+    fetchReceivableLines([partnerId]),
   ]);
 
   return analyzeCustomer(
     partner,
     invoices,
-    payments.map((p) => ({ amount: p.amount, date: p.date }))
+    payments.map((p) => ({ amount: p.amount, date: p.date })),
+    receivableLines
   );
 }
 

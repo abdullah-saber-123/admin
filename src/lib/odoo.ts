@@ -92,6 +92,25 @@ export async function odooSearchRead<T = Record<string, unknown>>(
   ]);
 }
 
+const PAGE_SIZE = 2000;
+
+export async function odooSearchReadAll<T = Record<string, unknown>>(
+  model: string,
+  domain: unknown[],
+  fields: string[],
+  options: Pick<SearchReadOptions, "order" | "context"> = {}
+): Promise<T[]> {
+  const all: T[] = [];
+  let offset = 0;
+  for (;;) {
+    const page = await odooSearchRead<T>(model, domain, fields, { ...options, offset, limit: PAGE_SIZE });
+    all.push(...page);
+    if (page.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
+  }
+  return all;
+}
+
 export async function odooReadGroup<T = Record<string, unknown>>(
   model: string,
   domain: unknown[],

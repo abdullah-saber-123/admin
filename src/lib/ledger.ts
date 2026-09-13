@@ -1,4 +1,4 @@
-import { odooSearchRead } from "./odoo";
+import { odooSearchRead, odooSearchReadAll } from "./odoo";
 import type { LedgerEntry, PartnerLedger } from "./types";
 
 interface PartnerAccountInfo {
@@ -43,11 +43,11 @@ export async function getPartnerLedger(partnerId: number): Promise<PartnerLedger
 
   let lines: MoveLine[];
   try {
-    lines = await odooSearchRead<MoveLine>(
+    lines = await odooSearchReadAll<MoveLine>(
       "account.move.line",
       domain,
       ["id", "date", "move_id", "name", "ref", "debit", "credit", "full_reconcile_id"],
-      { order: "date asc, id asc", limit: 5000 }
+      { order: "date asc, id asc" }
     );
   } catch (err) {
     if (receivableAccountId || !String(err).includes("account_type")) throw err;
@@ -56,11 +56,11 @@ export async function getPartnerLedger(partnerId: number): Promise<PartnerLedger
       ["parent_state", "=", "posted"],
       ["account_id.internal_type", "in", ["receivable", "payable"]],
     ];
-    lines = await odooSearchRead<MoveLine>(
+    lines = await odooSearchReadAll<MoveLine>(
       "account.move.line",
       fallbackDomain,
       ["id", "date", "move_id", "name", "ref", "debit", "credit", "full_reconcile_id"],
-      { order: "date asc, id asc", limit: 5000 }
+      { order: "date asc, id asc" }
     );
   }
 

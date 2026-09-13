@@ -1,4 +1,4 @@
-import { odooSearchRead } from "./odoo";
+import { odooSearchReadAll } from "./odoo";
 import type {
   AgingBuckets,
   CustomerAnalysis,
@@ -24,11 +24,11 @@ function emptyAging(): AgingBuckets {
 }
 
 async function fetchPartners(): Promise<OdooPartner[]> {
-  return odooSearchRead<OdooPartner>(
+  return odooSearchReadAll<OdooPartner>(
     "res.partner",
     [["customer_rank", ">", 0]],
     ["id", "name", "email", "phone", "mobile", "city", "category_id", "credit_limit", "property_payment_term_id"],
-    { limit: 2000, order: "name asc" }
+    { order: "name asc" }
   );
 }
 
@@ -39,11 +39,11 @@ async function fetchInvoices(partnerIds?: number[]): Promise<OdooInvoice[]> {
   ];
   if (partnerIds?.length) domain.push(["partner_id", "in", partnerIds]);
 
-  return odooSearchRead<OdooInvoice>(
+  return odooSearchReadAll<OdooInvoice>(
     "account.move",
     domain,
     ["id", "partner_id", "move_type", "invoice_date", "invoice_date_due", "amount_total", "amount_residual", "payment_state", "state", "currency_id"],
-    { limit: 20000, order: "invoice_date desc" }
+    { order: "invoice_date desc" }
   );
 }
 
@@ -55,11 +55,11 @@ async function fetchCustomerPayments(partnerIds?: number[]): Promise<{ id: numbe
   ];
   if (partnerIds?.length) domain.push(["partner_id", "in", partnerIds]);
 
-  return odooSearchRead(
+  return odooSearchReadAll(
     "account.payment",
     domain,
     ["id", "partner_id", "amount", "date"],
-    { limit: 20000, order: "date desc" }
+    { order: "date desc" }
   );
 }
 
@@ -303,7 +303,7 @@ export async function getAllCustomerAnalyses(): Promise<CustomerAnalysis[]> {
 }
 
 export async function getCustomerAnalysis(partnerId: number): Promise<CustomerAnalysis | null> {
-  const partners = await odooSearchRead<OdooPartner>(
+  const partners = await odooSearchReadAll<OdooPartner>(
     "res.partner",
     [["id", "=", partnerId]],
     ["id", "name", "email", "phone", "mobile", "city", "category_id", "credit_limit", "property_payment_term_id"]

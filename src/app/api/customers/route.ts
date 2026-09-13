@@ -4,6 +4,7 @@ import { cached, invalidateCache } from "@/lib/cache";
 import { isOdooConfigured } from "@/lib/odoo";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 
 export async function GET(request: Request) {
   if (!isOdooConfigured()) {
@@ -14,7 +15,7 @@ export async function GET(request: Request) {
   if (searchParams.get("refresh") === "1") invalidateCache("customers");
 
   try {
-    const customers = await cached("customers", 5 * 60 * 1000, getAllCustomerAnalyses);
+    const customers = await cached("customers", 15 * 60 * 1000, getAllCustomerAnalyses);
     return NextResponse.json({ customers });
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : "خطأ غير معروف" }, { status: 502 });

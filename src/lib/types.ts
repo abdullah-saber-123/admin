@@ -65,6 +65,7 @@ export interface CustomerAnalysis {
 
   monthlySales: { month: string; total: number }[];
   monthlyCollections: { month: string; total: number }[];
+  recentPayments: { amount: number; date: string; ref: string | null; journal: string | null }[];
 
   recommendations: Recommendation[];
 }

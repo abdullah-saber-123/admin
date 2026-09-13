@@ -48,7 +48,17 @@ async function fetchInvoices(partnerIds?: number[]): Promise<OdooInvoice[]> {
   );
 }
 
-async function fetchCustomerPayments(partnerIds?: number[]): Promise<{ id: number; partner_id: [number, string] | false; amount: number; date: string }[]> {
+interface RawCustomerPayment {
+  id: number;
+  partner_id: [number, string] | false;
+  amount: number;
+  date: string;
+  ref: string | false;
+  journal_id: [number, string] | false;
+  state: string;
+}
+
+async function fetchCustomerPayments(partnerIds?: number[]): Promise<RawCustomerPayment[]> {
   const domain: unknown[] = [
     ["payment_type", "=", "inbound"],
     ["partner_type", "=", "customer"],
@@ -59,10 +69,10 @@ async function fetchCustomerPayments(partnerIds?: number[]): Promise<{ id: numbe
   ];
   if (partnerIds?.length) domain.push(["partner_id", "in", partnerIds]);
 
-  return odooSearchReadAll(
+  return odooSearchReadAll<RawCustomerPayment>(
     "account.payment",
     domain,
-    ["id", "partner_id", "amount", "date"],
+    ["id", "partner_id", "amount", "date", "ref", "journal_id", "state"],
     { order: "date desc" }
   );
 }
@@ -159,7 +169,7 @@ const RECONCILED_EPSILON = 0.01;
 function analyzeCustomer(
   partner: OdooPartner,
   invoices: OdooInvoice[],
-  payments: { amount: number; date: string }[],
+  payments: { amount: number; date: string; ref: string | null; journal: string | null }[],
   receivableLines: ReceivableLine[]
 ): CustomerAnalysis {
   const today = new Date();
@@ -192,6 +202,10 @@ function analyzeCustomer(
     const key = monthKey(p.date);
     monthlyCollectionsMap.set(key, (monthlyCollectionsMap.get(key) ?? 0) + p.amount);
   }
+
+  const recentPayments = [...payments]
+    .sort((a, b) => (a.date < b.date ? 1 : -1))
+    .slice(0, 50);
 
   // Outstanding balance, aging, and commitment come from the customer's
   // receivable-account journal items (matching Odoo's own Partner Ledger /
@@ -286,6 +300,7 @@ function analyzeCustomer(
 
     monthlySales: sortedMonths(monthlySalesMap),
     monthlyCollections: sortedMonths(monthlyCollectionsMap),
+    recentPayments,
 
     recommendations: buildRecommendations({
       totalOutstanding,
@@ -316,12 +331,17 @@ export async function getAllCustomerAnalyses(): Promise<CustomerAnalysis[]> {
     invoicesByPartner.get(pid)!.push(inv);
   }
 
-  const paymentsByPartner = new Map<number, { amount: number; date: string }[]>();
+  const paymentsByPartner = new Map<number, { amount: number; date: string; ref: string | null; journal: string | null }[]>();
   for (const p of payments) {
     if (!p.partner_id) continue;
     const pid = p.partner_id[0];
     if (!paymentsByPartner.has(pid)) paymentsByPartner.set(pid, []);
-    paymentsByPartner.get(pid)!.push({ amount: p.amount, date: p.date });
+    paymentsByPartner.get(pid)!.push({
+      amount: p.amount,
+      date: p.date,
+      ref: p.ref || null,
+      journal: p.journal_id ? p.journal_id[1] : null,
+    });
   }
 
   const linesByPartner = new Map<number, ReceivableLine[]>();
@@ -360,7 +380,7 @@ export async function getCustomerAnalysis(partnerId: number): Promise<CustomerAn
   return analyzeCustomer(
     partner,
     invoices,
-    payments.map((p) => ({ amount: p.amount, date: p.date })),
+    payments.map((p) => ({ amount: p.amount, date: p.date, ref: p.ref || null, journal: p.journal_id ? p.journal_id[1] : null })),
     receivableLines
   );
 }

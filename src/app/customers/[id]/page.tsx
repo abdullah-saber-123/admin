@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { FileText, Mail, MapPin, Phone } from "lucide-react";
 import type { CustomerAnalysis } from "@/lib/types";
-import { formatPct, formatSar } from "@/lib/format";
+import { formatDate, formatPct, formatSar } from "@/lib/format";
 import { KpiCard } from "@/components/KpiCard";
 import { GradeBadge } from "@/components/GradeBadge";
 import { AgingChart } from "@/components/AgingChart";
@@ -102,6 +102,41 @@ export default function CustomerDetailPage() {
         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
           <h2 className="mb-3 text-sm font-bold">المبيعات مقابل التحصيل (آخر 12 شهر)</h2>
           <TrendChart data={trend} />
+        </div>
+      </div>
+
+      <div>
+        <h2 className="mb-3 text-sm font-bold">آخر المدفوعات</h2>
+        <div className="overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-[var(--border)] text-right text-[var(--ink-muted)]">
+                <th className="whitespace-nowrap px-4 py-2 font-medium">التاريخ</th>
+                <th className="whitespace-nowrap px-4 py-2 font-medium">المبلغ</th>
+                <th className="whitespace-nowrap px-4 py-2 font-medium">المرجع</th>
+                <th className="whitespace-nowrap px-4 py-2 font-medium">طريقة الدفع</th>
+              </tr>
+            </thead>
+            <tbody>
+              {customer.recentPayments.map((p, i) => (
+                <tr key={i} className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--hover)]">
+                  <td className="whitespace-nowrap px-4 py-2.5 tabular-nums">{formatDate(p.date)}</td>
+                  <td className="px-4 py-2.5 tabular-nums font-medium" style={{ color: "var(--status-good)" }}>
+                    {formatSar(p.amount)}
+                  </td>
+                  <td className="px-4 py-2.5">{p.ref || "-"}</td>
+                  <td className="px-4 py-2.5">{p.journal || "-"}</td>
+                </tr>
+              ))}
+              {customer.recentPayments.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-4 py-8 text-center text-[var(--ink-muted)]">
+                    لا توجد دفعات مسجّلة عبر account.payment لهذا العميل — راجع "كشف الحساب" لكل الحركات المحاسبية
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
         </div>
       </div>
 

@@ -62,10 +62,10 @@ async function fetchCustomerPayments(partnerIds?: number[]): Promise<RawCustomer
   const domain: unknown[] = [
     ["payment_type", "=", "inbound"],
     ["partner_type", "=", "customer"],
-    // account.payment's `state` values differ across Odoo versions
-    // ("posted" pre-17, "paid"/"in_process" from 17 on) - exclude only the
-    // states that are clearly not a real receipt instead of matching one.
-    ["state", "not in", ["draft", "cancel", "canceled", "cancelled", "rejected"]],
+    // Match the totals shown in Odoo's own "Customer Payments" list
+    // (/odoo/customer-payments), which counts every non-cancelled record -
+    // draft and in-process included, not just fully "posted"/"paid" ones.
+    ["state", "not in", ["cancel", "canceled", "cancelled"]],
   ];
   if (partnerIds?.length) domain.push(["partner_id", "in", partnerIds]);
 
@@ -246,11 +246,13 @@ function analyzeCustomer(
     }
   }
 
-  // totalCollected is derived from the same receivable ledger as everything
-  // else above (credits on the account, net of credit-note refunds) rather
-  // than summed from account.payment directly, so it is never zero just
-  // because that model's `state` domain didn't match this Odoo version.
-  const totalCollected = Math.max(0, creditSum - refundTotal);
+  // totalCollected matches Odoo's own "Customer Payments" list: the raw sum
+  // of account.payment.amount for this customer. Fall back to the
+  // receivable-ledger credits (net of refunds) only if that query returned
+  // nothing, so the figure never silently goes to zero on Odoo versions
+  // where the payment domain above still misses something.
+  const paymentsTotal = payments.reduce((sum, p) => sum + p.amount, 0);
+  const totalCollected = payments.length > 0 ? paymentsTotal : Math.max(0, creditSum - refundTotal);
 
   const paymentRatePct =
     totalSales > 0 ? Math.max(0, Math.min(100, ((totalSales - totalOutstanding) / totalSales) * 100)) : 100;

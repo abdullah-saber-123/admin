@@ -69,6 +69,26 @@ export interface CustomerAnalysis {
   recommendations: Recommendation[];
 }
 
+export interface LedgerEntry {
+  id: number;
+  date: string;
+  moveName: string;
+  label: string;
+  ref: string | null;
+  debit: number;
+  credit: number;
+  balance: number;
+  reconciled: boolean;
+}
+
+export interface PartnerLedger {
+  partnerId: number;
+  partnerName: string;
+  openingBalance: number;
+  closingBalance: number;
+  entries: LedgerEntry[];
+}
+
 export interface DashboardSummary {
   totalCustomers: number;
   totalSales: number;

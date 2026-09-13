@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Mail, MapPin, Phone } from "lucide-react";
+import { FileText, Mail, MapPin, Phone } from "lucide-react";
 import type { CustomerAnalysis } from "@/lib/types";
 import { formatPct, formatSar } from "@/lib/format";
 import { KpiCard } from "@/components/KpiCard";
@@ -65,9 +66,18 @@ export default function CustomerDetailPage() {
             ) : null}
           </div>
         </div>
-        <div className="text-left">
-          <div className="text-xs text-[var(--ink-muted)]">التقييم العام</div>
-          <div className="text-3xl font-extrabold tabular-nums text-[var(--brand)]">{customer.score.toFixed(0)}</div>
+        <div className="flex items-center gap-4">
+          <Link
+            href={`/customers/${customer.id}/statement`}
+            className="flex items-center gap-1.5 rounded-md border border-[var(--border-strong)] px-3 py-1.5 text-sm hover:bg-[var(--hover)]"
+          >
+            <FileText size={15} />
+            كشف الحساب
+          </Link>
+          <div className="text-left">
+            <div className="text-xs text-[var(--ink-muted)]">التقييم العام</div>
+            <div className="text-3xl font-extrabold tabular-nums text-[var(--brand)]">{customer.score.toFixed(0)}</div>
+          </div>
         </div>
       </div>
 

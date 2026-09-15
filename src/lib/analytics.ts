@@ -192,15 +192,8 @@ function analyzeCustomer(
     }
   }
 
-  // Monthly collection trend and the raw payment list still come from
-  // account.payment (the same records behind Odoo's "Customer Payments"
-  // list) - informational only, never used for the headline totals below.
-  const monthlyCollectionsMap = new Map<string, number>();
-  for (const p of payments) {
-    const key = monthKey(p.date);
-    monthlyCollectionsMap.set(key, (monthlyCollectionsMap.get(key) ?? 0) + p.amount);
-  }
-
+  // The raw payment list (with reference/journal detail) still comes from
+  // account.payment for display in the payments table - informational only.
   const recentPayments = [...payments].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 50);
 
   // Opening balance, outstanding balance, aging, and commitment all come
@@ -215,10 +208,15 @@ function analyzeCustomer(
   let overdueCount = 0;
   let overdueDelaySum = 0;
   let totalCollected = 0;
+  const monthlyCollectionsMap = new Map<string, number>();
 
   for (const line of ledgerLines) {
     totalOutstanding += line.debit - line.credit;
     totalCollected += line.credit;
+    if (line.credit > 0) {
+      const key = monthKey(line.date);
+      monthlyCollectionsMap.set(key, (monthlyCollectionsMap.get(key) ?? 0) + line.credit);
+    }
 
     const isCharge = line.debit > line.credit;
     const isOpen = Math.abs(line.amountResidual) > RECONCILED_EPSILON;

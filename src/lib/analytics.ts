@@ -1,6 +1,5 @@
 import { odooSearchReadAll } from "./odoo";
 import { buildPartnerFamilies } from "./partner-family";
-import { fetchReceivableLines, type ReceivableLine } from "./receivables";
 import type {
   AgingBuckets,
   CustomerAnalysis,
@@ -165,26 +164,32 @@ function buildRecommendations(input: {
   return recs;
 }
 
-const RECONCILED_EPSILON = 0.01;
-
 function analyzeCustomer(
   partner: OdooPartner,
   invoices: OdooInvoice[],
-  payments: { amount: number; date: string; ref: string | null; journal: string | null }[],
-  receivableLines: ReceivableLine[]
+  payments: { amount: number; date: string; ref: string | null; journal: string | null }[]
 ): CustomerAnalysis {
   const today = new Date();
   const aging = emptyAging();
 
+  // Balance = invoices - payments, read straight from each invoice's own
+  // amount_residual (which Odoo already keeps in sync with reconciled
+  // payments) rather than a separate account.payment/account.move.line
+  // query - this is what stayed reliable across every Odoo-version quirk
+  // we ran into, and it is exactly "إجمالي الفواتير - إجمالي الدفعات".
   let totalSales = 0;
+  let totalOutstanding = 0;
+  let dueCount = 0;
+  let onTimeCount = 0;
+  let overdueCount = 0;
+  let overdueDelaySum = 0;
   const monthlySalesMap = new Map<string, number>();
   let lastInvoiceDate: Date | null = null;
 
-  let refundTotal = 0;
   for (const inv of invoices) {
     const sign = inv.move_type === "out_refund" ? -1 : 1;
     totalSales += sign * inv.amount_total;
-    if (inv.move_type === "out_refund") refundTotal += inv.amount_total;
+    totalOutstanding += sign * inv.amount_residual;
 
     if (inv.invoice_date) {
       const d = new Date(inv.invoice_date);
@@ -192,68 +197,44 @@ function analyzeCustomer(
       const key = monthKey(inv.invoice_date);
       monthlySalesMap.set(key, (monthlySalesMap.get(key) ?? 0) + sign * inv.amount_total);
     }
+
+    const dueDate = inv.invoice_date_due ? new Date(inv.invoice_date_due) : null;
+    if (dueDate && dueDate <= today) {
+      dueCount += 1;
+      if (inv.payment_state === "paid") {
+        onTimeCount += 1;
+      } else if (inv.amount_residual > 0) {
+        overdueCount += 1;
+        overdueDelaySum += daysBetween(today, dueDate);
+      }
+    }
+
+    if (inv.amount_residual > 0 && dueDate) {
+      const delay = daysBetween(today, dueDate);
+      const bucketAmount = sign * inv.amount_residual;
+      if (delay <= 0) aging.current += bucketAmount;
+      else if (delay <= 30) aging.d1_30 += bucketAmount;
+      else if (delay <= 60) aging.d31_60 += bucketAmount;
+      else if (delay <= 90) aging.d61_90 += bucketAmount;
+      else aging.d90_plus += bucketAmount;
+    } else if (inv.amount_residual > 0) {
+      aging.current += sign * inv.amount_residual;
+    }
   }
 
-  // Best-effort monthly trend from account.payment - shown as a chart shape
-  // only. The headline totalCollected figure below never depends on this,
-  // since account.payment's `state` values differ across Odoo versions and
-  // an unmatched filter would otherwise make real payments disappear.
+  // Monthly collection trend and the raw payment list still come from
+  // account.payment (the same records behind Odoo's "Customer Payments"
+  // list) - informational only, never used for the headline totals above.
   const monthlyCollectionsMap = new Map<string, number>();
   for (const p of payments) {
     const key = monthKey(p.date);
     monthlyCollectionsMap.set(key, (monthlyCollectionsMap.get(key) ?? 0) + p.amount);
   }
 
-  const recentPayments = [...payments]
-    .sort((a, b) => (a.date < b.date ? 1 : -1))
-    .slice(0, 50);
+  const recentPayments = [...payments].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 50);
 
-  // Outstanding balance, aging, and commitment come from the customer's
-  // receivable-account journal items (matching Odoo's own Partner Ledger /
-  // Aged Receivable reports), not from invoice header fields - this covers
-  // manual journal entries, write-offs, and partial reconciliations that
-  // invoices alone would miss.
-  let totalOutstanding = 0;
-  let creditSum = 0;
-  let dueCount = 0;
-  let onTimeCount = 0;
-  let overdueCount = 0;
-  let overdueDelaySum = 0;
-
-  for (const line of receivableLines) {
-    totalOutstanding += line.amountResidual;
-    creditSum += line.credit;
-    const isCharge = line.debit > line.credit;
-    const isOpen = Math.abs(line.amountResidual) > RECONCILED_EPSILON;
-    const dueDate = new Date(line.dateMaturity ?? line.date);
-
-    if (isCharge && dueDate <= today) {
-      dueCount += 1;
-      if (isOpen) {
-        overdueCount += 1;
-        overdueDelaySum += daysBetween(today, dueDate);
-      } else {
-        onTimeCount += 1;
-      }
-    }
-
-    if (isOpen) {
-      const delay = daysBetween(today, dueDate);
-      if (delay <= 0) aging.current += line.amountResidual;
-      else if (delay <= 30) aging.d1_30 += line.amountResidual;
-      else if (delay <= 60) aging.d31_60 += line.amountResidual;
-      else if (delay <= 90) aging.d61_90 += line.amountResidual;
-      else aging.d90_plus += line.amountResidual;
-    }
-  }
-
-  // totalCollected matches Odoo's own "Customer Payments" list: the raw sum
-  // of account.payment.amount for this customer. Fall back to the
-  // receivable-ledger credits (net of refunds) only if that query returned
-  // nothing, so the figure never silently goes to zero on Odoo versions
-  // where the payment domain above still misses something.
-  const paymentsTotal = payments.reduce((sum, p) => sum + p.amount, 0);
-  const totalCollected = payments.length > 0 ? paymentsTotal : Math.max(0, creditSum - refundTotal);
+  // التحصيل = الفواتير - الرصيد المستحق (ما تم تحصيله فعلياً من إجمالي المبيعات).
+  const totalCollected = Math.max(0, totalSales - totalOutstanding);
 
   const paymentRatePct =
     totalSales > 0 ? Math.max(0, Math.min(100, ((totalSales - totalOutstanding) / totalSales) * 100)) : 100;
@@ -321,10 +302,9 @@ export async function getAllCustomerAnalyses(): Promise<CustomerAnalysis[]> {
   const partners = await fetchPartners();
   const partnerIds = partners.map((p) => p.id);
   const { familyIds, ownerOf } = await buildPartnerFamilies(partnerIds);
-  const [invoices, payments, receivableLines] = await Promise.all([
+  const [invoices, payments] = await Promise.all([
     fetchInvoices(familyIds),
     fetchCustomerPayments(familyIds),
-    fetchReceivableLines(familyIds),
   ]);
 
   const invoicesByPartner = new Map<number, OdooInvoice[]>();
@@ -348,21 +328,9 @@ export async function getAllCustomerAnalyses(): Promise<CustomerAnalysis[]> {
     });
   }
 
-  const linesByPartner = new Map<number, ReceivableLine[]>();
-  for (const line of receivableLines) {
-    const pid = ownerOf.get(line.partnerId) ?? line.partnerId;
-    if (!linesByPartner.has(pid)) linesByPartner.set(pid, []);
-    linesByPartner.get(pid)!.push(line);
-  }
-
   return partners
     .map((partner) =>
-      analyzeCustomer(
-        partner,
-        invoicesByPartner.get(partner.id) ?? [],
-        paymentsByPartner.get(partner.id) ?? [],
-        linesByPartner.get(partner.id) ?? []
-      )
+      analyzeCustomer(partner, invoicesByPartner.get(partner.id) ?? [], paymentsByPartner.get(partner.id) ?? [])
     )
     .filter((c) => c.invoiceCount > 0 || c.totalOutstanding !== 0);
 }
@@ -378,17 +346,12 @@ export async function getCustomerAnalysis(partnerId: number): Promise<CustomerAn
 
   const { familyIds } = await buildPartnerFamilies([partnerId]);
 
-  const [invoices, payments, receivableLines] = await Promise.all([
-    fetchInvoices(familyIds),
-    fetchCustomerPayments(familyIds),
-    fetchReceivableLines(familyIds),
-  ]);
+  const [invoices, payments] = await Promise.all([fetchInvoices(familyIds), fetchCustomerPayments(familyIds)]);
 
   return analyzeCustomer(
     partner,
     invoices,
-    payments.map((p) => ({ amount: p.amount, date: p.date, ref: p.ref || null, journal: p.journal_id ? p.journal_id[1] : null })),
-    receivableLines
+    payments.map((p) => ({ amount: p.amount, date: p.date, ref: p.ref || null, journal: p.journal_id ? p.journal_id[1] : null }))
   );
 }
 

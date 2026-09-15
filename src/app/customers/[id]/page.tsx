@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { FileText, Mail, MapPin, Phone } from "lucide-react";
-import type { CustomerAnalysis } from "@/lib/types";
+import { FileCheck2, FileText, Mail, MapPin, Phone, UserCheck } from "lucide-react";
+import type { CustomerAnalysis, ReconciliationRecord } from "@/lib/types";
 import { formatDate, formatPct, formatSar } from "@/lib/format";
 import { KpiCard } from "@/components/KpiCard";
 import { GradeBadge } from "@/components/GradeBadge";
@@ -16,6 +16,7 @@ import { LoadingView, ErrorView } from "@/components/StateViews";
 export default function CustomerDetailPage() {
   const params = useParams<{ id: string }>();
   const [customer, setCustomer] = useState<CustomerAnalysis | null>(null);
+  const [reconciliation, setReconciliation] = useState<ReconciliationRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -26,6 +27,11 @@ export default function CustomerDetailPage() {
         else setCustomer(data.customer);
       })
       .catch((e) => setError(String(e)));
+
+    fetch(`/api/customers/${params.id}/reconciliation`)
+      .then((r) => r.json())
+      .then((data) => setReconciliation(data.record ?? null))
+      .catch(() => setReconciliation(null));
   }, [params.id]);
 
   if (error) return <ErrorView message={error} />;
@@ -74,11 +80,33 @@ export default function CustomerDetailPage() {
             <FileText size={15} />
             كشف الحساب
           </Link>
+          <Link
+            href={`/customers/${customer.id}/confirmation`}
+            className="flex items-center gap-1.5 rounded-md border border-[var(--border-strong)] px-3 py-1.5 text-sm hover:bg-[var(--hover)]"
+          >
+            <FileCheck2 size={15} />
+            نموذج مصادقة رصيد
+          </Link>
           <div className="text-left">
             <div className="text-xs text-[var(--ink-muted)]">التقييم العام</div>
             <div className="text-3xl font-extrabold tabular-nums text-[var(--brand)]">{customer.score.toFixed(0)}</div>
           </div>
         </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm">
+        <UserCheck size={16} className="text-[var(--ink-muted)]" />
+        {reconciliation ? (
+          <span>
+            آخر مطابقة بواسطة <span className="font-medium">{reconciliation.reconciledBy}</span> بتاريخ{" "}
+            <span className="font-medium tabular-nums">{formatDate(reconciliation.reconciledAt)}</span>
+          </span>
+        ) : (
+          <span className="text-[var(--ink-muted)]">لم تتم مطابقة رصيد هذا العميل بعد</span>
+        )}
+        <Link href="/reconciliation" className="ms-auto text-xs text-[var(--brand)] hover:underline">
+          إدارة المطابقات
+        </Link>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">

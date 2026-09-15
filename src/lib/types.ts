@@ -90,6 +90,16 @@ export interface PartnerLedger {
   entries: LedgerEntry[];
 }
 
+export interface ReconciliationRecord {
+  customerId: number;
+  customerName: string;
+  reconciledBy: string;
+  reconciledAt: string;
+  balance: number;
+  notes: string | null;
+  updatedAt: string;
+}
+
 export interface DashboardSummary {
   totalCustomers: number;
   totalSales: number;

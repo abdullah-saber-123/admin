@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Cairo } from "next/font/google";
 import Link from "next/link";
-import { LayoutDashboard, Users } from "lucide-react";
+import { ClipboardCheck, LayoutDashboard, Users } from "lucide-react";
 import { HeaderSearch } from "@/components/HeaderSearch";
 import "./globals.css";
 
@@ -19,7 +19,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="ar" dir="rtl" className={`${cairo.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-[var(--page)] text-[var(--ink)] font-sans">
-        <header className="sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--surface)]/90 backdrop-blur">
+        <header className="sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--surface)]/90 backdrop-blur print:hidden">
           <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4 sm:px-6">
             <Link href="/" className="flex shrink-0 items-center gap-2 font-bold text-[15px]">
               <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[var(--brand)] text-white text-sm">
@@ -44,6 +44,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               >
                 <Users size={16} />
                 العملاء
+              </Link>
+              <Link
+                href="/reconciliation"
+                className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[var(--ink-secondary)] hover:bg-[var(--hover)] hover:text-[var(--ink)]"
+              >
+                <ClipboardCheck size={16} />
+                المطابقات
               </Link>
             </nav>
           </div>

@@ -81,11 +81,10 @@ export default function CustomerDetailPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         <KpiCard label="إجمالي المبيعات" value={formatSar(customer.totalSales)} />
-        <KpiCard label="إجمالي التحصيل" value={formatSar(customer.totalCollected)} />
         <KpiCard
-          label="الرصيد المستحق"
+          label="رصيد العميل الحالي"
           value={formatSar(customer.totalOutstanding)}
           tone={customer.totalOutstanding > customer.creditLimit && customer.creditLimit > 0 ? "critical" : "neutral"}
         />
@@ -100,7 +99,7 @@ export default function CustomerDetailPage() {
           <AgingChart aging={customer.aging} />
         </div>
         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
-          <h2 className="mb-3 text-sm font-bold">المبيعات مقابل التحصيل (آخر 12 شهر)</h2>
+          <h2 className="mb-3 text-sm font-bold">المبيعات مقابل المدفوعات (آخر 12 شهر)</h2>
           <TrendChart data={trend} />
         </div>
       </div>

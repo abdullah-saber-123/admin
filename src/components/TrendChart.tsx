@@ -33,11 +33,11 @@ export function TrendChart({ data }: { data: TrendPoint[] }) {
         />
         <Tooltip
           labelFormatter={(v) => monthLabel(String(v))}
-          formatter={(value, name) => [formatSar(Number(value)), name === "sales" ? "المبيعات" : "التحصيل"]}
+          formatter={(value, name) => [formatSar(Number(value)), name === "sales" ? "المبيعات" : "المدفوعات"]}
           contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 13 }}
         />
         <Legend
-          formatter={(value: string) => (value === "sales" ? "المبيعات" : "التحصيل")}
+          formatter={(value: string) => (value === "sales" ? "المبيعات" : "المدفوعات")}
           wrapperStyle={{ fontSize: 12, color: "var(--ink-secondary)" }}
         />
         <Line type="monotone" dataKey="sales" stroke="var(--series-1)" strokeWidth={2} dot={{ r: 3 }} />

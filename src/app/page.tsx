@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { BadgeCheck, Banknote, HandCoins, Users, Wallet } from "lucide-react";
 import type { DashboardSummary } from "@/lib/types";
@@ -10,34 +9,22 @@ import { AgingChart } from "@/components/AgingChart";
 import { GradeBadge } from "@/components/GradeBadge";
 import { LoadingView, ErrorView } from "@/components/StateViews";
 import { SyncStatus } from "@/components/SyncStatus";
+import { useSyncedData } from "@/hooks/useSyncedData";
+
+interface DashboardResponse {
+  error?: string;
+  summary: DashboardSummary;
+  syncedAt: string | null;
+  refreshing?: boolean;
+}
 
 export default function DashboardPage() {
-  const [summary, setSummary] = useState<DashboardSummary | null>(null);
-  const [syncedAt, setSyncedAt] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
-
-  function load(forceRefresh = false) {
-    if (forceRefresh) setRefreshing(true);
-    fetch(`/api/dashboard${forceRefresh ? "?refresh=1" : ""}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.error) setError(data.error);
-        else {
-          setSummary(data.summary);
-          setSyncedAt(data.syncedAt ?? null);
-        }
-      })
-      .catch((e) => setError(String(e)))
-      .finally(() => setRefreshing(false));
-  }
-
-  useEffect(() => {
-    load(false);
-  }, []);
+  const { data, error, refreshing, refresh } = useSyncedData<DashboardResponse>("/api/dashboard");
 
   if (error) return <ErrorView message={error} />;
-  if (!summary) return <LoadingView />;
+  if (!data) return <LoadingView />;
+
+  const summary = data.summary;
 
   const totalGrades = Object.values(summary.gradeDistribution).reduce((a, b) => a + b, 0) || 1;
 
@@ -48,7 +35,7 @@ export default function DashboardPage() {
           <h1 className="text-xl font-bold">لوحة تحكم العملاء</h1>
           <p className="text-sm text-[var(--ink-muted)]">نظرة عامة على أداء السداد والتحصيل وأعمار الديون لكافة العملاء</p>
         </div>
-        <SyncStatus syncedAt={syncedAt} refreshing={refreshing} onRefresh={() => load(true)} />
+        <SyncStatus syncedAt={data.syncedAt} refreshing={refreshing} onRefresh={refresh} />
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">

@@ -31,7 +31,7 @@ export function SyncStatus({
         className="flex items-center gap-1.5 rounded-md border border-[var(--border-strong)] px-2.5 py-1 hover:bg-[var(--hover)] disabled:opacity-50"
       >
         <RefreshCw size={13} className={refreshing ? "animate-spin" : ""} />
-        {refreshing ? "جارٍ التحديث..." : "تحديث الآن"}
+        {refreshing ? "جارٍ التحديث في الخلفية..." : "تحديث الآن"}
       </button>
     </div>
   );

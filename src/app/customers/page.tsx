@@ -1,38 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import type { CustomerAnalysis } from "@/lib/types";
 import { CustomersTable } from "@/components/CustomersTable";
 import { LoadingView, ErrorView } from "@/components/StateViews";
 import { SyncStatus } from "@/components/SyncStatus";
+import { useSyncedData } from "@/hooks/useSyncedData";
+
+interface CustomersResponse {
+  error?: string;
+  customers: CustomerAnalysis[];
+  syncedAt: string | null;
+  refreshing?: boolean;
+}
 
 export default function CustomersPage() {
-  const [customers, setCustomers] = useState<CustomerAnalysis[] | null>(null);
-  const [syncedAt, setSyncedAt] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
-
-  function load(forceRefresh = false) {
-    if (forceRefresh) setRefreshing(true);
-    fetch(`/api/customers${forceRefresh ? "?refresh=1" : ""}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.error) setError(data.error);
-        else {
-          setCustomers(data.customers);
-          setSyncedAt(data.syncedAt ?? null);
-        }
-      })
-      .catch((e) => setError(String(e)))
-      .finally(() => setRefreshing(false));
-  }
-
-  useEffect(() => {
-    load(false);
-  }, []);
+  const { data, error, refreshing, refresh } = useSyncedData<CustomersResponse>("/api/customers");
 
   if (error) return <ErrorView message={error} />;
-  if (!customers) return <LoadingView />;
+  if (!data) return <LoadingView />;
+
+  const customers = data.customers;
 
   return (
     <div className="flex flex-col gap-4">
@@ -41,7 +28,7 @@ export default function CustomersPage() {
           <h1 className="text-xl font-bold">العملاء</h1>
           <p className="text-sm text-[var(--ink-muted)]">{customers.length} عميل لديهم حركة فواتير أو رصيد مستحق</p>
         </div>
-        <SyncStatus syncedAt={syncedAt} refreshing={refreshing} onRefresh={() => load(true)} />
+        <SyncStatus syncedAt={data.syncedAt} refreshing={refreshing} onRefresh={refresh} />
       </div>
       <CustomersTable customers={customers} />
     </div>

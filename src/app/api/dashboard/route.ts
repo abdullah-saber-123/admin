@@ -17,7 +17,7 @@ export async function GET(request: Request) {
   try {
     const snapshot = await getCustomersSnapshot(forceRefresh);
     const summary = buildDashboardSummary(snapshot.customers);
-    return NextResponse.json({ summary, syncedAt: snapshot.syncedAt });
+    return NextResponse.json({ summary, syncedAt: snapshot.syncedAt, refreshing: snapshot.refreshing });
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : "خطأ غير معروف" }, { status: 502 });
   }

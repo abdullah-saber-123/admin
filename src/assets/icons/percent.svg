@@ -1,0 +1,19 @@
+<svg width="220" height="220" viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg" role="img">
+<title>Animated percent icon</title>
+<desc>A circular ring made of three colored arcs rotating around a percent symbol</desc>
+<style>
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.ring { transform-origin: 110px 110px; animation: spin 3s linear infinite; }
+</style>
+<g class="ring">
+<circle cx="110" cy="110" r="86" fill="none" stroke="#0f6e56" stroke-width="26" stroke-linecap="round" stroke-dasharray="90 450" stroke-dashoffset="0"/>
+<circle cx="110" cy="110" r="86" fill="none" stroke="#1D9E75" stroke-width="26" stroke-linecap="round" stroke-dasharray="120 450" stroke-dashoffset="-95"/>
+<circle cx="110" cy="110" r="86" fill="none" stroke="#FAC775" stroke-width="26" stroke-linecap="round" stroke-dasharray="150 450" stroke-dashoffset="-220"/>
+</g>
+<circle cx="110" cy="110" r="60" fill="#ffffff"/>
+<g stroke="#2C2C2A" stroke-width="9" stroke-linecap="round" fill="none">
+<line x1="90" y1="130" x2="130" y2="90"/>
+</g>
+<circle cx="92" cy="92" r="9" fill="none" stroke="#2C2C2A" stroke-width="7"/>
+<circle cx="128" cy="128" r="9" fill="none" stroke="#2C2C2A" stroke-width="7"/>
+</svg>

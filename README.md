@@ -1,76 +1,57 @@
-# منصة تحليل العملاء (Customer Analytics Platform)
+# Collections Dashboard — Frontend
 
-منصة ويب مبنية بـ Next.js تتصل بواجهة برمجة تطبيقات أودو (Odoo) لجلب بيانات العملاء والفواتير والمدفوعات، وتُنتج تحليلات ولوحة تحكم تغطي:
+React + Vite. Deploy to Vercel, pointed at the backend API.
 
-- معدل السداد (Payment Rate)
-- الالتزام بمواعيد السداد (Commitment)
-- التقييم الائتماني (Rating A/B/C/D)
-- المبيعات (Sales)
-- التحصيل (Collection)
-- أعمار الديون (Aging: حالي / 1-30 / 31-60 / 61-90 / 90+)
-- توصيات تحليلية آلية لكل عميل آجل
+## 1. Push this folder to its own git repo
 
-## الإعداد
-
-1. انسخ `.env.example` إلى `.env.local` وعبّئ بيانات اتصال أودو:
-
-```
-ODOO_BASE_URL=https://your-odoo-instance.com
-ODOO_DB=your_db_name
-ODOO_USERNAME=your.email@example.com
-ODOO_API_KEY=your_odoo_api_key_or_password
+```bash
+cd frontend
+git init
+git add .
+git commit -m "Collections dashboard frontend"
+git remote add origin git@github.com:<you>/collection-dashboard-frontend.git
+git push -u origin main
 ```
 
-يتم الاتصال بأودو عبر JSON-RPC (`/jsonrpc`) باستخدام `res.partner` و`account.move` و`account.payment`.
+## 2. Deploy on Vercel
 
-2. تثبيت الحزم وتشغيل المشروع محلياً:
+1. [vercel.com/new](https://vercel.com/new) → Import the repo you just pushed.
+2. Framework preset: **Vite** (auto-detected).
+3. Build command: `npm run build` (default) · Output dir: `dist` (default).
+4. **Environment Variables** → add:
+   ```
+   VITE_API_URL = https://collect-api.swag.sa
+   ```
+   (must match whatever domain you pointed the Cloudflare Tunnel at for the backend)
+5. Deploy.
 
-```
+## 3. Custom domain (optional)
+
+Vercel project → Settings → Domains → add e.g. `collect.swag.sa`, then add
+the CNAME Vercel gives you in Cloudflare DNS (same way you've pointed other
+subdomains at Vercel, like swagpos.vercel.app's custom domain if you set one).
+
+## Local dev
+
+```bash
+cp .env.example .env
+# set VITE_API_URL=http://localhost:8060 (or your deployed backend URL)
 npm install
-npm run dev
+npm run dev        # http://localhost:5173
 ```
 
-## المزامنة الدورية (بدل الاتصال المباشر بأودو في كل طلب)
+## Redeploying
 
-بدل ما تُقرأ بيانات أودو مباشرة كل ما يفتح أحد لوحة التحكم أو قائمة العملاء، المشروع يعتمد على **مزامنة كاملة دورية**:
+Vercel auto-deploys on every push to the connected branch:
+```bash
+git add .
+git commit -m "update"
+git push
+```
 
-1. مهمة مجدولة (`vercel.json` → `crons`) تستدعي `/api/sync` كل ساعة افتراضياً (`0 * * * *`)، وتقدر تغيّرها لأي فترة تحبها.
-2. `/api/sync` يجلب **كل** العملاء والفواتير والمدفوعات من أودو (بدون أي سقف على العدد)، يحسب التحليلات، ويخزّن النتيجة كاملة في **Vercel Blob** كملف JSON واحد.
-3. `/api/customers` و `/api/dashboard` تقرأ من هذه النسخة المخزّنة مباشرة (سريعة جداً، بدون أي اتصال بأودو)، مع تخزين مؤقت إضافي في الذاكرة لمدة دقيقتين.
-4. زر **"تحديث الآن"** في أعلى لوحة التحكم وصفحة العملاء يفرض مزامنة فورية كاملة من أودو (`?refresh=1`) بدل انتظار الجدولة.
+## Notes
 
-### إعداد المزامنة على Vercel
-
-1. من مشروعك في Vercel: **Storage → Create Database → Blob** واربطه بالمشروع (هذا يضيف تلقائياً `BLOB_READ_WRITE_TOKEN` في متغيرات البيئة).
-2. (اختياري لكن يُنصح به) أضف متغير بيئة `CRON_SECRET` بقيمة عشوائية طويلة — Vercel يرسلها تلقائياً كـ `Authorization: Bearer <القيمة>` عند تشغيل الـ cron، وهذا يمنع أي شخص من استدعاء `/api/sync` يدوياً من الخارج.
-3. غيّر فترة الجدولة إن أردت من `vercel.json` (مثال: `*/30 * * * *` كل 30 دقيقة).
-4. ⚠️ **ملاحظة مهمة**: خطة Vercel **Hobby** المجانية تسمح بتشغيل الـ Cron Job **مرة واحدة فقط يومياً**. إذا تحتاج تحديث كل ساعة أو أقل فعليًا، تحتاج خطة **Pro** فما فوق. بدون Blob مُفعّل، النظام يرجع تلقائياً للاتصال المباشر بأودو في كل طلب (نفس السلوك القديم) دون أي كسر.
-
-## البنية
-
-- `src/lib/odoo.ts` — عميل JSON-RPC للاتصال بأودو (مصادقة + `search_read` مع سحب كل الصفحات بدون سقف).
-- `src/lib/analytics.ts` — منطق حساب مؤشرات كل عميل (سداد/التزام/تقييم/أعمار ديون) ومحرك التوصيات.
-- `src/lib/store.ts` — تخزين/قراءة نسخة العملاء الكاملة من Vercel Blob.
-- `src/lib/sync.ts` — تنسيق المزامنة الكاملة والتخزين المؤقت.
-- `src/app/api/sync/route.ts` — نقطة المزامنة المجدولة (يستدعيها Vercel Cron).
-- `src/app/api/*` — واجهات API داخلية تُغذّي الواجهة من آخر نسخة مزامنة.
-- `src/app/page.tsx` — لوحة التحكم العامة.
-- `src/app/customers` — قائمة العملاء وصفحة تحليل تفصيلي لكل عميل وكشف حسابه.
-
-## ملاحظات على منهجية الحساب
-
-**الرصيد المستحق، أعمار الديون، الالتزام، والتحصيل** كلها تُحسب من مصدر واحد: قيود حساب العميل المدين الخاص به في أودو (`account.move.line` على `property_account_receivable_id` الخاص بكل عميل، بحالة `posted`) — وهذا بالضبط نفس مصدر تقرير **Partner Ledger** في أودو (`/odoo/partner-ledger`)، ويشمل الرصيد الافتتاحي والفواتير والدفعات والمرتجعات معاً في تدفق واحد بترتيب التاريخ:
-
-- **الرصيد المستحق (رصيد العميل)** = الرصيد التراكمي (مدين − دائن) لكل قيود هذا الحساب حتى اليوم — تماماً كعمود "الرصيد" في تقرير Partner Ledger.
-- **إجمالي التحصيل** = مجموع الجانب الدائن (credit) لكل القيود، أي كل ما خُصم من رصيد العميل عبر دفعات أو مرتجعات.
-- **أعمار الديون** تُحسب من `date_maturity` (تاريخ استحقاق كل بند) مقابل تاريخ اليوم، على الجزء غير المسدد (`amount_residual`) من كل بند.
-- **الالتزام** = من بنود الفواتير (مدين) التي تجاوزت تاريخ استحقاقها: نسبة التي أُقفلت بالكامل إلى إجمالي المستحقة.
-- **معدل السداد** = (إجمالي المبيعات − الرصيد المستحق الحالي) ÷ إجمالي المبيعات.
-- **التقييم (Score)** = 40% معدل السداد + 30% الالتزام + 30% (100 − نسبة الديون شديدة التأخر ضمن الرصيد المستحق).
-- **المبيعات** تُحسب من الفواتير مباشرة (`account.move`, `out_invoice`/`out_refund`) لأنها الأنسب لرسم الاتجاه الشهري.
-
-هذا يُغني تماماً عن الاعتماد على نموذج `account.payment` (الذي تختلف قيم حقوله بين إصدارات أودو) لأي رقم إجمالي — أي دفعة أو مرتجع يُنشئ قيداً محاسبياً على حساب العميل المدين بغض النظر عن حالته في `account.payment`، فيظهر هنا تلقائياً. سجلات `account.payment` (جدول "آخر المدفوعات" ورسم "التحصيل الشهري") تبقى **معلوماتية فقط** لعرض تفاصيل كل دفعة (رقم المرجع، طريقة الدفع)، ولا تدخل في أي حساب إجمالي.
-
-**كشف الحساب** (`/customers/[id]/statement`) يعرض نفس هذه القيود بالتفصيل مع رصيد تراكمي لكل سطر — نفس شكل تقرير Partner Ledger تماماً.
-
-هذه القواعد قابلة للتعديل بسهولة داخل `src/lib/analytics.ts` و `src/lib/receivable-ledger.ts` حسب سياسة الشركة الائتمانية.
+- Admin login token is stored in the browser's `localStorage` — logging in
+  on one device doesn't affect others.
+- `frontend/Dockerfile` in this repo is optional/unused for Vercel deploys —
+  only needed if you ever want to self-host the frontend on the VM instead.

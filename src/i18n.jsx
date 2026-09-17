@@ -799,6 +799,8 @@ const en = {
   nominationSubmitted: "Nomination submitted.",
   noActiveOffersForYou: "There's no collection offer open for you right now.",
   alreadyNominated: "Nominated",
+  noteLabel: "Note",
+  yourNomination: "Your nomination",
 };
 
 const ar = {
@@ -1600,6 +1602,8 @@ const ar = {
   nominationSubmitted: "تم إرسال الترشيح.",
   noActiveOffersForYou: "لا يوجد عرض تحصيل مفتوح لك حالياً.",
   alreadyNominated: "تم الترشيح",
+  noteLabel: "ملاحظة",
+  yourNomination: "ترشيحك",
 };
 
 // The backend stores/matches these follow-up status VALUES in English exactly

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Megaphone, Plus, Printer, Check, X as XIcon, MessageCircle, ArrowLeft, Search, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { Megaphone, Plus, Printer, Check, X as XIcon, MessageCircle, ArrowLeft, Search, ArrowUp, ArrowDown, ArrowUpDown, ClipboardList } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 import { useToast } from "../toast.jsx";
@@ -71,7 +71,7 @@ function CreateOfferModal({ users, onClose, onCreated }) {
   );
 }
 
-function OfferDetail({ offer, users, onBack, onChanged }) {
+function OfferDetail({ offer, users, username, onBack, onChanged }) {
   const { t } = useLang();
   const { showToast } = useToast();
   const [nominations, setNominations] = useState(null);
@@ -79,6 +79,7 @@ function OfferDetail({ offer, users, onBack, onChanged }) {
   const [editingParticipants, setEditingParticipants] = useState(false);
   const [selectedParticipants, setSelectedParticipants] = useState([]);
   const [batchDrafts, setBatchDrafts] = useState({});
+  const [noteDrafts, setNoteDrafts] = useState({});
   const [busyId, setBusyId] = useState(null);
   const [printing, setPrinting] = useState(false);
 
@@ -112,7 +113,9 @@ function OfferDetail({ offer, users, onBack, onChanged }) {
   const decide = async (nom, status) => {
     setBusyId(nom.id);
     try {
-      await api.decideCollectionOfferNomination(offer.id, nom.id, { status, batch: batchDrafts[nom.id] ?? nom.batch ?? "" });
+      await api.decideCollectionOfferNomination(offer.id, nom.id, {
+        status, batch: batchDrafts[nom.id] ?? nom.batch ?? "", admin_note: noteDrafts[nom.id] ?? nom.admin_note ?? "",
+      });
       load();
     } catch (e) {
       showToast(e.message, "error");
@@ -120,6 +123,23 @@ function OfferDetail({ offer, users, onBack, onChanged }) {
       setBusyId(null);
     }
   };
+
+  const saveRow = async (nom) => {
+    setBusyId(nom.id);
+    try {
+      await api.decideCollectionOfferNomination(offer.id, nom.id, {
+        batch: batchDrafts[nom.id] ?? nom.batch ?? "", admin_note: noteDrafts[nom.id] ?? nom.admin_note ?? "",
+      });
+      showToast(t("saved"), "success");
+      load();
+    } catch (e) {
+      showToast(e.message, "error");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const myNomination = nominations?.find((n) => n.nominated_by === username);
 
   const openWhatsapp = async (nom) => {
     try {
@@ -198,6 +218,21 @@ function OfferDetail({ offer, users, onBack, onChanged }) {
         )}
       </div>
 
+      <div style={{ marginTop: 20 }}>
+        <h3 style={{ fontSize: 14 }}>{t("yourNomination")}</h3>
+        {myNomination ? (
+          <p className="panel-sub">
+            <span className="cust-name">{myNomination.customer_name}</span> —{" "}
+            <span className={`share-status-badge ${myNomination.status}`}>{statusLabel[myNomination.status] || myNomination.status}</span>
+            {myNomination.batch ? ` · ${myNomination.batch}` : ""}
+          </p>
+        ) : offer.status === "open" ? (
+          <NominateCustomerPicker offerId={offer.id} onNominated={load} />
+        ) : (
+          <p className="panel-sub">{t("offerClosed")}</p>
+        )}
+      </div>
+
       <h3 style={{ marginTop: 20, fontSize: 14 }}>{t("nominees")}</h3>
       {!nominations && <div className="loading-state">{t("loadingDots")}</div>}
       {nominations && nominations.length === 0 && <div className="empty-state">{t("noNomineesYet")}</div>}
@@ -209,9 +244,11 @@ function OfferDetail({ offer, users, onBack, onChanged }) {
                 <th>{t("customer")}</th>
                 <th>{t("balanceDue")}</th>
                 <th>{t("creditLimitLabel")}</th>
+                <th>{t("collectorField")}</th>
                 <th>{t("nominatedBy")}</th>
                 <th>{t("status")}</th>
                 <th>{t("batchLabel")}</th>
+                <th>{t("noteLabel")}</th>
                 <th>{t("actions")}</th>
               </tr>
             </thead>
@@ -221,6 +258,7 @@ function OfferDetail({ offer, users, onBack, onChanged }) {
                   <td data-label={t("customer")}><span className="cust-name">{n.customer_name || n.partner_id}</span></td>
                   <td data-label={t("balanceDue")}><RiyalAmount amount={n.current_due || 0} /></td>
                   <td data-label={t("creditLimitLabel")}>{n.credit_limit ? <RiyalAmount amount={n.credit_limit} /> : t("noCreditLimit")}</td>
+                  <td data-label={t("collectorField")}>{n.salesperson_name || "—"}</td>
                   <td data-label={t("nominatedBy")}>{n.nominated_by}</td>
                   <td data-label={t("status")}><span className={`share-status-badge ${n.status}`}>{statusLabel[n.status] || n.status}</span></td>
                   <td data-label={t("batchLabel")}>
@@ -232,6 +270,16 @@ function OfferDetail({ offer, users, onBack, onChanged }) {
                       />
                     </div>
                   </td>
+                  <td data-label={t("noteLabel")}>
+                    <div className="credit-limit-edit" style={{ width: 150 }}>
+                      <input
+                        value={noteDrafts[n.id] ?? n.admin_note ?? ""}
+                        onChange={(e) => setNoteDrafts((prev) => ({ ...prev, [n.id]: e.target.value }))}
+                        placeholder={t("noteLabel")}
+                        onBlur={() => saveRow(n)}
+                      />
+                    </div>
+                  </td>
                   <td data-label={t("actions")}>
                     <div style={{ display: "flex", gap: 6 }}>
                       <button className="icon-btn" title={t("accept")} disabled={busyId === n.id} onClick={() => decide(n, "accepted")}>
@@ -239,6 +287,9 @@ function OfferDetail({ offer, users, onBack, onChanged }) {
                       </button>
                       <button className="icon-btn" title={t("reject")} disabled={busyId === n.id} onClick={() => decide(n, "rejected")}>
                         <XIcon size={14} />
+                      </button>
+                      <button className="icon-btn" title={t("save")} disabled={busyId === n.id} onClick={() => saveRow(n)}>
+                        <ClipboardList size={14} />
                       </button>
                       <button className="icon-btn" title={t("sendWhatsapp")} disabled={n.status !== "accepted"} onClick={() => openWhatsapp(n)}>
                         <MessageCircle size={14} />
@@ -255,7 +306,7 @@ function OfferDetail({ offer, users, onBack, onChanged }) {
   );
 }
 
-function AdminOffers() {
+function AdminOffers({ username }) {
   const { t } = useLang();
   const { showToast } = useToast();
   const [offers, setOffers] = useState(null);
@@ -277,6 +328,7 @@ function AdminOffers() {
       <OfferDetail
         offer={selectedOffer}
         users={users}
+        username={username}
         onBack={() => { setSelectedOffer(null); load(); }}
         onChanged={() => { load(); api.getCollectionOffer(selectedOffer.id).then(setSelectedOffer); }}
       />
@@ -337,7 +389,7 @@ function AdminOffers() {
   );
 }
 
-function StaffNominate({ offer, onNominated, onBack }) {
+function NominateCustomerPicker({ offerId, onNominated }) {
   const { t } = useLang();
   const { showToast } = useToast();
   const [data, setData] = useState(null);
@@ -374,7 +426,7 @@ function StaffNominate({ offer, onNominated, onBack }) {
   const nominate = async (c) => {
     setNominating(c.partner_id);
     try {
-      await api.nominateForCollectionOffer(offer.id, c.partner_id);
+      await api.nominateForCollectionOffer(offerId, c.partner_id);
       showToast(t("nominationSubmitted"), "success");
       onNominated();
     } catch (e) {
@@ -385,13 +437,7 @@ function StaffNominate({ offer, onNominated, onBack }) {
   };
 
   return (
-    <div className="panel">
-      <button className="btn-secondary sm" onClick={onBack} style={{ marginBottom: 8 }}>
-        <ArrowLeft size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />{t("back")}
-      </button>
-      <h2><Megaphone size={15} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />{offer.name}</h2>
-      <p className="panel-sub">{t("nominateHint")}</p>
-
+    <>
       <div className="more-filters-row" style={{ marginBottom: 14 }}>
         <div className="more-filter-field">
           <div className="input-icon compact">
@@ -414,6 +460,7 @@ function StaffNominate({ offer, onNominated, onBack }) {
                   <th className="sortable" onClick={() => toggleSort("name")}>{t("customer")} {sortIcon("name")}</th>
                   <th className="sortable" onClick={() => toggleSort("current_due")}>{t("balanceDue")} {sortIcon("current_due")}</th>
                   <th>{t("creditLimitLabel")}</th>
+                  <th>{t("collectorField")}</th>
                   <th>{t("nominate")}</th>
                 </tr>
               </thead>
@@ -423,6 +470,7 @@ function StaffNominate({ offer, onNominated, onBack }) {
                     <td data-label={t("customer")}><span className="cust-name">{c.name}</span></td>
                     <td data-label={t("balanceDue")}><RiyalAmount amount={c.current_due} /></td>
                     <td data-label={t("creditLimitLabel")}>{c.credit_limit ? <RiyalAmount amount={c.credit_limit} /> : t("noCreditLimit")}</td>
+                    <td data-label={t("collectorField")}>{c.salesperson_name || "—"}</td>
                     <td data-label={t("nominate")}>
                       <button className="btn-primary sm" disabled={nominating === c.partner_id} onClick={() => nominate(c)}>
                         {nominating === c.partner_id ? t("saving") : t("nominate")}
@@ -440,6 +488,20 @@ function StaffNominate({ offer, onNominated, onBack }) {
           </div>
         </>
       )}
+    </>
+  );
+}
+
+function StaffNominate({ offer, onNominated, onBack }) {
+  const { t } = useLang();
+  return (
+    <div className="panel">
+      <button className="btn-secondary sm" onClick={onBack} style={{ marginBottom: 8 }}>
+        <ArrowLeft size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />{t("back")}
+      </button>
+      <h2><Megaphone size={15} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />{offer.name}</h2>
+      <p className="panel-sub">{t("nominateHint")}</p>
+      <NominateCustomerPicker offerId={offer.id} onNominated={onNominated} />
     </div>
   );
 }
@@ -504,10 +566,10 @@ function StaffOffers() {
   );
 }
 
-export default function CollectionOffers({ role }) {
+export default function CollectionOffers({ role, username }) {
   return (
     <div className="content-stack" style={{ maxWidth: "100%" }}>
-      {role === "admin" ? <AdminOffers /> : <StaffOffers />}
+      {role === "admin" ? <AdminOffers username={username} /> : <StaffOffers />}
     </div>
   );
 }

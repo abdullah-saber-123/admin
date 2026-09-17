@@ -389,7 +389,7 @@ export default function App() {
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><CreditNominationReport onSelectCustomer={setSelectedId} role={session.role} /></Suspense>
           )}
           {view === "collectionOffers" && (
-            <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><CollectionOffers role={session.role} /></Suspense>
+            <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><CollectionOffers role={session.role} username={session.username} /></Suspense>
           )}
           {view === "paymentProofs" && (session.role === "admin" || (session.permissions || "").includes("paymentProofs")) && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><PaymentProofsReport onSelectCustomer={setSelectedId} /></Suspense>

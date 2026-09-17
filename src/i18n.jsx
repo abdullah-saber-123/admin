@@ -802,6 +802,8 @@ const en = {
   noteLabel: "Note",
   yourNomination: "Your nomination",
   yourNominations: "Your nominations",
+  balanceFrom: "Balance from",
+  balanceTo: "Balance to",
   nominatedMultipleTimes: "Nominated by more than one collector",
 };
 
@@ -1607,6 +1609,8 @@ const ar = {
   noteLabel: "ملاحظة",
   yourNomination: "ترشيحك",
   yourNominations: "ترشيحاتك",
+  balanceFrom: "الرصيد من",
+  balanceTo: "الرصيد إلى",
   nominatedMultipleTimes: "رشّحه أكثر من محصّل",
 };
 

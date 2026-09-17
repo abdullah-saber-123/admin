@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Megaphone, Plus, Printer, Check, X as XIcon, MessageCircle, ArrowLeft, Search, ArrowUp, ArrowDown, ArrowUpDown, ClipboardList, Users2 } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
@@ -75,24 +75,71 @@ function NominateCustomerPicker({ offerId, nominatedPartnerIds, onNominated }) {
   const { t } = useLang();
   const { showToast } = useToast();
   const [data, setData] = useState(null);
+  const [allRows, setAllRows] = useState([]);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
+  const [cities, setCities] = useState([]);
+  const [cityFilter, setCityFilter] = useState("");
+  const [collectors, setCollectors] = useState([]);
+  const [collectorFilter, setCollectorFilter] = useState("");
+  const [minBalance, setMinBalance] = useState("");
+  const [maxBalance, setMaxBalance] = useState("");
   const [page, setPage] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [sortBy, setSortBy] = useState("current_due");
   const [sortDir, setSortDir] = useState("desc");
   const [nominating, setNominating] = useState(null);
+  const tableWrapRef = useRef(null);
+  const scrollLoadLockRef = useRef(false);
+
+  useEffect(() => {
+    api.cities().then(setCities).catch(() => {});
+    api.collectors().then(setCollectors).catch(() => {});
+  }, []);
 
   const load = useCallback(() => {
-    api.customers({ search, page, page_size: 25, sort_by: sortBy, sort_dir: sortDir })
-      .then(setData).catch((e) => setError(e.message));
-  }, [search, page, sortBy, sortDir]);
+    setError(null);
+    if (page > 1) setLoadingMore(true);
+    api.customers({
+      search, city: cityFilter, collector: collectorFilter,
+      min_balance: minBalance !== "" ? minBalance : "", max_balance: maxBalance !== "" ? maxBalance : "",
+      page, page_size: 25, sort_by: sortBy, sort_dir: sortDir,
+    })
+      .then((res) => {
+        setData(res);
+        setAllRows((prev) => (prev.length === 0 ? res.results : [...prev, ...res.results]));
+      })
+      .catch((e) => setError(e.message))
+      .finally(() => {
+        setLoadingMore(false);
+        scrollLoadLockRef.current = false;
+      });
+  }, [search, cityFilter, collectorFilter, minBalance, maxBalance, page, sortBy, sortDir]);
 
   useEffect(() => {
     const timer = setTimeout(load, 250);
     return () => clearTimeout(timer);
   }, [load]);
 
-  useEffect(() => { setPage(1); }, [search]);
+  useEffect(() => {
+    setPage(1); setAllRows([]); scrollLoadLockRef.current = false;
+  }, [search, cityFilter, collectorFilter, minBalance, maxBalance, sortBy, sortDir]);
+
+  useEffect(() => {
+    const el = tableWrapRef.current;
+    if (!el || !data) return undefined;
+    const hasMore = allRows.length < data.total;
+    if (!hasMore) return undefined;
+    const onScroll = () => {
+      if (scrollLoadLockRef.current) return;
+      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 300) {
+        scrollLoadLockRef.current = true;
+        setPage((p) => p + 1);
+      }
+    };
+    el.addEventListener("scroll", onScroll);
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [data, allRows.length]);
 
   const toggleSort = (field) => {
     if (sortBy === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -102,8 +149,6 @@ function NominateCustomerPicker({ offerId, nominatedPartnerIds, onNominated }) {
     if (sortBy !== field) return <ArrowUpDown size={11} style={{ opacity: 0.4 }} />;
     return sortDir === "asc" ? <ArrowUp size={11} /> : <ArrowDown size={11} />;
   };
-
-  const totalPages = data ? Math.max(1, Math.ceil(data.total / (data.page_size || 25))) : 1;
 
   const nominate = async (c) => {
     setNominating(c.partner_id);
@@ -127,15 +172,37 @@ function NominateCustomerPicker({ offerId, nominatedPartnerIds, onNominated }) {
             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("searchPlaceholder")} />
           </div>
         </div>
+        <div className="more-filter-field">
+          <label>{t("cityLabel")}</label>
+          <select value={cityFilter} onChange={(e) => setCityFilter(e.target.value)}>
+            <option value="">{t("allStatus")}</option>
+            {cities.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+        <div className="more-filter-field">
+          <label>{t("collectorField")}</label>
+          <select value={collectorFilter} onChange={(e) => setCollectorFilter(e.target.value)}>
+            <option value="">{t("allStatus")}</option>
+            {collectors.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+        <div className="more-filter-field">
+          <label>{t("balanceFrom")}</label>
+          <input type="number" min="0" value={minBalance} onChange={(e) => setMinBalance(e.target.value)} />
+        </div>
+        <div className="more-filter-field">
+          <label>{t("balanceTo")}</label>
+          <input type="number" min="0" value={maxBalance} onChange={(e) => setMaxBalance(e.target.value)} />
+        </div>
       </div>
 
       {error && <div className="error-state">{error}</div>}
       {!error && !data && <div className="loading-state">{t("loadingDots")}</div>}
-      {data && data.results.length === 0 && <div className="empty-state">{t("noActivity")}</div>}
+      {data && allRows.length === 0 && <div className="empty-state">{t("noActivity")}</div>}
 
-      {data && data.results.length > 0 && (
+      {data && allRows.length > 0 && (
         <>
-          <div className="table-wrap">
+          <div className="table-wrap" ref={tableWrapRef}>
             <table className="data-table">
               <thead>
                 <tr>
@@ -147,7 +214,7 @@ function NominateCustomerPicker({ offerId, nominatedPartnerIds, onNominated }) {
                 </tr>
               </thead>
               <tbody>
-                {data.results.map((c) => {
+                {allRows.map((c) => {
                   const already = nominatedPartnerIds?.includes(c.partner_id);
                   return (
                     <tr key={c.partner_id}>
@@ -166,10 +233,15 @@ function NominateCustomerPicker({ offerId, nominatedPartnerIds, onNominated }) {
               </tbody>
             </table>
           </div>
-          <div className="pagination">
-            <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>{t("prev")}</button>
-            <span className="page-info">{page} / {totalPages} · {data.total}</span>
-            <button disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>{t("next")}</button>
+          <div className="infinite-scroll-status">
+            {loadingMore ? (
+              <span className="loading-state" style={{ padding: 0 }}>{t("loadingDots")}</span>
+            ) : (
+              <span>
+                <bdi>{allRows.length}</bdi> / <bdi>{data.total}</bdi>
+                {allRows.length < data.total ? ` – ${t("scrollForMore")}` : ""}
+              </span>
+            )}
           </div>
         </>
       )}

@@ -368,6 +368,10 @@ export const api = {
     request(`/api/admin/collection-offers/${offerId}/nominations/${nominationId}/whatsapp-link`),
   printCollectionOfferNominations: (id) => requestBlob(`/api/admin/collection-offers/${id}/nominations/pdf`),
   myCollectionOffers: () => request("/api/collection-offers/mine"),
+  collectionOfferCustomers: (offerId, params = {}) => {
+    const qs = buildQueryString(params);
+    return request(`/api/collection-offers/${offerId}/customers${qs ? `?${qs}` : ""}`);
+  },
   nominateForCollectionOffer: (offerId, partner_id) =>
     request(`/api/collection-offers/${offerId}/nominate`, { method: "POST", body: JSON.stringify({ partner_id }) }),
 };

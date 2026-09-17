@@ -100,7 +100,7 @@ function NominateCustomerPicker({ offerId, nominatedPartnerIds, onNominated }) {
   const load = useCallback(() => {
     setError(null);
     if (page > 1) setLoadingMore(true);
-    api.customers({
+    api.collectionOfferCustomers(offerId, {
       search, city: cityFilter, collector: collectorFilter,
       min_balance: minBalance !== "" ? minBalance : "", max_balance: maxBalance !== "" ? maxBalance : "",
       page, page_size: 25, sort_by: sortBy, sort_dir: sortDir,
@@ -114,7 +114,7 @@ function NominateCustomerPicker({ offerId, nominatedPartnerIds, onNominated }) {
         setLoadingMore(false);
         scrollLoadLockRef.current = false;
       });
-  }, [search, cityFilter, collectorFilter, minBalance, maxBalance, page, sortBy, sortDir]);
+  }, [offerId, search, cityFilter, collectorFilter, minBalance, maxBalance, page, sortBy, sortDir]);
 
   useEffect(() => {
     const timer = setTimeout(load, 250);

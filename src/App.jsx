@@ -40,6 +40,7 @@ const DailyActivityReport = lazy(() => import("./components/DailyActivityReport.
 const CollectorActivityExplorer = lazy(() => import("./components/CollectorActivityExplorer.jsx"));
 const CostOfDebtReport = lazy(() => import("./components/CostOfDebtReport.jsx"));
 const CreditNominationReport = lazy(() => import("./components/CreditNominationReport.jsx"));
+const CollectionOffers = lazy(() => import("./components/CollectionOffers.jsx"));
 const PaymentProofsReport = lazy(() => import("./components/PaymentProofsReport.jsx"));
 const PortalManagementReport = lazy(() => import("./components/PortalManagementReport.jsx"));
 const MonthlyReport = lazy(() => import("./components/MonthlyReport.jsx"));
@@ -197,6 +198,7 @@ export default function App() {
               : view === "customerScore" ? t("customerScoreTitle")
               : view === "brokenPromises" ? t("brokenPromisesTitle")
               : view === "collectionsReport" ? t("collectionsReportTitle")
+              : view === "collectionOffers" ? t("collectionOfferTitle")
               : view === "loginHistory" ? t("loginHistoryTitle")
               : view === "customerShares" ? t("customerSharesTitle")
               : view === "teamsSettings" ? t("teamsIntegrationTitle")
@@ -385,6 +387,9 @@ export default function App() {
           )}
           {view === "creditNomination" && (session.role === "admin" || (session.permissions || "").includes("creditNomination")) && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><CreditNominationReport onSelectCustomer={setSelectedId} role={session.role} /></Suspense>
+          )}
+          {view === "collectionOffers" && (
+            <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><CollectionOffers role={session.role} /></Suspense>
           )}
           {view === "paymentProofs" && (session.role === "admin" || (session.permissions || "").includes("paymentProofs")) && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><PaymentProofsReport onSelectCustomer={setSelectedId} /></Suspense>

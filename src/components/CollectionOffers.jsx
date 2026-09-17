@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Megaphone, Plus, Printer, Check, X as XIcon, MessageCircle, ArrowLeft, Search, ArrowUp, ArrowDown, ArrowUpDown, ClipboardList } from "lucide-react";
+import { Megaphone, Plus, Printer, Check, X as XIcon, MessageCircle, ArrowLeft, Search, ArrowUp, ArrowDown, ArrowUpDown, ClipboardList, Users2 } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 import { useToast } from "../toast.jsx";
@@ -71,325 +71,7 @@ function CreateOfferModal({ users, onClose, onCreated }) {
   );
 }
 
-function OfferDetail({ offer, users, username, onBack, onChanged }) {
-  const { t } = useLang();
-  const { showToast } = useToast();
-  const [nominations, setNominations] = useState(null);
-  const [participants, setParticipants] = useState([]);
-  const [editingParticipants, setEditingParticipants] = useState(false);
-  const [selectedParticipants, setSelectedParticipants] = useState([]);
-  const [batchDrafts, setBatchDrafts] = useState({});
-  const [noteDrafts, setNoteDrafts] = useState({});
-  const [busyId, setBusyId] = useState(null);
-  const [printing, setPrinting] = useState(false);
-
-  const load = useCallback(() => {
-    api.getCollectionOffer(offer.id).then((d) => setParticipants(d.participants.map((p) => p.username))).catch(() => {});
-    api.listCollectionOfferNominations(offer.id).then(setNominations).catch((e) => showToast(e.message, "error"));
-  }, [offer.id]);
-
-  useEffect(() => { load(); }, [load]);
-
-  const toggleStatus = async () => {
-    try {
-      await api.updateCollectionOffer(offer.id, { status: offer.status === "open" ? "closed" : "open" });
-      onChanged();
-    } catch (e) {
-      showToast(e.message, "error");
-    }
-  };
-
-  const saveParticipants = async () => {
-    try {
-      await api.setCollectionOfferParticipants(offer.id, selectedParticipants);
-      setParticipants(selectedParticipants);
-      setEditingParticipants(false);
-      showToast(t("saved"), "success");
-    } catch (e) {
-      showToast(e.message, "error");
-    }
-  };
-
-  const decide = async (nom, status) => {
-    setBusyId(nom.id);
-    try {
-      await api.decideCollectionOfferNomination(offer.id, nom.id, {
-        status, batch: batchDrafts[nom.id] ?? nom.batch ?? "", admin_note: noteDrafts[nom.id] ?? nom.admin_note ?? "",
-      });
-      load();
-    } catch (e) {
-      showToast(e.message, "error");
-    } finally {
-      setBusyId(null);
-    }
-  };
-
-  const saveRow = async (nom) => {
-    setBusyId(nom.id);
-    try {
-      await api.decideCollectionOfferNomination(offer.id, nom.id, {
-        batch: batchDrafts[nom.id] ?? nom.batch ?? "", admin_note: noteDrafts[nom.id] ?? nom.admin_note ?? "",
-      });
-      showToast(t("saved"), "success");
-      load();
-    } catch (e) {
-      showToast(e.message, "error");
-    } finally {
-      setBusyId(null);
-    }
-  };
-
-  const myNomination = nominations?.find((n) => n.nominated_by === username);
-
-  const openWhatsapp = async (nom) => {
-    try {
-      const { url } = await api.collectionOfferNominationWhatsappLink(offer.id, nom.id);
-      window.open(url, "_blank", "noopener,noreferrer");
-    } catch (e) {
-      showToast(e.message, "error");
-    }
-  };
-
-  const handlePrint = async () => {
-    setPrinting(true);
-    try {
-      await api.printCollectionOfferNominations(offer.id);
-    } catch (e) {
-      showToast(e.message, "error");
-    } finally {
-      setPrinting(false);
-    }
-  };
-
-  const statusLabel = { pending: t("nominationPending"), accepted: t("nominationAccepted"), rejected: t("nominationRejected") };
-
-  return (
-    <div className="panel">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
-        <div>
-          <button className="btn-secondary sm" onClick={onBack} style={{ marginBottom: 8 }}>
-            <ArrowLeft size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />{t("back")}
-          </button>
-          <h2>{offer.name}</h2>
-          <p className="panel-sub">
-            {offer.event_date || t("noDateSet")} · <span className={`share-status-badge ${offer.status === "open" ? "accepted" : "ended"}`}>{offer.status === "open" ? t("offerOpen") : t("offerClosed")}</span>
-          </p>
-        </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button className="btn-secondary sm" onClick={handlePrint} disabled={printing}>
-            <Printer size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />{t("print")}
-          </button>
-          <button className="btn-secondary sm" onClick={toggleStatus}>
-            {offer.status === "open" ? t("closeOffer") : t("reopenOffer")}
-          </button>
-        </div>
-      </div>
-
-      <div style={{ marginTop: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h3 style={{ margin: 0, fontSize: 14 }}>{t("offerParticipants")} ({participants.length})</h3>
-          {!editingParticipants && (
-            <button className="btn-secondary sm" onClick={() => { setSelectedParticipants(participants); setEditingParticipants(true); }}>
-              {t("edit")}
-            </button>
-          )}
-        </div>
-        {editingParticipants ? (
-          <>
-            <div className="multiselect-list" style={{ marginTop: 8 }}>
-              {users.map((u) => (
-                <label key={u.username} className="multiselect-item">
-                  <input
-                    type="checkbox"
-                    checked={selectedParticipants.includes(u.username)}
-                    onChange={() => setSelectedParticipants((prev) => prev.includes(u.username) ? prev.filter((x) => x !== u.username) : [...prev, u.username])}
-                  />
-                  {u.full_name || u.username}
-                </label>
-              ))}
-            </div>
-            <div className="prompt-actions" style={{ justifyContent: "flex-start", marginTop: 8 }}>
-              <button className="btn-secondary sm" onClick={() => setEditingParticipants(false)}>{t("cancel")}</button>
-              <button className="btn-primary sm" onClick={saveParticipants}>{t("save")}</button>
-            </div>
-          </>
-        ) : (
-          <p className="panel-sub">{participants.length ? participants.join(", ") : t("noParticipantsYet")}</p>
-        )}
-      </div>
-
-      <div style={{ marginTop: 20 }}>
-        <h3 style={{ fontSize: 14 }}>{t("yourNomination")}</h3>
-        {myNomination ? (
-          <p className="panel-sub">
-            <span className="cust-name">{myNomination.customer_name}</span> —{" "}
-            <span className={`share-status-badge ${myNomination.status}`}>{statusLabel[myNomination.status] || myNomination.status}</span>
-            {myNomination.batch ? ` · ${myNomination.batch}` : ""}
-          </p>
-        ) : offer.status === "open" ? (
-          <NominateCustomerPicker offerId={offer.id} onNominated={load} />
-        ) : (
-          <p className="panel-sub">{t("offerClosed")}</p>
-        )}
-      </div>
-
-      <h3 style={{ marginTop: 20, fontSize: 14 }}>{t("nominees")}</h3>
-      {!nominations && <div className="loading-state">{t("loadingDots")}</div>}
-      {nominations && nominations.length === 0 && <div className="empty-state">{t("noNomineesYet")}</div>}
-      {nominations && nominations.length > 0 && (
-        <div className="table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>{t("customer")}</th>
-                <th>{t("balanceDue")}</th>
-                <th>{t("creditLimitLabel")}</th>
-                <th>{t("collectorField")}</th>
-                <th>{t("nominatedBy")}</th>
-                <th>{t("status")}</th>
-                <th>{t("batchLabel")}</th>
-                <th>{t("noteLabel")}</th>
-                <th>{t("actions")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {nominations.map((n) => (
-                <tr key={n.id}>
-                  <td data-label={t("customer")}><span className="cust-name">{n.customer_name || n.partner_id}</span></td>
-                  <td data-label={t("balanceDue")}><RiyalAmount amount={n.current_due || 0} /></td>
-                  <td data-label={t("creditLimitLabel")}>{n.credit_limit ? <RiyalAmount amount={n.credit_limit} /> : t("noCreditLimit")}</td>
-                  <td data-label={t("collectorField")}>{n.salesperson_name || "—"}</td>
-                  <td data-label={t("nominatedBy")}>{n.nominated_by}</td>
-                  <td data-label={t("status")}><span className={`share-status-badge ${n.status}`}>{statusLabel[n.status] || n.status}</span></td>
-                  <td data-label={t("batchLabel")}>
-                    <div className="credit-limit-edit" style={{ width: 130 }}>
-                      <input
-                        value={batchDrafts[n.id] ?? n.batch ?? ""}
-                        onChange={(e) => setBatchDrafts((prev) => ({ ...prev, [n.id]: e.target.value }))}
-                        placeholder={t("batchPlaceholder")}
-                      />
-                    </div>
-                  </td>
-                  <td data-label={t("noteLabel")}>
-                    <div className="credit-limit-edit" style={{ width: 150 }}>
-                      <input
-                        value={noteDrafts[n.id] ?? n.admin_note ?? ""}
-                        onChange={(e) => setNoteDrafts((prev) => ({ ...prev, [n.id]: e.target.value }))}
-                        placeholder={t("noteLabel")}
-                        onBlur={() => saveRow(n)}
-                      />
-                    </div>
-                  </td>
-                  <td data-label={t("actions")}>
-                    <div style={{ display: "flex", gap: 6 }}>
-                      <button className="icon-btn" title={t("accept")} disabled={busyId === n.id} onClick={() => decide(n, "accepted")}>
-                        <Check size={14} />
-                      </button>
-                      <button className="icon-btn" title={t("reject")} disabled={busyId === n.id} onClick={() => decide(n, "rejected")}>
-                        <XIcon size={14} />
-                      </button>
-                      <button className="icon-btn" title={t("save")} disabled={busyId === n.id} onClick={() => saveRow(n)}>
-                        <ClipboardList size={14} />
-                      </button>
-                      <button className="icon-btn" title={t("sendWhatsapp")} disabled={n.status !== "accepted"} onClick={() => openWhatsapp(n)}>
-                        <MessageCircle size={14} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function AdminOffers({ username }) {
-  const { t } = useLang();
-  const { showToast } = useToast();
-  const [offers, setOffers] = useState(null);
-  const [users, setUsers] = useState([]);
-  const [showCreate, setShowCreate] = useState(false);
-  const [selectedOffer, setSelectedOffer] = useState(null);
-
-  const load = useCallback(() => {
-    api.listCollectionOffers().then(setOffers).catch((e) => showToast(e.message, "error"));
-  }, []);
-
-  useEffect(() => {
-    load();
-    api.listUsers().then((list) => setUsers(list.filter((u) => u.active))).catch(() => {});
-  }, [load]);
-
-  if (selectedOffer) {
-    return (
-      <OfferDetail
-        offer={selectedOffer}
-        users={users}
-        username={username}
-        onBack={() => { setSelectedOffer(null); load(); }}
-        onChanged={() => { load(); api.getCollectionOffer(selectedOffer.id).then(setSelectedOffer); }}
-      />
-    );
-  }
-
-  return (
-    <div className="panel">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
-        <div>
-          <h2><Megaphone size={15} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />{t("collectionOfferTitle")}</h2>
-          <p className="panel-sub">{t("collectionOfferHint")}</p>
-        </div>
-        <button className="btn-primary sm" onClick={() => setShowCreate(true)}>
-          <Plus size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />{t("newCollectionOffer")}
-        </button>
-      </div>
-
-      {!offers && <div className="loading-state">{t("loadingDots")}</div>}
-      {offers && offers.length === 0 && <div className="empty-state">{t("noOffersYet")}</div>}
-      {offers && offers.length > 0 && (
-        <div className="table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>{t("offerName")}</th>
-                <th>{t("offerEventDate")}</th>
-                <th>{t("status")}</th>
-                <th>{t("offerParticipants")}</th>
-                <th>{t("nominees")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {offers.map((o) => (
-                <tr key={o.id} className="clickable-row" onClick={() => setSelectedOffer(o)}>
-                  <td data-label={t("offerName")}><span className="cust-name">{o.name}</span></td>
-                  <td data-label={t("offerEventDate")}>{o.event_date || t("noDateSet")}</td>
-                  <td data-label={t("status")}><span className={`share-status-badge ${o.status === "open" ? "accepted" : "ended"}`}>{o.status === "open" ? t("offerOpen") : t("offerClosed")}</span></td>
-                  <td data-label={t("offerParticipants")}>{o.participants_count}</td>
-                  <td data-label={t("nominees")}>
-                    {o.nominations_count} ({o.pending_count} {t("nominationPending")})
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {showCreate && (
-        <CreateOfferModal
-          users={users}
-          onClose={() => setShowCreate(false)}
-          onCreated={() => { setShowCreate(false); load(); }}
-        />
-      )}
-    </div>
-  );
-}
-
-function NominateCustomerPicker({ offerId, onNominated }) {
+function NominateCustomerPicker({ offerId, nominatedPartnerIds, onNominated }) {
   const { t } = useLang();
   const { showToast } = useToast();
   const [data, setData] = useState(null);
@@ -465,19 +147,22 @@ function NominateCustomerPicker({ offerId, onNominated }) {
                 </tr>
               </thead>
               <tbody>
-                {data.results.map((c) => (
-                  <tr key={c.partner_id}>
-                    <td data-label={t("customer")}><span className="cust-name">{c.name}</span></td>
-                    <td data-label={t("balanceDue")}><RiyalAmount amount={c.current_due} /></td>
-                    <td data-label={t("creditLimitLabel")}>{c.credit_limit ? <RiyalAmount amount={c.credit_limit} /> : t("noCreditLimit")}</td>
-                    <td data-label={t("collectorField")}>{c.salesperson_name || "—"}</td>
-                    <td data-label={t("nominate")}>
-                      <button className="btn-primary sm" disabled={nominating === c.partner_id} onClick={() => nominate(c)}>
-                        {nominating === c.partner_id ? t("saving") : t("nominate")}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {data.results.map((c) => {
+                  const already = nominatedPartnerIds?.includes(c.partner_id);
+                  return (
+                    <tr key={c.partner_id}>
+                      <td data-label={t("customer")}><span className="cust-name">{c.name}</span></td>
+                      <td data-label={t("balanceDue")}><RiyalAmount amount={c.current_due} /></td>
+                      <td data-label={t("creditLimitLabel")}>{c.credit_limit ? <RiyalAmount amount={c.credit_limit} /> : t("noCreditLimit")}</td>
+                      <td data-label={t("collectorField")}>{c.salesperson_name || "—"}</td>
+                      <td data-label={t("nominate")}>
+                        <button className="btn-primary sm" disabled={already || nominating === c.partner_id} onClick={() => nominate(c)}>
+                          {already ? t("alreadyNominated") : nominating === c.partner_id ? t("saving") : t("nominate")}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -492,7 +177,377 @@ function NominateCustomerPicker({ offerId, onNominated }) {
   );
 }
 
-function StaffNominate({ offer, onNominated, onBack }) {
+function OfferNominees({ offer, onBack }) {
+  const { t } = useLang();
+  const { showToast } = useToast();
+  const [nominations, setNominations] = useState(null);
+  const [batchDrafts, setBatchDrafts] = useState({});
+  const [noteDrafts, setNoteDrafts] = useState({});
+  const [busyId, setBusyId] = useState(null);
+  const [printing, setPrinting] = useState(false);
+
+  const load = useCallback(() => {
+    api.listCollectionOfferNominations(offer.id).then(setNominations).catch((e) => showToast(e.message, "error"));
+  }, [offer.id]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const decide = async (nom, status) => {
+    setBusyId(nom.id);
+    try {
+      await api.decideCollectionOfferNomination(offer.id, nom.id, {
+        status, batch: batchDrafts[nom.id] ?? nom.batch ?? "", admin_note: noteDrafts[nom.id] ?? nom.admin_note ?? "",
+      });
+      load();
+    } catch (e) {
+      showToast(e.message, "error");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const saveRow = async (nom) => {
+    setBusyId(nom.id);
+    try {
+      await api.decideCollectionOfferNomination(offer.id, nom.id, {
+        batch: batchDrafts[nom.id] ?? nom.batch ?? "", admin_note: noteDrafts[nom.id] ?? nom.admin_note ?? "",
+      });
+      showToast(t("saved"), "success");
+      load();
+    } catch (e) {
+      showToast(e.message, "error");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const openWhatsapp = async (nom) => {
+    try {
+      const { url } = await api.collectionOfferNominationWhatsappLink(offer.id, nom.id);
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (e) {
+      showToast(e.message, "error");
+    }
+  };
+
+  const handlePrint = async () => {
+    setPrinting(true);
+    try {
+      await api.printCollectionOfferNominations(offer.id);
+    } catch (e) {
+      showToast(e.message, "error");
+    } finally {
+      setPrinting(false);
+    }
+  };
+
+  const statusLabel = { pending: t("nominationPending"), accepted: t("nominationAccepted"), rejected: t("nominationRejected") };
+
+  return (
+    <div className="panel">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
+        <div>
+          <button className="btn-secondary sm" onClick={onBack} style={{ marginBottom: 8 }}>
+            <ArrowLeft size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />{t("back")}
+          </button>
+          <h2>{offer.name} — {t("nominees")}</h2>
+          <p className="panel-sub">{offer.event_date || t("noDateSet")}</p>
+        </div>
+        <button className="btn-secondary sm" onClick={handlePrint} disabled={printing}>
+          <Printer size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />{t("print")}
+        </button>
+      </div>
+
+      {!nominations && <div className="loading-state">{t("loadingDots")}</div>}
+      {nominations && nominations.length === 0 && <div className="empty-state">{t("noNomineesYet")}</div>}
+      {nominations && nominations.length > 0 && (
+        <div className="table-wrap">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>{t("customer")}</th>
+                <th>{t("balanceDue")}</th>
+                <th>{t("creditLimitLabel")}</th>
+                <th>{t("collectorField")}</th>
+                <th>{t("nominatedBy")}</th>
+                <th>{t("status")}</th>
+                <th>{t("batchLabel")}</th>
+                <th>{t("noteLabel")}</th>
+                <th>{t("actions")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {nominations.map((n) => (
+                <tr key={n.id}>
+                  <td data-label={t("customer")}>
+                    <span className="cust-name">{n.customer_name || n.partner_id}</span>
+                    {n.nomination_count > 1 && (
+                      <span className="share-status-badge pending" title={t("nominatedMultipleTimes")} style={{ marginInlineStart: 6 }}>
+                        ×{n.nomination_count}
+                      </span>
+                    )}
+                  </td>
+                  <td data-label={t("balanceDue")}><RiyalAmount amount={n.current_due || 0} /></td>
+                  <td data-label={t("creditLimitLabel")}>{n.credit_limit ? <RiyalAmount amount={n.credit_limit} /> : t("noCreditLimit")}</td>
+                  <td data-label={t("collectorField")}>{n.salesperson_name || "—"}</td>
+                  <td data-label={t("nominatedBy")}>{n.nominated_by}</td>
+                  <td data-label={t("status")}><span className={`share-status-badge ${n.status}`}>{statusLabel[n.status] || n.status}</span></td>
+                  <td data-label={t("batchLabel")}>
+                    <div className="credit-limit-edit" style={{ width: 130 }}>
+                      <input
+                        value={batchDrafts[n.id] ?? n.batch ?? ""}
+                        onChange={(e) => setBatchDrafts((prev) => ({ ...prev, [n.id]: e.target.value }))}
+                        placeholder={t("batchPlaceholder")}
+                      />
+                    </div>
+                  </td>
+                  <td data-label={t("noteLabel")}>
+                    <div className="credit-limit-edit" style={{ width: 150 }}>
+                      <input
+                        value={noteDrafts[n.id] ?? n.admin_note ?? ""}
+                        onChange={(e) => setNoteDrafts((prev) => ({ ...prev, [n.id]: e.target.value }))}
+                        placeholder={t("noteLabel")}
+                        onBlur={() => saveRow(n)}
+                      />
+                    </div>
+                  </td>
+                  <td data-label={t("actions")}>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button className="icon-btn" title={t("accept")} disabled={busyId === n.id} onClick={() => decide(n, "accepted")}>
+                        <Check size={14} />
+                      </button>
+                      <button className="icon-btn" title={t("reject")} disabled={busyId === n.id} onClick={() => decide(n, "rejected")}>
+                        <XIcon size={14} />
+                      </button>
+                      <button className="icon-btn" title={t("save")} disabled={busyId === n.id} onClick={() => saveRow(n)}>
+                        <ClipboardList size={14} />
+                      </button>
+                      <button className="icon-btn" title={t("sendWhatsapp")} disabled={n.status !== "accepted"} onClick={() => openWhatsapp(n)}>
+                        <MessageCircle size={14} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function OfferDetail({ offer, users, username, onBack, onChanged, onViewNominees }) {
+  const { t } = useLang();
+  const { showToast } = useToast();
+  const [myNominations, setMyNominations] = useState(null);
+  const [participants, setParticipants] = useState([]);
+  const [editingParticipants, setEditingParticipants] = useState(false);
+  const [selectedParticipants, setSelectedParticipants] = useState([]);
+
+  const load = useCallback(() => {
+    api.getCollectionOffer(offer.id).then((d) => setParticipants(d.participants.map((p) => p.username))).catch(() => {});
+    api.listCollectionOfferNominations(offer.id)
+      .then((noms) => setMyNominations(noms.filter((n) => n.nominated_by === username)))
+      .catch((e) => showToast(e.message, "error"));
+  }, [offer.id, username]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const toggleStatus = async () => {
+    try {
+      await api.updateCollectionOffer(offer.id, { status: offer.status === "open" ? "closed" : "open" });
+      onChanged();
+    } catch (e) {
+      showToast(e.message, "error");
+    }
+  };
+
+  const saveParticipants = async () => {
+    try {
+      await api.setCollectionOfferParticipants(offer.id, selectedParticipants);
+      setParticipants(selectedParticipants);
+      setEditingParticipants(false);
+      showToast(t("saved"), "success");
+    } catch (e) {
+      showToast(e.message, "error");
+    }
+  };
+
+  const statusLabel = { pending: t("nominationPending"), accepted: t("nominationAccepted"), rejected: t("nominationRejected") };
+
+  return (
+    <div className="panel">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
+        <div>
+          <button className="btn-secondary sm" onClick={onBack} style={{ marginBottom: 8 }}>
+            <ArrowLeft size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />{t("back")}
+          </button>
+          <h2>{offer.name}</h2>
+          <p className="panel-sub">
+            {offer.event_date || t("noDateSet")} · <span className={`share-status-badge ${offer.status === "open" ? "accepted" : "ended"}`}>{offer.status === "open" ? t("offerOpen") : t("offerClosed")}</span>
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button className="btn-secondary sm" onClick={onViewNominees}>
+            <Users2 size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />{t("nominees")}
+          </button>
+          <button className="btn-secondary sm" onClick={toggleStatus}>
+            {offer.status === "open" ? t("closeOffer") : t("reopenOffer")}
+          </button>
+        </div>
+      </div>
+
+      <div style={{ marginTop: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h3 style={{ margin: 0, fontSize: 14 }}>{t("offerParticipants")} ({participants.length})</h3>
+          {!editingParticipants && (
+            <button className="btn-secondary sm" onClick={() => { setSelectedParticipants(participants); setEditingParticipants(true); }}>
+              {t("edit")}
+            </button>
+          )}
+        </div>
+        {editingParticipants ? (
+          <>
+            <div className="multiselect-list" style={{ marginTop: 8 }}>
+              {users.map((u) => (
+                <label key={u.username} className="multiselect-item">
+                  <input
+                    type="checkbox"
+                    checked={selectedParticipants.includes(u.username)}
+                    onChange={() => setSelectedParticipants((prev) => prev.includes(u.username) ? prev.filter((x) => x !== u.username) : [...prev, u.username])}
+                  />
+                  {u.full_name || u.username}
+                </label>
+              ))}
+            </div>
+            <div className="prompt-actions" style={{ justifyContent: "flex-start", marginTop: 8 }}>
+              <button className="btn-secondary sm" onClick={() => setEditingParticipants(false)}>{t("cancel")}</button>
+              <button className="btn-primary sm" onClick={saveParticipants}>{t("save")}</button>
+            </div>
+          </>
+        ) : (
+          <p className="panel-sub">{participants.length ? participants.join(", ") : t("noParticipantsYet")}</p>
+        )}
+      </div>
+
+      <div style={{ marginTop: 20 }}>
+        <h3 style={{ fontSize: 14 }}>{t("yourNominations")}</h3>
+        {myNominations && myNominations.length > 0 && (
+          <ul style={{ margin: "0 0 12px", paddingInlineStart: 18 }}>
+            {myNominations.map((n) => (
+              <li key={n.id} className="panel-sub">
+                <span className="cust-name">{n.customer_name}</span> —{" "}
+                <span className={`share-status-badge ${n.status}`}>{statusLabel[n.status] || n.status}</span>
+                {n.batch ? ` · ${n.batch}` : ""}
+              </li>
+            ))}
+          </ul>
+        )}
+        {offer.status === "open" ? (
+          <NominateCustomerPicker
+            offerId={offer.id}
+            nominatedPartnerIds={myNominations?.map((n) => n.partner_id) || []}
+            onNominated={load}
+          />
+        ) : (
+          <p className="panel-sub">{t("offerClosed")}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AdminOffers({ username }) {
+  const { t } = useLang();
+  const { showToast } = useToast();
+  const [offers, setOffers] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [showCreate, setShowCreate] = useState(false);
+  const [selectedOffer, setSelectedOffer] = useState(null);
+  const [viewingNominees, setViewingNominees] = useState(false);
+
+  const load = useCallback(() => {
+    api.listCollectionOffers().then(setOffers).catch((e) => showToast(e.message, "error"));
+  }, []);
+
+  useEffect(() => {
+    load();
+    api.listUsers().then((list) => setUsers(list.filter((u) => u.active))).catch(() => {});
+  }, [load]);
+
+  if (selectedOffer && viewingNominees) {
+    return <OfferNominees offer={selectedOffer} onBack={() => setViewingNominees(false)} />;
+  }
+
+  if (selectedOffer) {
+    return (
+      <OfferDetail
+        offer={selectedOffer}
+        users={users}
+        username={username}
+        onBack={() => { setSelectedOffer(null); load(); }}
+        onChanged={() => { load(); api.getCollectionOffer(selectedOffer.id).then(setSelectedOffer); }}
+        onViewNominees={() => setViewingNominees(true)}
+      />
+    );
+  }
+
+  return (
+    <div className="panel">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
+        <div>
+          <h2><Megaphone size={15} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />{t("collectionOfferTitle")}</h2>
+          <p className="panel-sub">{t("collectionOfferHint")}</p>
+        </div>
+        <button className="btn-primary sm" onClick={() => setShowCreate(true)}>
+          <Plus size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />{t("newCollectionOffer")}
+        </button>
+      </div>
+
+      {!offers && <div className="loading-state">{t("loadingDots")}</div>}
+      {offers && offers.length === 0 && <div className="empty-state">{t("noOffersYet")}</div>}
+      {offers && offers.length > 0 && (
+        <div className="table-wrap">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>{t("offerName")}</th>
+                <th>{t("offerEventDate")}</th>
+                <th>{t("status")}</th>
+                <th>{t("offerParticipants")}</th>
+                <th>{t("nominees")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {offers.map((o) => (
+                <tr key={o.id} className="clickable-row" onClick={() => { setSelectedOffer(o); setViewingNominees(false); }}>
+                  <td data-label={t("offerName")}><span className="cust-name">{o.name}</span></td>
+                  <td data-label={t("offerEventDate")}>{o.event_date || t("noDateSet")}</td>
+                  <td data-label={t("status")}><span className={`share-status-badge ${o.status === "open" ? "accepted" : "ended"}`}>{o.status === "open" ? t("offerOpen") : t("offerClosed")}</span></td>
+                  <td data-label={t("offerParticipants")}>{o.participants_count}</td>
+                  <td data-label={t("nominees")}>
+                    {o.nominations_count} ({o.pending_count} {t("nominationPending")})
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {showCreate && (
+        <CreateOfferModal
+          users={users}
+          onClose={() => setShowCreate(false)}
+          onCreated={() => { setShowCreate(false); load(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function StaffNominate({ offer, nominatedPartnerIds, onNominated, onBack }) {
   const { t } = useLang();
   return (
     <div className="panel">
@@ -501,7 +556,7 @@ function StaffNominate({ offer, onNominated, onBack }) {
       </button>
       <h2><Megaphone size={15} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />{offer.name}</h2>
       <p className="panel-sub">{t("nominateHint")}</p>
-      <NominateCustomerPicker offerId={offer.id} onNominated={onNominated} />
+      <NominateCustomerPicker offerId={offer.id} nominatedPartnerIds={nominatedPartnerIds} onNominated={onNominated} />
     </div>
   );
 }
@@ -519,11 +574,13 @@ function StaffOffers() {
   useEffect(() => { load(); }, [load]);
 
   if (nominatingOffer) {
+    const live = offers?.find((o) => o.id === nominatingOffer.id) || nominatingOffer;
     return (
       <StaffNominate
-        offer={nominatingOffer}
+        offer={live}
+        nominatedPartnerIds={live.my_nominations?.map((n) => n.partner_id) || []}
         onBack={() => { setNominatingOffer(null); load(); }}
-        onNominated={() => { setNominatingOffer(null); load(); }}
+        onNominated={load}
       />
     );
   }
@@ -547,17 +604,23 @@ function StaffOffers() {
                   <strong>{o.name}</strong>
                   <p className="panel-sub" style={{ margin: 0 }}>{o.event_date || t("noDateSet")}</p>
                 </div>
-                {o.my_nomination ? (
-                  <span className={`share-status-badge ${o.my_nomination.status}`}>
-                    {t("alreadyNominated")} — {statusLabel[o.my_nomination.status]}
-                    {o.my_nomination.batch ? ` · ${o.my_nomination.batch}` : ""}
-                  </span>
-                ) : o.status === "open" ? (
+                {o.status === "open" ? (
                   <button className="btn-primary sm" onClick={() => setNominatingOffer(o)}>{t("nominate")}</button>
                 ) : (
                   <span className="share-status-badge ended">{t("offerClosed")}</span>
                 )}
               </div>
+              {o.my_nominations && o.my_nominations.length > 0 && (
+                <ul style={{ margin: "10px 0 0", paddingInlineStart: 18 }}>
+                  {o.my_nominations.map((n) => (
+                    <li key={n.partner_id} className="panel-sub">
+                      <span className="cust-name">{n.customer_name || n.partner_id}</span> —{" "}
+                      <span className={`share-status-badge ${n.status}`}>{statusLabel[n.status] || n.status}</span>
+                      {n.batch ? ` · ${n.batch}` : ""}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           ))}
         </div>

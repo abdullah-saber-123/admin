@@ -801,6 +801,8 @@ const en = {
   alreadyNominated: "Nominated",
   noteLabel: "Note",
   yourNomination: "Your nomination",
+  yourNominations: "Your nominations",
+  nominatedMultipleTimes: "Nominated by more than one collector",
 };
 
 const ar = {
@@ -1604,6 +1606,8 @@ const ar = {
   alreadyNominated: "تم الترشيح",
   noteLabel: "ملاحظة",
   yourNomination: "ترشيحك",
+  yourNominations: "ترشيحاتك",
+  nominatedMultipleTimes: "رشّحه أكثر من محصّل",
 };
 
 // The backend stores/matches these follow-up status VALUES in English exactly

@@ -249,6 +249,31 @@ function NominateCustomerPicker({ offerId, nominatedPartnerIds, onNominated }) {
   );
 }
 
+function groupNominationsByCustomer(nominations) {
+  const byPartner = new Map();
+  for (const n of nominations) {
+    if (!byPartner.has(n.partner_id)) {
+      byPartner.set(n.partner_id, {
+        partner_id: n.partner_id,
+        customer_name: n.customer_name,
+        customer_phone: n.customer_phone,
+        current_due: n.current_due,
+        credit_limit: n.credit_limit,
+        salesperson_name: n.salesperson_name,
+        nominators: [],
+        nomination_ids: [],
+        status: n.status,
+        batch: n.batch,
+        admin_note: n.admin_note,
+      });
+    }
+    const g = byPartner.get(n.partner_id);
+    g.nominators.push(n.nominated_by);
+    g.nomination_ids.push(n.id);
+  }
+  return Array.from(byPartner.values());
+}
+
 function OfferNominees({ offer, onBack }) {
   const { t } = useLang();
   const { showToast } = useToast();
@@ -264,12 +289,14 @@ function OfferNominees({ offer, onBack }) {
 
   useEffect(() => { load(); }, [load]);
 
-  const decide = async (nom, status) => {
-    setBusyId(nom.id);
+  const groups = nominations ? groupNominationsByCustomer(nominations) : null;
+
+  const decide = async (group, status) => {
+    setBusyId(group.partner_id);
     try {
-      await api.decideCollectionOfferNomination(offer.id, nom.id, {
-        status, batch: batchDrafts[nom.id] ?? nom.batch ?? "", admin_note: noteDrafts[nom.id] ?? nom.admin_note ?? "",
-      });
+      await Promise.all(group.nomination_ids.map((id) => api.decideCollectionOfferNomination(offer.id, id, {
+        status, batch: batchDrafts[group.partner_id] ?? group.batch ?? "", admin_note: noteDrafts[group.partner_id] ?? group.admin_note ?? "",
+      })));
       load();
     } catch (e) {
       showToast(e.message, "error");
@@ -278,12 +305,12 @@ function OfferNominees({ offer, onBack }) {
     }
   };
 
-  const saveRow = async (nom) => {
-    setBusyId(nom.id);
+  const saveRow = async (group) => {
+    setBusyId(group.partner_id);
     try {
-      await api.decideCollectionOfferNomination(offer.id, nom.id, {
-        batch: batchDrafts[nom.id] ?? nom.batch ?? "", admin_note: noteDrafts[nom.id] ?? nom.admin_note ?? "",
-      });
+      await Promise.all(group.nomination_ids.map((id) => api.decideCollectionOfferNomination(offer.id, id, {
+        batch: batchDrafts[group.partner_id] ?? group.batch ?? "", admin_note: noteDrafts[group.partner_id] ?? group.admin_note ?? "",
+      })));
       showToast(t("saved"), "success");
       load();
     } catch (e) {
@@ -293,9 +320,9 @@ function OfferNominees({ offer, onBack }) {
     }
   };
 
-  const openWhatsapp = async (nom) => {
+  const openWhatsapp = async (group) => {
     try {
-      const { url } = await api.collectionOfferNominationWhatsappLink(offer.id, nom.id);
+      const { url } = await api.collectionOfferNominationWhatsappLink(offer.id, group.nomination_ids[0]);
       window.open(url, "_blank", "noopener,noreferrer");
     } catch (e) {
       showToast(e.message, "error");
@@ -330,9 +357,9 @@ function OfferNominees({ offer, onBack }) {
         </button>
       </div>
 
-      {!nominations && <div className="loading-state">{t("loadingDots")}</div>}
-      {nominations && nominations.length === 0 && <div className="empty-state">{t("noNomineesYet")}</div>}
-      {nominations && nominations.length > 0 && (
+      {!groups && <div className="loading-state">{t("loadingDots")}</div>}
+      {groups && groups.length === 0 && <div className="empty-state">{t("noNomineesYet")}</div>}
+      {groups && groups.length > 0 && (
         <div className="table-wrap">
           <table className="data-table">
             <thead>
@@ -349,26 +376,26 @@ function OfferNominees({ offer, onBack }) {
               </tr>
             </thead>
             <tbody>
-              {nominations.map((n) => (
-                <tr key={n.id}>
+              {groups.map((g) => (
+                <tr key={g.partner_id}>
                   <td data-label={t("customer")}>
-                    <span className="cust-name">{n.customer_name || n.partner_id}</span>
-                    {n.nomination_count > 1 && (
-                      <span className="share-status-badge pending" title={t("nominatedMultipleTimes")} style={{ marginInlineStart: 6 }}>
-                        ×{n.nomination_count}
+                    <span className="cust-name">{g.customer_name || g.partner_id}</span>
+                    {g.nominators.length > 1 && (
+                      <span className="share-status-badge pending" title={g.nominators.join(", ")} style={{ marginInlineStart: 6, cursor: "help" }}>
+                        ×{g.nominators.length}
                       </span>
                     )}
                   </td>
-                  <td data-label={t("balanceDue")}><RiyalAmount amount={n.current_due || 0} /></td>
-                  <td data-label={t("creditLimitLabel")}>{n.credit_limit ? <RiyalAmount amount={n.credit_limit} /> : t("noCreditLimit")}</td>
-                  <td data-label={t("collectorField")}>{n.salesperson_name || "—"}</td>
-                  <td data-label={t("nominatedBy")}>{n.nominated_by}</td>
-                  <td data-label={t("status")}><span className={`share-status-badge ${n.status}`}>{statusLabel[n.status] || n.status}</span></td>
+                  <td data-label={t("balanceDue")}><RiyalAmount amount={g.current_due || 0} /></td>
+                  <td data-label={t("creditLimitLabel")}>{g.credit_limit ? <RiyalAmount amount={g.credit_limit} /> : t("noCreditLimit")}</td>
+                  <td data-label={t("collectorField")}>{g.salesperson_name || "—"}</td>
+                  <td data-label={t("nominatedBy")} title={g.nominators.join(", ")}>{g.nominators.join(", ")}</td>
+                  <td data-label={t("status")}><span className={`share-status-badge ${g.status}`}>{statusLabel[g.status] || g.status}</span></td>
                   <td data-label={t("batchLabel")}>
                     <div className="credit-limit-edit" style={{ width: 130 }}>
                       <input
-                        value={batchDrafts[n.id] ?? n.batch ?? ""}
-                        onChange={(e) => setBatchDrafts((prev) => ({ ...prev, [n.id]: e.target.value }))}
+                        value={batchDrafts[g.partner_id] ?? g.batch ?? ""}
+                        onChange={(e) => setBatchDrafts((prev) => ({ ...prev, [g.partner_id]: e.target.value }))}
                         placeholder={t("batchPlaceholder")}
                       />
                     </div>
@@ -376,25 +403,25 @@ function OfferNominees({ offer, onBack }) {
                   <td data-label={t("noteLabel")}>
                     <div className="credit-limit-edit" style={{ width: 150 }}>
                       <input
-                        value={noteDrafts[n.id] ?? n.admin_note ?? ""}
-                        onChange={(e) => setNoteDrafts((prev) => ({ ...prev, [n.id]: e.target.value }))}
+                        value={noteDrafts[g.partner_id] ?? g.admin_note ?? ""}
+                        onChange={(e) => setNoteDrafts((prev) => ({ ...prev, [g.partner_id]: e.target.value }))}
                         placeholder={t("noteLabel")}
-                        onBlur={() => saveRow(n)}
+                        onBlur={() => saveRow(g)}
                       />
                     </div>
                   </td>
                   <td data-label={t("actions")}>
                     <div style={{ display: "flex", gap: 6 }}>
-                      <button className="icon-btn" title={t("accept")} disabled={busyId === n.id} onClick={() => decide(n, "accepted")}>
+                      <button className="icon-btn" title={t("accept")} disabled={busyId === g.partner_id} onClick={() => decide(g, "accepted")}>
                         <Check size={14} />
                       </button>
-                      <button className="icon-btn" title={t("reject")} disabled={busyId === n.id} onClick={() => decide(n, "rejected")}>
+                      <button className="icon-btn" title={t("reject")} disabled={busyId === g.partner_id} onClick={() => decide(g, "rejected")}>
                         <XIcon size={14} />
                       </button>
-                      <button className="icon-btn" title={t("save")} disabled={busyId === n.id} onClick={() => saveRow(n)}>
+                      <button className="icon-btn" title={t("save")} disabled={busyId === g.partner_id} onClick={() => saveRow(g)}>
                         <ClipboardList size={14} />
                       </button>
-                      <button className="icon-btn" title={t("sendWhatsapp")} disabled={n.status !== "accepted"} onClick={() => openWhatsapp(n)}>
+                      <button className="icon-btn" title={t("sendWhatsapp")} disabled={g.status !== "accepted"} onClick={() => openWhatsapp(g)}>
                         <MessageCircle size={14} />
                       </button>
                     </div>

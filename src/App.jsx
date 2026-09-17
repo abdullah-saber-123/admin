@@ -247,6 +247,9 @@ export default function App() {
                 <div className="alert-banner danger">
                   <AlertOctagon size={16} />
                   {t("syncFailingBanner").replace("{n}", syncStatus.consecutive_failures)}
+                  {syncStatus.error_message && (
+                    <pre style={{ whiteSpace: "pre-wrap", fontSize: 12, marginTop: 8 }}>{syncStatus.error_message}</pre>
+                  )}
                 </div>
               )}
               {kpis?.followup_today_count > 0 && (

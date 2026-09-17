@@ -353,4 +353,21 @@ export const api = {
   getAutomationSettings: () => request("/api/admin/automation-settings"),
   saveAutomationSettings: (payload) => request("/api/admin/automation-settings", { method: "PUT", body: JSON.stringify(payload) }),
   testOdooSettings: () => request("/api/admin/odoo-settings/test", { method: "POST" }),
+
+  // collection offers (عرض التحصيل)
+  createCollectionOffer: (payload) => request("/api/admin/collection-offers", { method: "POST", body: JSON.stringify(payload) }),
+  listCollectionOffers: () => request("/api/admin/collection-offers"),
+  getCollectionOffer: (id) => request(`/api/admin/collection-offers/${id}`),
+  updateCollectionOffer: (id, payload) => request(`/api/admin/collection-offers/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  setCollectionOfferParticipants: (id, participant_usernames) =>
+    request(`/api/admin/collection-offers/${id}/participants`, { method: "PUT", body: JSON.stringify({ participant_usernames }) }),
+  listCollectionOfferNominations: (id) => request(`/api/admin/collection-offers/${id}/nominations`),
+  decideCollectionOfferNomination: (offerId, nominationId, payload) =>
+    request(`/api/admin/collection-offers/${offerId}/nominations/${nominationId}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  collectionOfferNominationWhatsappLink: (offerId, nominationId) =>
+    request(`/api/admin/collection-offers/${offerId}/nominations/${nominationId}/whatsapp-link`),
+  printCollectionOfferNominations: (id) => requestBlob(`/api/admin/collection-offers/${id}/nominations/pdf`),
+  myCollectionOffers: () => request("/api/collection-offers/mine"),
+  nominateForCollectionOffer: (offerId, partner_id) =>
+    request(`/api/collection-offers/${offerId}/nominate`, { method: "POST", body: JSON.stringify({ partner_id }) }),
 };

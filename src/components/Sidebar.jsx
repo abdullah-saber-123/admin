@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, Settings, LogOut, BarChart3, TrendingUp, Languages,
   CalendarClock, ClipboardList, Menu, X, ChevronLeft, ChevronRight, ChevronDown,
   CircleDollarSign, CreditCard, Receipt, Smartphone, CalendarRange, BellRing,
-  Gauge, CalendarCheck2, FileText, HeartCrack, MessageSquare, UserCircle, Moon, Sun, Wallet, History, Share2, Activity,
+  Gauge, CalendarCheck2, FileText, HeartCrack, MessageSquare, UserCircle, Moon, Sun, Wallet, History, Share2, Activity, Megaphone,
 } from "lucide-react";
 import { useLang } from "../i18n.jsx";
 import swagLogo from "../assets/swag-mark.png";
@@ -93,6 +93,7 @@ export default function Sidebar({ view, setView, role, username, displayName, av
         { view: "monthlyReport", icon: CalendarRange, label: t("monthlyReportTitle"), visible: canSeeMonthlyReport, color: "#6CC1ED" },
         { view: "paymentProofs", icon: Receipt, label: t("paymentProofsTitle"), visible: canSeePaymentProofs, color: "#814968" },
         { view: "collectionsReport", icon: Wallet, label: t("collectionsReportTitle"), visible: true, color: "#30C381" },
+        { view: "collectionOffers", icon: Megaphone, label: t("collectionOfferTitle"), visible: true, color: "#D6145F" },
       ],
     },
     {

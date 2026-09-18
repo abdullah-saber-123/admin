@@ -14,7 +14,7 @@ const GRADE_TONE = { A: "ok", B: "teal", C: "warn", D: "danger" };
 const RISK_TONE = { high: "danger", medium: "warn", low: "ok" };
 const AGING_BUCKET_KEYS = {
   "1-30": "agingBucket130", "31-60": "agingBucket3160", "61-90": "agingBucket6190",
-  "90+": "agingBucket90plus", never_paid: "agingBucketNeverPaid",
+  "91-180": "agingBucket90plus", "180+": "agingBucket180plus", never_paid: "agingBucketNeverPaid",
 };
 
 function monthLabel(m, lang) {
@@ -277,7 +277,7 @@ export default function CustomerAnalytics({ onSelectCustomer }) {
               <div className="insights-chart-card" style={{ marginBottom: 20 }}>
                 <h3 className="insights-chart-title">{t("agingBreakdownTitle")}</h3>
                 <div className="table-totals-row" style={{ flexWrap: "wrap" }}>
-                  {["1-30", "31-60", "61-90", "90+", "never_paid"].filter((k) => overview.aging_breakdown[k]).map((k) => (
+                  {["1-30", "31-60", "61-90", "91-180", "180+", "never_paid"].filter((k) => overview.aging_breakdown[k]).map((k) => (
                     <span className="table-totals-item" key={k}>
                       {t(AGING_BUCKET_KEYS[k])}: <strong><RiyalAmount amount={overview.aging_breakdown[k].balance} /></strong> ({overview.aging_breakdown[k].count})
                     </span>

@@ -1,15 +1,21 @@
 import { useEffect, useState, useCallback } from "react";
-import { BarChart3, Search, X, TrendingUp, TrendingDown, Minus, Wallet, Gauge, Repeat, ShieldCheck } from "lucide-react";
+import { BarChart3, Search, X, TrendingUp, TrendingDown, Minus, Wallet, Gauge, Repeat, ShieldCheck, AlertTriangle, Clock } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from "recharts";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 import RiyalAmount from "./RiyalAmount.jsx";
+import { fmtDate } from "../dateUtils.js";
 
 const CHART_TOOLTIP_STYLE = {
   background: "#ffffff", border: "1px solid #e6e9f2", borderRadius: 8,
   fontSize: 12, color: "#1c2233", boxShadow: "0 4px 14px rgba(16,24,40,0.10)",
 };
 const GRADE_TONE = { A: "ok", B: "teal", C: "warn", D: "danger" };
+const RISK_TONE = { high: "danger", medium: "warn", low: "ok" };
+const AGING_BUCKET_KEYS = {
+  "1-30": "agingBucket130", "31-60": "agingBucket3160", "61-90": "agingBucket6190",
+  "90+": "agingBucket90plus", never_paid: "agingBucketNeverPaid",
+};
 
 function monthLabel(m, lang) {
   const d = new Date(2000, m - 1, 1);
@@ -110,8 +116,14 @@ export default function CustomerAnalytics({ onSelectCustomer }) {
         {selectedCustomer && (
           <div className="panel" style={{ marginBottom: 20, background: "var(--card)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <h3 style={{ margin: 0, fontSize: 15 }}>
+              <h3 style={{ margin: 0, fontSize: 15, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                 {t("fullAnalysisFor")}: <span className="cust-name" style={{ cursor: "pointer", color: "var(--primary)" }} onClick={() => onSelectCustomer?.(selectedCustomer.partner_id)}>{selectedCustomer.name}</span>
+                {detail && (
+                  <span className={`fu-tag ${RISK_TONE[detail.risk_level]}`}>
+                    {detail.risk_level === "high" && <AlertTriangle size={11} style={{ verticalAlign: -1, marginInlineEnd: 3 }} />}
+                    {t("riskLevel")}: {t(detail.risk_level === "high" ? "riskHigh" : detail.risk_level === "medium" ? "riskMedium" : "riskLow")}
+                  </span>
+                )}
               </h3>
               <button className="icon-btn" onClick={clearCustomer} title={t("cancel")}><X size={15} /></button>
             </div>
@@ -166,6 +178,14 @@ export default function CustomerAnalytics({ onSelectCustomer }) {
                   <span className="table-totals-item">{t("invoicedSales")} ({year}): <strong><RiyalAmount amount={detail.sales_ytd} /></strong></span>
                   <span className="table-totals-item">{t("collected")} ({year}): <strong><RiyalAmount amount={detail.payments_ytd} /></strong></span>
                   <span className="table-totals-item">{t("recentTrend")}: <TrendIcon trend={detail.recent_trend} /></span>
+                  <span className="table-totals-item">
+                    <Clock size={12} style={{ verticalAlign: -2, marginInlineEnd: 3 }} />
+                    {t("lastPaymentLabel")}: <strong>
+                      {detail.last_payment_date ? `${fmtDate(detail.last_payment_date)} (${detail.days_since_last_payment} ${t("daysAgoSuffix")})` : t("neverPaidLabel")}
+                    </strong>
+                  </span>
+                  {detail.aging_bucket && <span className="table-totals-item">{t("agingBucketLabel")}: <strong>{detail.aging_bucket}</strong></span>}
+                  {detail.credit_utilization !== null && <span className="table-totals-item">{t("creditUtilization")}: <strong>{detail.credit_utilization}%</strong></span>}
                 </div>
 
                 <div className="insights-chart-card" style={{ marginBottom: 20 }}>
@@ -243,7 +263,28 @@ export default function CustomerAnalytics({ onSelectCustomer }) {
                 </div>
                 <div className="insights-kpi-value">{overview.totals.customers}</div>
               </div>
+              <div className="insights-kpi-card accent-danger">
+                <div className="insights-kpi-top">
+                  <div className="insights-kpi-label">{t("dormantBalances")}</div>
+                  <div className="insights-kpi-icon"><AlertTriangle size={15} /></div>
+                </div>
+                <div className="insights-kpi-value insights-kpi-value-sm"><RiyalAmount amount={overview.dormant.balance} /></div>
+                <p style={{ fontSize: 11, color: "var(--text-dim)", margin: "4px 0 0" }}>{overview.dormant.count} {t("customersWord")}</p>
+              </div>
             </div>
+
+            {Object.keys(overview.aging_breakdown).length > 0 && (
+              <div className="insights-chart-card" style={{ marginBottom: 20 }}>
+                <h3 className="insights-chart-title">{t("agingBreakdownTitle")}</h3>
+                <div className="table-totals-row" style={{ flexWrap: "wrap" }}>
+                  {["1-30", "31-60", "61-90", "90+", "never_paid"].filter((k) => overview.aging_breakdown[k]).map((k) => (
+                    <span className="table-totals-item" key={k}>
+                      {t(AGING_BUCKET_KEYS[k])}: <strong><RiyalAmount amount={overview.aging_breakdown[k].balance} /></strong> ({overview.aging_breakdown[k].count})
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="insights-chart-card" style={{ marginBottom: 20 }}>
               <h3 className="insights-chart-title">{t("invoicedVsCollectedChart")} — {year}</h3>

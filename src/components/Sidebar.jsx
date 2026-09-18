@@ -37,6 +37,7 @@ export default function Sidebar({ view, setView, role, username, displayName, av
   const canSeeMonthlyReport = role === "admin" || perms.includes("monthlyReport");
   const canSeeReminders = role === "admin" || perms.includes("reminders");
   const canSeeCustomerScore = role === "admin" || perms.includes("customerScore");
+  const canSeeCustomerAnalytics = role === "admin" || perms.includes("customerAnalytics");
   const canSeeInvoices = role === "admin" || perms.includes("invoices");
   const canSeePaymentProofs = role === "admin" || perms.includes("paymentProofs");
   const canSeeCreditNomination = role === "admin" || perms.includes("creditNomination");
@@ -102,6 +103,7 @@ export default function Sidebar({ view, setView, role, username, displayName, av
       items: [
         { view: "portalManagement", icon: Smartphone, label: t("portalManagementTitle"), visible: canSeePortalManagement, color: "#475577" },
         { view: "customerScore", icon: Gauge, label: t("customerScoreTitle"), visible: canSeeCustomerScore, color: "#F4A460" },
+        { view: "customerAnalytics", icon: BarChart3, label: t("customerAnalyticsTitle"), visible: canSeeCustomerAnalytics, color: "#5750f1" },
         { view: "customerShares", icon: Share2, label: t("customerSharesTitle"), visible: true, color: "#9365B8" },
       ],
     },

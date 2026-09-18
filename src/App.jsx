@@ -46,6 +46,7 @@ const PortalManagementReport = lazy(() => import("./components/PortalManagementR
 const MonthlyReport = lazy(() => import("./components/MonthlyReport.jsx"));
 const RemindersOverview = lazy(() => import("./components/RemindersOverview.jsx"));
 const CustomerScoreReport = lazy(() => import("./components/CustomerScoreReport.jsx"));
+const CustomerAnalytics = lazy(() => import("./components/CustomerAnalytics.jsx"));
 const BrokenPromisesReport = lazy(() => import("./components/BrokenPromisesReport.jsx"));
 const StaffChat = lazy(() => import("./components/StaffChat.jsx"));
 const InvoicesReport = lazy(() => import("./components/InvoicesReport.jsx"));
@@ -196,6 +197,7 @@ export default function App() {
               : view === "monthlyReport" ? t("monthlyReportTitle")
               : view === "reminders" ? t("remindersOverviewTitle")
               : view === "customerScore" ? t("customerScoreTitle")
+              : view === "customerAnalytics" ? t("customerAnalyticsTitle")
               : view === "brokenPromises" ? t("brokenPromisesTitle")
               : view === "collectionsReport" ? t("collectionsReportTitle")
               : view === "collectionOffers" ? t("collectionOfferTitle")
@@ -405,6 +407,9 @@ export default function App() {
           )}
           {view === "customerScore" && (session.role === "admin" || (session.permissions || "").includes("customerScore")) && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><CustomerScoreReport onSelectCustomer={setSelectedId} /></Suspense>
+          )}
+          {view === "customerAnalytics" && (session.role === "admin" || (session.permissions || "").includes("customerAnalytics")) && (
+            <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><CustomerAnalytics onSelectCustomer={setSelectedId} /></Suspense>
           )}
           {view === "brokenPromises" && (session.role === "admin" || (session.permissions || "").includes("brokenPromises")) && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><BrokenPromisesReport onSelectCustomer={setSelectedId} /></Suspense>

@@ -184,6 +184,12 @@ export const api = {
     const qs = buildQueryString(params);
     return request(`/api/admin/customer-scores${qs ? `?${qs}` : ""}`);
   },
+  customerAnalyticsOverview: (params = {}) => {
+    const qs = buildQueryString(params);
+    return request(`/api/admin/customer-analytics/overview${qs ? `?${qs}` : ""}`);
+  },
+  customerAnalyticsDetail: (partnerId, year) =>
+    request(`/api/admin/customer-analytics/${partnerId}${year ? `?year=${year}` : ""}`),
   invoicesReport: (params = {}) => {
     const qs = buildQueryString(params);
     return request(`/api/reports/invoices${qs ? `?${qs}` : ""}`);

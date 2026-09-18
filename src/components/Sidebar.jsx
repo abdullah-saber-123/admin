@@ -141,6 +141,7 @@ export default function Sidebar({ view, setView, role, username, displayName, av
       {mobileOpen && <div className="sidebar-backdrop" onClick={() => setMobileOpen(false)} />}
 
       <aside className={`sidebar ${mobileOpen ? "sidebar-open" : ""} ${collapsed ? "sidebar-collapsed" : ""}`}>
+        {!collapsed && <div className="sidebar-test-banner">{t("testVersionBanner")}</div>}
         <div className="sidebar-logo">
           <img src={swagLogo} alt="SWAG" className="sidebar-logo-img" />
           {!collapsed && <span>{t("appName")}</span>}

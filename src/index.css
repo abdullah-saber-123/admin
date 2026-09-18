@@ -1,6 +1,6 @@
 :root {
   --bg: #f7f3f6;
-  --sidebar-bg: #5c3a54;
+  --sidebar-bg: #7a1f1f;
   --panel: #ffffff;
   --card: #f9f5f8;
   --card-hover: #f2e9ef;
@@ -29,7 +29,7 @@
 
 [data-theme="dark"] {
   --bg: #000000;
-  --sidebar-bg: #0d0d0f;
+  --sidebar-bg: #5c1414;
   --panel: #0a0a0c;
   --card: #17171a;
   --card-hover: #202023;
@@ -235,15 +235,26 @@ input, select, textarea { font-family: inherit; }
   height: 100vh;
   height: 100dvh;
   background:
-    radial-gradient(420px 220px at 15% -8%, #a2679730, transparent 60%),
-    radial-gradient(320px 200px at 100% 15%, #2c839726, transparent 55%),
-    linear-gradient(180deg, #6f4666 0%, #513a4e 78%, #402f3d 100%);
+    radial-gradient(420px 220px at 15% -8%, #ff8a8a30, transparent 60%),
+    radial-gradient(320px 200px at 100% 15%, #ffb3b326, transparent 55%),
+    linear-gradient(180deg, #8a1f1f 0%, #6b1717 78%, #4a1010 100%);
   display: flex;
   flex-direction: column;
   padding: 18px 14px;
   transition: width 0.2s ease, padding 0.2s ease;
   overflow: hidden;
   border-inline-end: 1px solid #ffffff0f;
+}
+.sidebar-test-banner {
+  background: #ffe3e3;
+  color: #7a1f1f;
+  font-weight: 700;
+  font-size: 11.5px;
+  text-align: center;
+  padding: 5px 8px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  letter-spacing: 0.2px;
 }
 .sidebar.sidebar-collapsed {
   width: 0;
@@ -263,7 +274,7 @@ input, select, textarea { font-family: inherit; }
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: linear-gradient(160deg, #6f4666, #513a4e);
+  background: linear-gradient(160deg, #8a1f1f, #6b1717);
   border: 1px solid #ffffff22;
   color: #fff;
   display: flex;
@@ -274,7 +285,7 @@ input, select, textarea { font-family: inherit; }
   transition: inset-inline-start 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
   box-shadow: 0 4px 14px -2px #00000055;
 }
-.sidebar-collapse-btn:hover { transform: scale(1.08); box-shadow: 0 0 0 4px #a2679730, 0 4px 14px -2px #00000055; }
+.sidebar-collapse-btn:hover { transform: scale(1.08); box-shadow: 0 0 0 4px #ff8a8a30, 0 4px 14px -2px #00000055; }
 .sidebar.sidebar-collapsed + .sidebar-collapse-btn {
   inset-inline-start: 8px;
 }

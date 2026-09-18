@@ -245,6 +245,12 @@ export const api = {
     request(`/api/customers/${id}/credit-limit?credit_limit=${credit_limit === null ? "" : encodeURIComponent(credit_limit)}`, { method: "PATCH" }),
   updatePaymentType: (id, payment_type) =>
     request(`/api/customers/${id}/payment-type?payment_type=${payment_type === null ? "" : encodeURIComponent(payment_type)}`, { method: "PATCH" }),
+  updateRegion: (id, region) =>
+    request(`/api/customers/${id}/region?region=${region === null ? "" : encodeURIComponent(region)}`, { method: "PATCH" }),
+  fieldOptions: (field) => request(`/api/customer-field-options?field=${encodeURIComponent(field)}`),
+  addFieldOption: (field, value) =>
+    request(`/api/customer-field-options`, { method: "POST", body: JSON.stringify({ field, value }) }),
+  deleteFieldOption: (id) => request(`/api/customer-field-options/${id}`, { method: "DELETE" }),
   toggleNomination: (id, { for_offer, for_collection } = {}) => {
     const params = [];
     if (for_offer !== undefined) params.push(`for_offer=${for_offer}`);
@@ -288,6 +294,24 @@ export const api = {
     const headers = {};
     if (session?.token) headers["Authorization"] = `Bearer ${session.token}`;
     const res = await fetch(`${BASE}/api/admin/payment-types/import`, { method: "POST", headers, body: formData });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      let msg = body;
+      try {
+        const detail = JSON.parse(body).detail;
+        msg = Array.isArray(detail) ? detail.map((d) => d.msg || JSON.stringify(d)).join("; ") : (detail || body);
+      } catch { /* keep raw */ }
+      throw new Error(msg || "Import failed.");
+    }
+    return res.json();
+  },
+  importRegions: async (file) => {
+    const session = getSession();
+    const formData = new FormData();
+    formData.append("file", file);
+    const headers = {};
+    if (session?.token) headers["Authorization"] = `Bearer ${session.token}`;
+    const res = await fetch(`${BASE}/api/admin/regions/import`, { method: "POST", headers, body: formData });
     if (!res.ok) {
       const body = await res.text().catch(() => "");
       let msg = body;

@@ -28,14 +28,25 @@ export default function CreditNominationReport({ onSelectCustomer, role }) {
   const [importing, setImporting] = useState(false);
   const [importingPaymentTypes, setImportingPaymentTypes] = useState(false);
   const [savingPaymentTypeId, setSavingPaymentTypeId] = useState(null);
+  const [importingRegions, setImportingRegions] = useState(false);
+  const [savingRegionId, setSavingRegionId] = useState(null);
+  const [paymentTypeOptions, setPaymentTypeOptions] = useState([]);
+  const [regionOptions, setRegionOptions] = useState([]);
   const fileInputRef = useRef(null);
   const paymentTypeFileInputRef = useRef(null);
-  const PAYMENT_TYPES = ["نقدي", "آجل", "معلقة"];
+  const regionFileInputRef = useRef(null);
+  const ADD_NEW = "__add_new__";
+
+  const loadFieldOptions = useCallback(() => {
+    api.fieldOptions("payment_type").then(setPaymentTypeOptions).catch(() => {});
+    api.fieldOptions("region").then(setRegionOptions).catch(() => {});
+  }, []);
 
   useEffect(() => {
     api.cities().then(setCities).catch(() => {});
     api.collectors().then(setCollectors).catch(() => {});
-  }, []);
+    loadFieldOptions();
+  }, [loadFieldOptions]);
 
   const load = useCallback(() => {
     setError(null);
@@ -107,6 +118,7 @@ export default function CreditNominationReport({ onSelectCustomer, role }) {
   };
 
   const savePaymentType = async (partnerId, value) => {
+    if (value === ADD_NEW) return addOptionThenSave("payment_type", setPaymentTypeOptions, savePaymentType, partnerId);
     setSavingPaymentTypeId(partnerId);
     try {
       await api.updatePaymentType(partnerId, value || null);
@@ -118,8 +130,52 @@ export default function CreditNominationReport({ onSelectCustomer, role }) {
     }
   };
 
+  const saveRegion = async (partnerId, value) => {
+    if (value === ADD_NEW) return addOptionThenSave("region", setRegionOptions, saveRegion, partnerId);
+    setSavingRegionId(partnerId);
+    try {
+      await api.updateRegion(partnerId, value || null);
+      load();
+    } catch (e) {
+      showToast(e.message, "error");
+    } finally {
+      setSavingRegionId(null);
+    }
+  };
+
+  const addOptionThenSave = async (field, setOptions, saveFn, partnerId) => {
+    const value = window.prompt(t("newOptionPrompt"));
+    if (!value || !value.trim()) return;
+    try {
+      const opt = await api.addFieldOption(field, value.trim());
+      setOptions((prev) => (prev.some((o) => o.value === opt.value) ? prev : [...prev, opt].sort((a, b) => a.value.localeCompare(b.value))));
+      saveFn(partnerId, opt.value);
+    } catch (e) {
+      showToast(e.message, "error");
+    }
+  };
+
   const handleImportClick = () => fileInputRef.current?.click();
   const handleImportPaymentTypesClick = () => paymentTypeFileInputRef.current?.click();
+  const handleImportRegionsClick = () => regionFileInputRef.current?.click();
+
+  const handleImportRegionsFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setImportingRegions(true);
+    try {
+      const result = await api.importRegions(file);
+      showToast(t("regionsImported").replace("{n}", result.updated), "success");
+      if (result.not_found_count > 0) showToast(t("creditLimitsImportSkipped").replace("{n}", result.not_found_count), "error");
+      loadFieldOptions();
+      load();
+    } catch (e2) {
+      showToast(e2.message, "error");
+    } finally {
+      setImportingRegions(false);
+    }
+  };
 
   const handleImportPaymentTypesFile = async (e) => {
     const file = e.target.files?.[0];
@@ -130,7 +186,7 @@ export default function CreditNominationReport({ onSelectCustomer, role }) {
       const result = await api.importPaymentTypes(file);
       showToast(t("paymentTypesImported").replace("{n}", result.updated), "success");
       if (result.not_found_count > 0) showToast(t("creditLimitsImportSkipped").replace("{n}", result.not_found_count), "error");
-      if (result.invalid_count > 0) showToast(t("paymentTypesImportInvalid").replace("{n}", result.invalid_count), "error");
+      loadFieldOptions();
       load();
     } catch (e2) {
       showToast(e2.message, "error");
@@ -182,6 +238,11 @@ export default function CreditNominationReport({ onSelectCustomer, role }) {
                 {importingPaymentTypes ? t("importing") : t("importPaymentTypes")}
               </button>
               <input ref={paymentTypeFileInputRef} type="file" accept=".xlsx,.xls" style={{ display: "none" }} onChange={handleImportPaymentTypesFile} />
+              <button className="btn-secondary sm" onClick={handleImportRegionsClick} disabled={importingRegions}>
+                <Upload size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
+                {importingRegions ? t("importing") : t("importRegions")}
+              </button>
+              <input ref={regionFileInputRef} type="file" accept=".xlsx,.xls" style={{ display: "none" }} onChange={handleImportRegionsFile} />
             </div>
           )}
         </div>
@@ -242,6 +303,7 @@ export default function CreditNominationReport({ onSelectCustomer, role }) {
                     <th className="sortable" onClick={() => toggleSort("current_due")}>{t("balanceDue")} {sortIcon("current_due")}</th>
                     <th>{t("creditLimitLabel")}</th>
                     <th>{t("paymentTypeLabel")}</th>
+                    <th>{t("regionLabel")}</th>
                     <th>{t("nominateForOffer")}</th>
                     <th>{t("nominateForCollection")}</th>
                   </tr>
@@ -297,7 +359,19 @@ export default function CreditNominationReport({ onSelectCustomer, role }) {
                             onChange={(e) => savePaymentType(c.partner_id, e.target.value)}
                           >
                             <option value="">—</option>
-                            {PAYMENT_TYPES.map((pt) => <option key={pt} value={pt}>{pt}</option>)}
+                            {paymentTypeOptions.map((o) => <option key={o.id} value={o.value}>{o.value}</option>)}
+                            {role === "admin" && <option value={ADD_NEW}>{t("addNewOption")}</option>}
+                          </select>
+                        </td>
+                        <td data-label={t("regionLabel")}>
+                          <select
+                            value={c.region || ""}
+                            disabled={role !== "admin" || savingRegionId === c.partner_id}
+                            onChange={(e) => saveRegion(c.partner_id, e.target.value)}
+                          >
+                            <option value="">—</option>
+                            {regionOptions.map((o) => <option key={o.id} value={o.value}>{o.value}</option>)}
+                            {role === "admin" && <option value={ADD_NEW}>{t("addNewOption")}</option>}
                           </select>
                         </td>
                         <td data-label={t("nominateForOffer")}>

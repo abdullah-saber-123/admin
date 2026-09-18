@@ -79,7 +79,10 @@ export default function MonthlyReport({ onSelectCustomer }) {
   };
 
   const totals = rows
-    ? rows.reduce((acc, r) => ({ invoiced: acc.invoiced + r.invoiced, collected: acc.collected + r.collected }), { invoiced: 0, collected: 0 })
+    ? rows.reduce((acc, r) => ({
+        invoiced: acc.invoiced + r.invoiced, collected: acc.collected + r.collected,
+        other_credits: acc.other_credits + (r.other_credits || 0),
+      }), { invoiced: 0, collected: 0, other_credits: 0 })
     : null;
 
   const avgRate = rows && rows.length > 0
@@ -124,6 +127,11 @@ export default function MonthlyReport({ onSelectCustomer }) {
               <>
                 <p style={{ fontSize: 12.5, color: "var(--text-dim)", margin: "0 0 10px" }}>
                   {t("balanceDue")}: <strong><RiyalAmount amount={customerReport.current_balance} /></strong>
+                  {customerReport.months.reduce((s, m) => s + (m.other_credits || 0), 0) !== 0 && (
+                    <span title={t("otherCreditsHint")} style={{ marginInlineStart: 14 }}>
+                      {t("otherCredits")}: <strong><RiyalAmount amount={customerReport.months.reduce((s, m) => s + (m.other_credits || 0), 0)} /></strong>
+                    </span>
+                  )}
                 </p>
                 <div className="table-wrap">
                   <table className="data-table">
@@ -221,6 +229,11 @@ export default function MonthlyReport({ onSelectCustomer }) {
               <span className="table-totals-item">{t("last12MonthsTotal")}:</span>
               <span className="table-totals-item">{t("invoicedSales")}: <strong><RiyalAmount amount={totals.invoiced} /></strong></span>
               <span className="table-totals-item">{t("collected")}: <strong><RiyalAmount amount={totals.collected} /></strong></span>
+              {totals.other_credits !== 0 && (
+                <span className="table-totals-item" title={t("otherCreditsHint")}>
+                  {t("otherCredits")}: <strong><RiyalAmount amount={totals.other_credits} /></strong>
+                </span>
+              )}
             </div>
           </>
         )}

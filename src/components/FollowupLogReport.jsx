@@ -72,6 +72,17 @@ export default function FollowupLogReport({ onSelectCustomer, initialDateFilter,
   };
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.page_size)) : 1;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const isTodayOnly = dateFrom === todayStr && dateTo === todayStr;
+  const toggleToday = () => {
+    if (isTodayOnly) {
+      setDateFrom("");
+      setDateTo("");
+    } else {
+      setDateFrom(todayStr);
+      setDateTo(todayStr);
+    }
+  };
 
   return (
     <div className="content-stack" style={{ maxWidth: "100%" }}>
@@ -119,6 +130,12 @@ export default function FollowupLogReport({ onSelectCustomer, initialDateFilter,
             </div>
           </div>
         )}
+
+        <div className="quick-toggle-row" style={{ marginBottom: 10 }}>
+          <button className={`quick-toggle-chip ${isTodayOnly ? "active" : ""}`} onClick={toggleToday}>
+            {t("todayFilterChip")}
+          </button>
+        </div>
 
         <div className="more-filters-row" style={{ marginBottom: 14 }}>
           <div className="more-filter-field">

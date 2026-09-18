@@ -31,7 +31,6 @@ const CustomerShares = lazy(() => import("./components/CustomerShares.jsx"));
 const Trends = lazy(() => import("./components/Trends.jsx"));
 const DueTodayReport = lazy(() => import("./components/DueTodayReport.jsx"));
 const FollowupLogReport = lazy(() => import("./components/FollowupLogReport.jsx"));
-const TodaysFollowupsReport = lazy(() => import("./components/TodaysFollowupsReport.jsx"));
 const MyDay = lazy(() => import("./components/MyDay.jsx"));
 const PaymentPlansReport = lazy(() => import("./components/PaymentPlansReport.jsx"));
 const AnnouncementHistory = lazy(() => import("./components/AnnouncementHistory.jsx"));
@@ -183,7 +182,6 @@ export default function App() {
               : view === "staffChat" ? t("staffChatTitle")
               : view === "invoices" ? t("invoicesReportTitle")
               : view === "followupLog" ? t("followupLogTitle")
-              : view === "todaysFollowups" ? t("todaysFollowupsTitle")
               : view === "myDay" ? t("myDayTitle")
               : view === "performanceReport" ? t("performanceReportTitle")
               : view === "dailyActivity" ? t("dailyActivityTitle")
@@ -281,7 +279,8 @@ export default function App() {
                 kpis={kpis}
                 onCardClick={(b) => {
                   if (b === "followups_today_log") {
-                    setView("todaysFollowups");
+                    setFollowupLogDateFilter(new Date().toISOString().slice(0, 10));
+                    setView("followupLog");
                     return;
                   }
                   setBucket(b === bucket ? null : b);
@@ -362,9 +361,6 @@ export default function App() {
                 onConsumeInitialFilter={() => setFollowupLogDateFilter(null)}
               />
             </Suspense>
-          )}
-          {view === "todaysFollowups" && (
-            <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><TodaysFollowupsReport onSelectCustomer={setSelectedId} /></Suspense>
           )}
           {view === "myDay" && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><MyDay onSelectCustomer={setSelectedId} /></Suspense>

@@ -88,8 +88,8 @@ export default function CustomerAnalytics({ onSelectCustomer }) {
     setDetailError(null);
   };
 
-  const chartData = overview ? overview.monthly.map((m) => ({ label: monthLabel(m.month, lang), sales: m.sales, payments: m.payments })) : [];
-  const detailChartData = detail ? detail.monthly.map((m) => ({ label: monthLabel(m.month, lang), sales: m.sales, payments: m.payments })) : [];
+  const chartData = overview ? overview.monthly.map((m) => ({ label: monthLabel(m.month, lang), sales: m.sales, payments: m.payments, other_credits: m.other_credits })) : [];
+  const detailChartData = detail ? detail.monthly.map((m) => ({ label: monthLabel(m.month, lang), sales: m.sales, payments: m.payments, other_credits: m.other_credits })) : [];
   const ranked = overview ? (rankTab === "sales" ? overview.top_by_sales : overview.top_by_payments) : [];
 
   return (
@@ -186,6 +186,11 @@ export default function CustomerAnalytics({ onSelectCustomer }) {
                   </span>
                   {detail.aging_bucket && <span className="table-totals-item">{t("agingBucketLabel")}: <strong>{detail.aging_bucket}</strong></span>}
                   {detail.credit_utilization !== null && <span className="table-totals-item">{t("creditUtilization")}: <strong>{detail.credit_utilization}%</strong></span>}
+                  {detail.other_credits_ytd !== 0 && (
+                    <span className="table-totals-item" title={t("otherCreditsHint")}>
+                      {t("otherCredits")} ({year}): <strong><RiyalAmount amount={detail.other_credits_ytd} /></strong>
+                    </span>
+                  )}
                 </div>
 
                 <div className="insights-chart-card" style={{ marginBottom: 20 }}>
@@ -199,6 +204,7 @@ export default function CustomerAnalytics({ onSelectCustomer }) {
                       <Legend wrapperStyle={{ fontSize: 12 }} />
                       <Bar dataKey="sales" name={t("invoicedSales")} fill="#714b67" radius={[4, 4, 0, 0]} />
                       <Bar dataKey="payments" name={t("collected")} fill="#30C381" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="other_credits" name={t("otherCredits")} fill="#c98a1c" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -297,8 +303,14 @@ export default function CustomerAnalytics({ onSelectCustomer }) {
                   <Legend wrapperStyle={{ fontSize: 12 }} />
                   <Bar dataKey="sales" name={t("invoicedSales")} fill="#714b67" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="payments" name={t("collected")} fill="#30C381" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="other_credits" name={t("otherCredits")} fill="#c98a1c" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
+              {overview.totals.other_credits !== 0 && (
+                <p style={{ fontSize: 11.5, color: "var(--text-dim)", margin: "8px 6px 0" }} title={t("otherCreditsHint")}>
+                  {t("otherCredits")}: <RiyalAmount amount={overview.totals.other_credits} />
+                </p>
+              )}
             </div>
 
             <div className="quick-toggle-row" style={{ marginBottom: 10 }}>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Target, Users2, Wallet, Trophy, TrendingUp, Search, Download, ArrowUp, ArrowDown, Minus, ArrowUpDown, X, ChevronRight } from "lucide-react";
+import { Target, Users2, Wallet, Trophy, TrendingUp, Search, Download, ArrowUp, ArrowDown, Minus, ArrowUpDown, X, ChevronRight, ShieldCheck } from "lucide-react";
 import { api } from "../api";
 import Avatar from "./Avatar.jsx";
 import { useLang } from "../i18n.jsx";
@@ -51,12 +51,15 @@ export default function CollectorReport({ onOpenProfile }) {
   const [sortDir, setSortDir] = useState("desc");
   const [statusModal, setStatusModal] = useState(null); // { collector, state, label }
   const [profileTarget, setProfileTarget] = useState(null); // user_id of collector whose profile page is open
+  const [supervisionModal, setSupervisionModal] = useState(null); // holds the collector row being edited
+  const [staffList, setStaffList] = useState([]);
 
   const load = () => {
     api.collectorReport().then(setReport).catch((e) => setError(e.message));
   };
 
   useEffect(load, []);
+  useEffect(() => { api.staffList().then(setStaffList).catch(() => {}); }, []);
 
   const handleSetTarget = async (value) => {
     const num = parseFloat(value);
@@ -164,6 +167,7 @@ export default function CollectorReport({ onOpenProfile }) {
                   <th>{t("trend")}</th>
                   <th>{t("collectedLastMonth")}</th>
                   <th>{t("target")}</th>
+                  <th>{t("supervisionLabel")}</th>
                   <th>{t("worked")}</th>
                   <th>{t("paidByLabel")}</th>
                   <th>{t("invoiceStatusLabel")}</th>
@@ -216,6 +220,17 @@ export default function CollectorReport({ onOpenProfile }) {
                           <button className="icon-btn" title={t("target")} onClick={(e) => { e.stopPropagation(); setTargetModal(r); }}>
                             <Target size={13} />
                           </button>
+                        )}
+                      </td>
+                      <td>
+                        <button
+                          className="icon-btn" title={t("supervisionLabel")}
+                          onClick={(e) => { e.stopPropagation(); setSupervisionModal(r); }}
+                        >
+                          <ShieldCheck size={13} />
+                        </button>
+                        {r.supervisor_username && (
+                          <div style={{ fontSize: 10.5, color: "var(--text-dim)", marginTop: 2 }}>{r.supervisor_username}</div>
                         )}
                       </td>
                       <td>
@@ -295,6 +310,65 @@ export default function CollectorReport({ onOpenProfile }) {
           t={t} money={money}
         />
       )}
+
+      {supervisionModal && (
+        <SupervisionModal
+          collector={supervisionModal} staffList={staffList}
+          onClose={() => setSupervisionModal(null)}
+          onSaved={() => { setSupervisionModal(null); load(); }}
+          t={t} showToast={showToast}
+        />
+      )}
+    </div>
+  );
+}
+
+function SupervisionModal({ collector, staffList, onClose, onSaved, t, showToast }) {
+  const [collectionTarget, setCollectionTarget] = useState(collector.daily_collection_target || "");
+  const [contactTarget, setContactTarget] = useState(collector.daily_contact_target || "");
+  const [supervisor, setSupervisor] = useState(collector.supervisor_username || "");
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await Promise.all([
+        api.setUserDailyTarget(collector.id, Number(collectionTarget) || 0, Number(contactTarget) || 0),
+        api.setUserSupervisor(collector.id, supervisor || null),
+      ]);
+      showToast(t("saved"), "success");
+      onSaved();
+    } catch (e2) {
+      showToast(e2.message, "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="overlay modal-overlay" onClick={onClose}>
+      <div className="prompt-modal" onClick={(e) => e.stopPropagation()}>
+        <button className="close-btn" onClick={onClose}><X size={16} /></button>
+        <h3>{t("supervisionLabel")} — {collector.full_name || collector.username}</h3>
+        <form onSubmit={handleSave}>
+          <label>{t("dailyCollectionTargetLabel")}</label>
+          <input type="number" min="0" value={collectionTarget} onChange={(e) => setCollectionTarget(e.target.value)} />
+          <label style={{ marginTop: 10, display: "block" }}>{t("dailyContactTargetLabel")}</label>
+          <input type="number" min="0" value={contactTarget} onChange={(e) => setContactTarget(e.target.value)} />
+          <label style={{ marginTop: 10, display: "block" }}>{t("assignSupervisor")}</label>
+          <select value={supervisor} onChange={(e) => setSupervisor(e.target.value)}>
+            <option value="">{t("noSupervisor")}</option>
+            {staffList.filter((s) => s.username !== collector.username).map((s) => (
+              <option key={s.username} value={s.username}>{s.full_name || s.username}</option>
+            ))}
+          </select>
+          <div className="prompt-actions">
+            <button type="button" className="btn-secondary" onClick={onClose}>{t("cancel")}</button>
+            <button type="submit" className="btn-primary" disabled={saving}>{saving ? t("saving") : t("save")}</button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

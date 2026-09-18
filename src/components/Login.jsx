@@ -17,7 +17,7 @@ export default function Login({ onLoggedIn }) {
     setError(null);
     try {
       const res = await api.login(username, password);
-      setSession(res.token, res.role, res.username, res.permissions);
+      setSession(res.token, res.role, res.username, res.permissions, res.is_supervisor);
       onLoggedIn(res);
     } catch (err) {
       setError(err.message);

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Activity, X, Megaphone, Circle } from "lucide-react";
+import { Activity, X, Megaphone, Circle, AlertTriangle, AlertCircle } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 import { useToast } from "../toast.jsx";
@@ -46,7 +46,17 @@ function PendingListModal({ collector, onClose, onNudge, t, statusLabel }) {
   );
 }
 
-export default function DailyActivityReport() {
+function FlagBadge({ flag, t }) {
+  if (flag === "critical") {
+    return <span className="fu-tag sm danger" title={t("flagCriticalHint")}><AlertCircle size={11} style={{ verticalAlign: -1, marginInlineEnd: 3 }} />{t("flagCritical")}</span>;
+  }
+  if (flag === "warning") {
+    return <span className="fu-tag sm warn" title={t("flagWarningHint")}><AlertTriangle size={11} style={{ verticalAlign: -1, marginInlineEnd: 3 }} />{t("flagWarning")}</span>;
+  }
+  return <span className="fu-tag sm ok">{t("flagOk")}</span>;
+}
+
+export default function DailyActivityReport({ isSupervisor = false }) {
   const { t, money, statusLabel } = useLang();
   const { showToast } = useToast();
   const [data, setData] = useState(null);
@@ -58,9 +68,9 @@ export default function DailyActivityReport() {
 
   useEffect(() => {
     api.dailyActivityReport().then(setData).catch((e) => setError(e.message));
-    api.adminAttendance().then(setAttendance).catch(() => {});
     api.staffList().then(setStaffList).catch(() => {});
-  }, []);
+    if (!isSupervisor) api.adminAttendance().then(setAttendance).catch(() => {});
+  }, [isSupervisor]);
 
   const attendanceByUsername = {};
   (attendance?.collectors || []).forEach((a) => { attendanceByUsername[a.username] = a; });
@@ -80,7 +90,7 @@ export default function DailyActivityReport() {
     <div className="content-stack" style={{ maxWidth: "100%" }}>
       <div className="panel">
         <h2><Activity size={15} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />{t("dailyActivityTitle")}</h2>
-        <p className="panel-sub">{t("dailyActivityHint")}</p>
+        <p className="panel-sub">{t("dailyActivityHint")} {isSupervisor && `— ${t("supervisorDashboardHint")}`}</p>
         {data && <p style={{ fontSize: 12.5, color: "var(--text-dim)", margin: "0 0 14px" }}>{fmtDate(data.date)}</p>}
 
         {error && <div className="error-state">{error}</div>}
@@ -116,6 +126,8 @@ export default function DailyActivityReport() {
                       <th>{t("stillPendingLabel")}</th>
                       <th>{t("totalCollectedFromFollowupsLabel")}</th>
                       <th>{t("yesterdayLabel")}</th>
+                      <th>{t("dailyTargetLabel")}</th>
+                      <th>{t("status")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -155,6 +167,19 @@ export default function DailyActivityReport() {
                               </span>
                             )}
                           </td>
+                          <td data-label={t("dailyTargetLabel")}>
+                            {r.daily_collection_target > 0 || r.daily_contact_target > 0 ? (
+                              <div style={{ display: "flex", flexDirection: "column", gap: 3, fontSize: 11.5 }}>
+                                {r.daily_collection_target > 0 && (
+                                  <span>{t("collectedLabel")}: {r.collection_pct}% <span style={{ color: "var(--text-dim)" }}>({money(r.daily_collection_target)})</span></span>
+                                )}
+                                {r.daily_contact_target > 0 && (
+                                  <span>{t("contactsLabel")}: {r.contacts_today}/{r.daily_contact_target} ({r.contact_pct}%)</span>
+                                )}
+                              </div>
+                            ) : "—"}
+                          </td>
+                          <td data-label={t("status")}><FlagBadge flag={r.flag} t={t} /></td>
                         </tr>
                       );
                     })}

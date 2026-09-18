@@ -4,6 +4,7 @@ const TOKEN_KEY = "collect_token";
 const ROLE_KEY = "collect_role";
 const USERNAME_KEY = "collect_username";
 const PERMISSIONS_KEY = "collect_permissions";
+const IS_SUPERVISOR_KEY = "collect_is_supervisor";
 
 // Builds a ws:// or wss:// URL matching the API's own protocol/host - used for
 // the live-call signaling socket.
@@ -20,19 +21,22 @@ export function getSession() {
     role: localStorage.getItem(ROLE_KEY),
     username: localStorage.getItem(USERNAME_KEY),
     permissions: localStorage.getItem(PERMISSIONS_KEY) || "",
+    is_supervisor: localStorage.getItem(IS_SUPERVISOR_KEY) === "1",
   };
 }
-export function setSession(token, role, username, permissions = "") {
+export function setSession(token, role, username, permissions = "", isSupervisor = false) {
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(ROLE_KEY, role);
   localStorage.setItem(USERNAME_KEY, username);
   localStorage.setItem(PERMISSIONS_KEY, permissions || "");
+  localStorage.setItem(IS_SUPERVISOR_KEY, isSupervisor ? "1" : "0");
 }
 export function clearSession() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(ROLE_KEY);
   localStorage.removeItem(USERNAME_KEY);
   localStorage.removeItem(PERMISSIONS_KEY);
+  localStorage.removeItem(IS_SUPERVISOR_KEY);
 }
 
 // Builds a query string, dropping empty/null/undefined values entirely rather than
@@ -354,6 +358,14 @@ export const api = {
     request(`/api/admin/users/${id}/assign?linked_salesperson=${encodeURIComponent(linked_salesperson || "")}`, { method: "PATCH" }),
   setUserTarget: (id, monthly_target) =>
     request(`/api/admin/users/${id}/target?monthly_target=${encodeURIComponent(monthly_target)}`, { method: "PATCH" }),
+  setUserDailyTarget: (id, daily_collection_target, daily_contact_target) => {
+    const params = [];
+    params.push(`daily_collection_target=${encodeURIComponent(daily_collection_target || 0)}`);
+    params.push(`daily_contact_target=${encodeURIComponent(daily_contact_target || 0)}`);
+    return request(`/api/admin/users/${id}/daily-target?${params.join("&")}`, { method: "PATCH" });
+  },
+  setUserSupervisor: (id, supervisor_username) =>
+    request(`/api/admin/users/${id}/supervisor?supervisor_username=${encodeURIComponent(supervisor_username || "")}`, { method: "PATCH" }),
   updateUserPermissions: (id, permissions) =>
     request(`/api/admin/users/${id}/permissions?permissions=${encodeURIComponent(permissions || "")}`, { method: "PATCH" }),
   updateUserDelayReasons: (id, allowed_delay_reasons) =>

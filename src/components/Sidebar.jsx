@@ -10,7 +10,7 @@ import { useLang } from "../i18n.jsx";
 import swagLogo from "../assets/swag-mark.png";
 import useBodyScrollLock from "../hooks/useBodyScrollLock.js";
 
-export default function Sidebar({ view, setView, role, username, displayName, avatarUrl, permissions, onLogout, onOpenProfile }) {
+export default function Sidebar({ view, setView, role, username, displayName, avatarUrl, permissions, isSupervisor, onLogout, onOpenProfile }) {
   const { t, lang, setLanguage, theme, toggleTheme } = useLang();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -74,7 +74,7 @@ export default function Sidebar({ view, setView, role, username, displayName, av
       items: [
         { view: "myDay", icon: Sun, label: t("myDayTitle"), visible: true, color: "#FF8A00" },
         { view: "performanceReport", icon: Gauge, label: t("performanceReportTitle"), visible: true, color: "#5750f1" },
-        { view: "dailyActivity", icon: Activity, label: t("dailyActivityTitle"), visible: role === "admin", color: "#2C8397" },
+        { view: "dailyActivity", icon: Activity, label: t("dailyActivityTitle"), visible: role === "admin" || isSupervisor, color: "#2C8397" },
         { view: "collectorActivityExplorer", icon: UserCircle, label: t("collectorActivityExplorerTitle"), visible: role === "admin", color: "#5750f1" },
         { view: "paymentPlans", icon: CalendarClock, label: t("paymentPlansPageTitle"), visible: true, color: "#8E6CEF" },
         { view: "dueToday", icon: CalendarClock, label: t("dueTodayReportTitle"), visible: true, color: "#2C8397" },

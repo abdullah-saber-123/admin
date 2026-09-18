@@ -169,7 +169,7 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <Sidebar view={view} setView={setView} role={session.role} username={session.username} displayName={myProfile?.full_name} avatarUrl={myProfile?.avatar_url} permissions={session.permissions} onLogout={handleLogout} onOpenProfile={() => setProfileModal({ mode: "self" })} />
+      <Sidebar view={view} setView={setView} role={session.role} username={session.username} displayName={myProfile?.full_name} avatarUrl={myProfile?.avatar_url} permissions={session.permissions} isSupervisor={session.is_supervisor} onLogout={handleLogout} onOpenProfile={() => setProfileModal({ mode: "self" })} />
 
       <div className="main-col">
         <div className="topbar">
@@ -368,8 +368,8 @@ export default function App() {
           {view === "performanceReport" && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><PerformanceReport /></Suspense>
           )}
-          {view === "dailyActivity" && session.role === "admin" && (
-            <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><DailyActivityReport /></Suspense>
+          {view === "dailyActivity" && (session.role === "admin" || session.is_supervisor) && (
+            <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><DailyActivityReport isSupervisor={session.role !== "admin"} /></Suspense>
           )}
           {view === "collectorActivityExplorer" && session.role === "admin" && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><CollectorActivityExplorer /></Suspense>

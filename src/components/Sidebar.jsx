@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, Settings, LogOut, BarChart3, TrendingUp, Languages,
   CalendarClock, ClipboardList, Menu, X, ChevronLeft, ChevronRight, ChevronDown,
   CircleDollarSign, CreditCard, Receipt, Smartphone, CalendarRange, BellRing,
-  Gauge, FileText, HeartCrack, MessageSquare, UserCircle, Moon, Sun, Wallet, History, Share2, Activity, Megaphone,
+  Gauge, FileText, FileX, HeartCrack, MessageSquare, UserCircle, Moon, Sun, Wallet, History, Share2, Activity, Megaphone,
 } from "lucide-react";
 import { useLang } from "../i18n.jsx";
 import swagLogo from "../assets/swag-mark.png";
@@ -42,6 +42,7 @@ export default function Sidebar({ view, setView, role, username, displayName, av
   const canSeePaymentProofs = role === "admin" || perms.includes("paymentProofs");
   const canSeeCreditNomination = role === "admin" || perms.includes("creditNomination");
   const canSeeCostOfDebt = role === "admin" || perms.includes("costOfDebt");
+  const canSeeDebtWriteOffs = role === "admin" || perms.includes("debtWriteOffs");
   const canSeeBrokenPromises = role === "admin" || perms.includes("brokenPromises");
 
   const go = (v) => {
@@ -89,6 +90,7 @@ export default function Sidebar({ view, setView, role, username, displayName, av
       label: t("categoryFinance"),
       items: [
         { view: "costOfDebt", icon: CircleDollarSign, label: t("costOfDebtTitle"), visible: canSeeCostOfDebt, color: "#30C381" },
+        { view: "debtWriteOffs", icon: FileX, label: t("debtWriteOffsTitle"), visible: canSeeDebtWriteOffs, color: "#e5484d" },
         { view: "creditNomination", icon: CreditCard, label: t("creditNominationTitle"), visible: canSeeCreditNomination, color: "#9365B8" },
         { view: "monthlyReport", icon: CalendarRange, label: t("monthlyReportTitle"), visible: canSeeMonthlyReport, color: "#6CC1ED" },
         { view: "paymentProofs", icon: Receipt, label: t("paymentProofsTitle"), visible: canSeePaymentProofs, color: "#814968" },

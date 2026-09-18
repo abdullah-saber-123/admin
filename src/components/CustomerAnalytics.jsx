@@ -124,6 +124,8 @@ export default function CustomerAnalytics({ onSelectCustomer }) {
                     {t("riskLevel")}: {t(detail.risk_level === "high" ? "riskHigh" : detail.risk_level === "medium" ? "riskMedium" : "riskLow")}
                   </span>
                 )}
+                {detail?.write_off_status === "approved" && <span className="fu-tag danger">{t("writtenOffBadge")}</span>}
+                {detail?.write_off_status === "pending" && <span className="fu-tag warn">{t("writeOffStatus_pending")}</span>}
               </h3>
               <button className="icon-btn" onClick={clearCustomer} title={t("cancel")}><X size={15} /></button>
             </div>

@@ -194,6 +194,12 @@ export const api = {
   },
   customerAnalyticsDetail: (partnerId, year) =>
     request(`/api/admin/customer-analytics/${partnerId}${year ? `?year=${year}` : ""}`),
+  debtWriteOffs: (status) => request(`/api/admin/debt-write-offs${status ? `?status=${encodeURIComponent(status)}` : ""}`),
+  requestDebtWriteOff: (partner_id, reason, amount) =>
+    request(`/api/admin/debt-write-offs`, { method: "POST", body: JSON.stringify({ partner_id, reason, amount: amount || null }) }),
+  decideDebtWriteOff: (id, approve, note) =>
+    request(`/api/admin/debt-write-offs/${id}/decide?approve=${approve}${note ? `&note=${encodeURIComponent(note)}` : ""}`, { method: "PATCH" }),
+  reverseDebtWriteOff: (id) => request(`/api/admin/debt-write-offs/${id}/reverse`, { method: "PATCH" }),
   invoicesReport: (params = {}) => {
     const qs = buildQueryString(params);
     return request(`/api/reports/invoices${qs ? `?${qs}` : ""}`);

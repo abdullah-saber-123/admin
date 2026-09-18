@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Users, Wallet, AlertTriangle, Clock, CalendarClock, TimerReset, HeartCrack, ShieldAlert, Gift, Zap, ClipboardCheck, HandCoins, SlidersHorizontal } from "lucide-react";
+import { Users, Wallet, AlertTriangle, Clock, CalendarClock, TimerReset, HeartCrack, ShieldAlert, Gift, Zap, ClipboardCheck, HandCoins, SlidersHorizontal, Gauge, TrendingUp } from "lucide-react";
 import { useLang } from "../i18n.jsx";
 import { useCountUp } from "../hooks/useCountUp";
 import RiyalAmount from "./RiyalAmount.jsx";
@@ -58,7 +58,7 @@ export default function KpiCards({ kpis, onCardClick, activeBucket }) {
     );
   }
 
-  const { appointments, balances, broken_promise_count, my_target } = kpis;
+  const { appointments, balances, broken_promise_count, my_target, dso_days, collection_rate_ttm } = kpis;
 
   const allCards = [
     {
@@ -68,6 +68,14 @@ export default function KpiCards({ kpis, onCardClick, activeBucket }) {
     {
       id: "total_balance",
       icon: Wallet, iconSvg: moneyIconSvg, label: t("totalBalanceDue"), value: <RiyalAmount amount={balances.total_balance} animate />, tone: "blue",
+    },
+    {
+      id: "dso_days",
+      icon: Gauge, label: t("dsoKpiLabel"), value: dso_days !== null && dso_days !== undefined ? `${dso_days} ${t("daysUnit")}` : "—", tone: "amber",
+    },
+    {
+      id: "collection_rate_ttm",
+      icon: TrendingUp, label: t("collectionRateKpiLabel"), value: collection_rate_ttm !== null && collection_rate_ttm !== undefined ? `${collection_rate_ttm}%` : "—", tone: "teal",
     },
     {
       id: "overdue_45",

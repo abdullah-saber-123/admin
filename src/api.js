@@ -164,9 +164,7 @@ export const api = {
     return request(`/api/admin/portal-accounts${qs ? `?${qs}` : ""}`);
   },
   bulkCreatePortalAccess: () => request("/api/admin/portal-accounts/bulk-create", { method: "POST" }),
-  monthlyReport: (months = 12) => request(`/api/admin/monthly-report?months=${months}`),
   monthlyReportCustomers: (month) => request(`/api/admin/monthly-report/customers?month=${month}`),
-  monthlyReportForCustomer: (partnerId, months = 12) => request(`/api/admin/monthly-report/customer?partner_id=${partnerId}&months=${months}`),
   receivableComparison: (compareDate) => request(`/api/receivable-comparison?compare_date=${compareDate}`),
   teamsSettings: () => request("/api/admin/teams-settings"),
   updateTeamsSettings: (data) => request("/api/admin/teams-settings", { method: "PUT", body: JSON.stringify(data) }),

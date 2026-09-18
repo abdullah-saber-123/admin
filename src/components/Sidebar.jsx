@@ -3,7 +3,7 @@ import Avatar from "./Avatar.jsx";
 import {
   LayoutDashboard, Users, Settings, LogOut, BarChart3, TrendingUp, Languages,
   CalendarClock, ClipboardList, Menu, X, ChevronLeft, ChevronRight, ChevronDown,
-  CircleDollarSign, CreditCard, Receipt, Smartphone, CalendarRange, BellRing,
+  CircleDollarSign, CreditCard, Receipt, Smartphone, BellRing,
   Gauge, FileText, FileX, HeartCrack, MessageSquare, UserCircle, Moon, Sun, Wallet, History, Share2, Activity, Megaphone,
 } from "lucide-react";
 import { useLang } from "../i18n.jsx";
@@ -34,7 +34,6 @@ export default function Sidebar({ view, setView, role, username, displayName, av
   const canSeeReports = role === "admin" || perms.includes("reports");
   const canSeeTrends = role === "admin" || perms.includes("trends");
   const canSeePortalManagement = role === "admin" || perms.includes("portalManagement");
-  const canSeeMonthlyReport = role === "admin" || perms.includes("monthlyReport");
   const canSeeReminders = role === "admin" || perms.includes("reminders");
   const canSeeCustomerScore = role === "admin" || perms.includes("customerScore");
   const canSeeCustomerAnalytics = role === "admin" || perms.includes("customerAnalytics");
@@ -92,7 +91,6 @@ export default function Sidebar({ view, setView, role, username, displayName, av
         { view: "costOfDebt", icon: CircleDollarSign, label: t("costOfDebtTitle"), visible: canSeeCostOfDebt, color: "#30C381" },
         { view: "debtWriteOffs", icon: FileX, label: t("debtWriteOffsTitle"), visible: canSeeDebtWriteOffs, color: "#e5484d" },
         { view: "creditNomination", icon: CreditCard, label: t("creditNominationTitle"), visible: canSeeCreditNomination, color: "#9365B8" },
-        { view: "monthlyReport", icon: CalendarRange, label: t("monthlyReportTitle"), visible: canSeeMonthlyReport, color: "#6CC1ED" },
         { view: "paymentProofs", icon: Receipt, label: t("paymentProofsTitle"), visible: canSeePaymentProofs, color: "#814968" },
         { view: "collectionsReport", icon: Wallet, label: t("collectionsReportTitle"), visible: true, color: "#30C381" },
         { view: "collectionOffers", icon: Megaphone, label: t("collectionOfferTitle"), visible: true, color: "#D6145F" },

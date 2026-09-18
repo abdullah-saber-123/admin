@@ -43,7 +43,6 @@ const CreditNominationReport = lazy(() => import("./components/CreditNominationR
 const CollectionOffers = lazy(() => import("./components/CollectionOffers.jsx"));
 const PaymentProofsReport = lazy(() => import("./components/PaymentProofsReport.jsx"));
 const PortalManagementReport = lazy(() => import("./components/PortalManagementReport.jsx"));
-const MonthlyReport = lazy(() => import("./components/MonthlyReport.jsx"));
 const RemindersOverview = lazy(() => import("./components/RemindersOverview.jsx"));
 const CustomerScoreReport = lazy(() => import("./components/CustomerScoreReport.jsx"));
 const CustomerAnalytics = lazy(() => import("./components/CustomerAnalytics.jsx"));
@@ -194,7 +193,6 @@ export default function App() {
               : view === "creditNomination" ? t("creditNominationTitle")
               : view === "paymentProofs" ? t("paymentProofsTitle")
               : view === "portalManagement" ? t("portalManagementTitle")
-              : view === "monthlyReport" ? t("monthlyReportTitle")
               : view === "reminders" ? t("remindersOverviewTitle")
               : view === "customerScore" ? t("customerScoreTitle")
               : view === "customerAnalytics" ? t("customerAnalyticsTitle")
@@ -399,9 +397,6 @@ export default function App() {
           )}
           {view === "portalManagement" && (session.role === "admin" || (session.permissions || "").includes("portalManagement")) && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><PortalManagementReport onSelectCustomer={setSelectedId} /></Suspense>
-          )}
-          {view === "monthlyReport" && (session.role === "admin" || (session.permissions || "").includes("monthlyReport")) && (
-            <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><MonthlyReport onSelectCustomer={setSelectedId} /></Suspense>
           )}
           {view === "reminders" && (session.role === "admin" || (session.permissions || "").includes("reminders")) && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><RemindersOverview onSelectCustomer={setSelectedId} /></Suspense>

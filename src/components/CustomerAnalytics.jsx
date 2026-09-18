@@ -30,7 +30,8 @@ function TrendIcon({ trend }) {
 
 export default function CustomerAnalytics({ onSelectCustomer }) {
   const { t, lang, money } = useLang();
-  const year = new Date().getFullYear();
+  const currentYear = new Date().getFullYear();
+  const [year, setYear] = useState(currentYear);
 
   const [regions, setRegions] = useState([]);
   const [cities, setCities] = useState([]);
@@ -41,6 +42,9 @@ export default function CustomerAnalytics({ onSelectCustomer }) {
   const [overview, setOverview] = useState(null);
   const [error, setError] = useState(null);
   const [rankTab, setRankTab] = useState("sales");
+  const [monthDrilldown, setMonthDrilldown] = useState(null); // { monthKey, label }
+  const [monthRows, setMonthRows] = useState(null);
+  const [monthError, setMonthError] = useState(null);
 
   const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState(null);
@@ -88,7 +92,15 @@ export default function CustomerAnalytics({ onSelectCustomer }) {
     setDetailError(null);
   };
 
-  const chartData = overview ? overview.monthly.map((m) => ({ label: monthLabel(m.month, lang), sales: m.sales, payments: m.payments, other_credits: m.other_credits })) : [];
+  const openMonth = (m) => {
+    const monthKey = `${year}-${String(m.month).padStart(2, "0")}`;
+    setMonthDrilldown({ monthKey, label: monthLabel(m.month, lang) });
+    setMonthRows(null);
+    setMonthError(null);
+    api.monthlyReportCustomers(monthKey).then(setMonthRows).catch((e) => setMonthError(e.message));
+  };
+
+  const chartData = overview ? overview.monthly.map((m) => ({ label: monthLabel(m.month, lang), sales: m.sales, payments: m.payments, other_credits: m.other_credits, month: m.month })) : [];
   const detailChartData = detail ? detail.monthly.map((m) => ({ label: monthLabel(m.month, lang), sales: m.sales, payments: m.payments, other_credits: m.other_credits })) : [];
   const ranked = overview ? (rankTab === "sales" ? overview.top_by_sales : overview.top_by_payments) : [];
 
@@ -222,6 +234,12 @@ export default function CustomerAnalytics({ onSelectCustomer }) {
 
         <div className="more-filters-row" style={{ marginBottom: 14 }}>
           <div className="more-filter-field">
+            <label>{t("yearLabel")}</label>
+            <select value={year} onChange={(e) => setYear(Number(e.target.value))}>
+              {[currentYear, currentYear - 1, currentYear - 2, currentYear - 3].map((y) => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
+          <div className="more-filter-field">
             <label>{t("regionLabel")}</label>
             <select value={regionFilter} onChange={(e) => setRegionFilter(e.target.value)}>
               <option value="">{t("allStatus")}</option>
@@ -296,6 +314,7 @@ export default function CustomerAnalytics({ onSelectCustomer }) {
 
             <div className="insights-chart-card" style={{ marginBottom: 20 }}>
               <h3 className="insights-chart-title">{t("invoicedVsCollectedChart")} — {year}</h3>
+              <p style={{ fontSize: 11, color: "var(--text-dim)", margin: "0 0 6px 6px" }}>{t("clickMonthHint")}</p>
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={chartData}>
                   <XAxis dataKey="label" stroke="#6b7280" fontSize={11} tickLine={false} axisLine={false} />
@@ -303,9 +322,9 @@ export default function CustomerAnalytics({ onSelectCustomer }) {
                          tickFormatter={(v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : v)} />
                   <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v) => money(v)} />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="sales" name={t("invoicedSales")} fill="#714b67" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="payments" name={t("collected")} fill="#30C381" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="other_credits" name={t("otherCredits")} fill="#c98a1c" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="sales" name={t("invoicedSales")} fill="#714b67" radius={[4, 4, 0, 0]} style={{ cursor: "pointer" }} onClick={openMonth} />
+                  <Bar dataKey="payments" name={t("collected")} fill="#30C381" radius={[4, 4, 0, 0]} style={{ cursor: "pointer" }} onClick={openMonth} />
+                  <Bar dataKey="other_credits" name={t("otherCredits")} fill="#c98a1c" radius={[4, 4, 0, 0]} style={{ cursor: "pointer" }} onClick={openMonth} />
                 </BarChart>
               </ResponsiveContainer>
               {overview.totals.other_credits !== 0 && (
@@ -356,6 +375,46 @@ export default function CustomerAnalytics({ onSelectCustomer }) {
           </>
         )}
       </div>
+
+      {monthDrilldown && (
+        <div className="overlay modal-overlay" onClick={() => setMonthDrilldown(null)}>
+          <div className="prompt-modal" style={{ maxWidth: 640, maxHeight: "80vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
+            <button className="close-btn" onClick={() => setMonthDrilldown(null)}><X size={16} /></button>
+            <h3>{monthDrilldown.label} {year}</h3>
+            {monthError && <div className="error-state">{monthError}</div>}
+            {!monthError && !monthRows && <div className="loading-state">{t("loadingDots")}</div>}
+            {monthRows && monthRows.length === 0 && <div className="empty-state">{t("noActivity")}</div>}
+            {monthRows && monthRows.length > 0 && (
+              <div className="table-wrap">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>{t("customer")}</th>
+                      <th>{t("cityLabel")}</th>
+                      <th>{t("invoicedSales")}</th>
+                      <th>{t("collected")}</th>
+                      <th>{t("balanceDue")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {monthRows.map((r) => (
+                      <tr key={r.partner_id}>
+                        <td data-label={t("customer")} className="clickable-row" onClick={() => onSelectCustomer?.(r.partner_id)}>
+                          <span className="cust-name">{r.name}</span>
+                        </td>
+                        <td data-label={t("cityLabel")}>{r.city || "—"}</td>
+                        <td data-label={t("invoicedSales")}>{r.invoiced ? <RiyalAmount amount={r.invoiced} /> : "—"}</td>
+                        <td data-label={t("collected")}>{r.collected ? <RiyalAmount amount={r.collected} /> : "—"}</td>
+                        <td data-label={t("balanceDue")}><RiyalAmount amount={r.current_balance} /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -68,6 +68,41 @@ function TargetGaugeCard({ monthlyTarget, collectedThisMonth, t, money }) {
   );
 }
 
+function DailyTargetCard({ dailyTarget, t, money }) {
+  if (!dailyTarget) return null;
+  const { collection_target, contact_target, collected_today, contacts_today, collection_pct, contact_pct, flag } = dailyTarget;
+  const collectionRemaining = collection_target > 0 ? Math.max(0, collection_target - collected_today) : 0;
+  const contactRemaining = contact_target > 0 ? Math.max(0, contact_target - contacts_today) : 0;
+
+  let guidance;
+  if (flag === "critical") guidance = t("dailyTargetGuidanceCritical");
+  else if (flag === "warning") guidance = t("dailyTargetGuidanceWarning");
+  else if (contact_target > 0 && contactRemaining > 0) guidance = t("dailyTargetGuidanceRemainingContacts").replace("{n}", contactRemaining);
+  else if (collection_target > 0 && collectionRemaining > 0) guidance = t("dailyTargetGuidanceRemainingAmount").replace("{amount}", money(collectionRemaining));
+  else guidance = t("dailyTargetGuidanceDone");
+
+  return (
+    <div className={`my-day-daily-target-card ${flag}`}>
+      <div className="my-day-history-title"><Gauge size={13} /> {t("dailyTargetCardTitle")}</div>
+      {collection_target > 0 && (
+        <div className="my-day-daily-target-row">
+          <span>{t("collectedLabel")}</span>
+          <span>{money(collected_today)} / {money(collection_target)}</span>
+          <div className="my-day-progress-track"><div className="my-day-progress-fill" style={{ width: `${Math.min(100, collection_pct || 0)}%` }} /></div>
+        </div>
+      )}
+      {contact_target > 0 && (
+        <div className="my-day-daily-target-row">
+          <span>{t("contactsLabel")}</span>
+          <span>{contacts_today} / {contact_target}</span>
+          <div className="my-day-progress-track"><div className="my-day-progress-fill" style={{ width: `${Math.min(100, contact_pct || 0)}%` }} /></div>
+        </div>
+      )}
+      <div className={`my-day-daily-target-guidance ${flag}`}>{guidance}</div>
+    </div>
+  );
+}
+
 function HistoricalComparisonCard({ comparison, collectedToday, completedToday, t, money }) {
   if (!comparison) return null;
   const collectedDiff = collectedToday - comparison.collected;
@@ -1023,6 +1058,7 @@ export default function MyDay({ onSelectCustomer }) {
   // would nudge the team before close.
   const currentHour = new Date().getHours();
   const showEndOfDayReminder = currentHour >= 15 && summary && summary.pending_count > 0;
+  const isEarlyInDay = currentHour < 12;
 
 
   const statusChartData = Object.entries(
@@ -1123,7 +1159,14 @@ export default function MyDay({ onSelectCustomer }) {
 
         {!focusMode && data && items.length > 0 && (
           <>
-            {summary && (
+            {summary && summary.queue_count === 0 && (
+              <div className="my-day-nothing-due-banner">
+                <PartyPopper size={16} />
+                {t("nothingDueTodayMsg")}
+              </div>
+            )}
+
+            {summary && summary.queue_count > 0 && (
               <div className="my-day-progress-strip">
                 <div className="my-day-progress-item">
                   <span className="my-day-progress-label">{t("todayProgressLabel")}</span>
@@ -1135,6 +1178,11 @@ export default function MyDay({ onSelectCustomer }) {
                     <div className="my-day-progress-fill" style={{ width: `${summary.queue_count ? Math.round((summary.completed_today / summary.queue_count) * 100) : 0}%` }} />
                   </div>
                 </div>
+              </div>
+            )}
+
+            {summary && (
+              <div className="my-day-progress-strip">
                 <div className="my-day-progress-item">
                   <span className="my-day-progress-label">{t("todayVsYesterdayLabel")}</span>
                   <span className="my-day-progress-value">
@@ -1145,12 +1193,16 @@ export default function MyDay({ onSelectCustomer }) {
                       </span>
                     )}
                   </span>
+                  {isEarlyInDay && summary.collected_today === 0 && summary.collected_yesterday > 0 && (
+                    <div className="my-day-early-day-note">{t("earlyInDayNote")}</div>
+                  )}
                 </div>
               </div>
             )}
 
-            {summary && (summary.monthly_target || summary.historical_comparison) && (
+            {summary && (summary.monthly_target || summary.historical_comparison || summary.daily_target) && (
               <div className="my-day-secondary-cards">
+                <DailyTargetCard dailyTarget={summary.daily_target} t={t} money={money} />
                 <TargetGaugeCard monthlyTarget={summary.monthly_target} collectedThisMonth={summary.collected_this_month} t={t} money={money} />
                 <HistoricalComparisonCard
                   comparison={summary.historical_comparison} collectedToday={summary.collected_today}

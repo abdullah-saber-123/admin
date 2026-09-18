@@ -3838,16 +3838,55 @@ input, select, textarea { font-family: inherit; }
 
 .my-day-secondary-cards {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 14px;
   margin-bottom: 16px;
 }
-.my-day-gauge-card, .my-day-history-card {
+.my-day-gauge-card, .my-day-history-card, .my-day-daily-target-card {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 14px;
   text-align: center;
+}
+.my-day-daily-target-card.critical { border-color: var(--danger); }
+.my-day-daily-target-card.warning { border-color: var(--warn); }
+.my-day-daily-target-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  margin-top: 8px;
+  text-align: start;
+}
+.my-day-daily-target-row > span:first-child { color: var(--text-dim); font-size: 11px; }
+.my-day-daily-target-guidance {
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+.my-day-daily-target-guidance.critical { background: var(--danger-soft); color: var(--danger); }
+.my-day-daily-target-guidance.warning { background: var(--warn-soft); color: var(--warn); }
+.my-day-nothing-due-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--ok-soft);
+  color: var(--ok);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin-bottom: 14px;
+}
+.my-day-early-day-note {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 4px;
 }
 .my-day-gauge-title, .my-day-history-title {
   display: flex;

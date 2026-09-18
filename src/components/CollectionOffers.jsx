@@ -82,6 +82,8 @@ function NominateCustomerPicker({ offerId, nominatedPartnerIds, onNominated }) {
   const [cityFilter, setCityFilter] = useState("");
   const [collectors, setCollectors] = useState([]);
   const [collectorFilter, setCollectorFilter] = useState("");
+  const [collectorSelectOpen, setCollectorSelectOpen] = useState(false);
+  const [collectorSearch, setCollectorSearch] = useState("");
   const [minBalance, setMinBalance] = useState("");
   const [maxBalance, setMaxBalance] = useState("");
   const [page, setPage] = useState(1);
@@ -179,13 +181,48 @@ function NominateCustomerPicker({ offerId, nominatedPartnerIds, onNominated }) {
             {cities.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
-        <div className="more-filter-field">
-          <label>{t("collectorField")}</label>
-          <select value={collectorFilter} onChange={(e) => setCollectorFilter(e.target.value)}>
-            <option value="">{t("allStatus")}</option>
-            {collectors.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </div>
+        {collectors.length > 1 && (
+          <div className="more-filter-field" style={{ position: "relative" }}>
+            <label>{t("collectorField")}</label>
+            <button type="button" className="multi-select-trigger" onClick={() => setCollectorSelectOpen((v) => !v)}>
+              {collectorFilter ? `${collectorFilter.split(",").filter(Boolean).length} ${t("selected")}` : t("allStatus")}
+            </button>
+            {collectorSelectOpen && (
+              <>
+                <div className="columns-menu-backdrop" onClick={() => { setCollectorSelectOpen(false); setCollectorSearch(""); }} />
+                <div className="columns-menu">
+                  <div className="multiselect-search">
+                    <Search size={12} />
+                    <input
+                      autoFocus
+                      value={collectorSearch}
+                      onChange={(e) => setCollectorSearch(e.target.value)}
+                      placeholder={t("searchPlaceholder")}
+                    />
+                  </div>
+                  <div className="multiselect-scroll">
+                    {collectors.filter((c) => c.toLowerCase().includes(collectorSearch.toLowerCase())).map((c) => {
+                      const selected = (collectorFilter || "").split(",").filter(Boolean);
+                      return (
+                        <label key={c} className="multiselect-item">
+                          <input
+                            type="checkbox"
+                            checked={selected.includes(c)}
+                            onChange={() => {
+                              const next = selected.includes(c) ? selected.filter((x) => x !== c) : [...selected, c];
+                              setCollectorFilter(next.join(","));
+                            }}
+                          />
+                          {c}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
         <div className="more-filter-field">
           <label>{t("balanceFrom")}</label>
           <input type="number" min="0" value={minBalance} onChange={(e) => setMinBalance(e.target.value)} />
@@ -210,6 +247,7 @@ function NominateCustomerPicker({ offerId, nominatedPartnerIds, onNominated }) {
                   <th className="sortable" onClick={() => toggleSort("current_due")}>{t("balanceDue")} {sortIcon("current_due")}</th>
                   <th>{t("creditLimitLabel")}</th>
                   <th>{t("collectorField")}</th>
+                  <th>{t("paymentTypeLabel")}</th>
                   <th>{t("nominate")}</th>
                 </tr>
               </thead>
@@ -222,6 +260,7 @@ function NominateCustomerPicker({ offerId, nominatedPartnerIds, onNominated }) {
                       <td data-label={t("balanceDue")}><RiyalAmount amount={c.current_due} /></td>
                       <td data-label={t("creditLimitLabel")}>{c.credit_limit ? <RiyalAmount amount={c.credit_limit} /> : t("noCreditLimit")}</td>
                       <td data-label={t("collectorField")}>{c.salesperson_name || "—"}</td>
+                      <td data-label={t("paymentTypeLabel")}>{c.payment_type || "—"}</td>
                       <td data-label={t("nominate")}>
                         <button className="btn-primary sm" disabled={already || nominating === c.partner_id} onClick={() => nominate(c)}>
                           {already ? t("alreadyNominated") : nominating === c.partner_id ? t("saving") : t("nominate")}
@@ -259,17 +298,20 @@ function groupNominationsByCustomer(nominations) {
         customer_phone: n.customer_phone,
         current_due: n.current_due,
         credit_limit: n.credit_limit,
+        payment_type: n.payment_type,
         salesperson_name: n.salesperson_name,
         nominators: [],
         nomination_ids: [],
         status: n.status,
         batch: n.batch,
         admin_note: n.admin_note,
+        customer_notified: false,
       });
     }
     const g = byPartner.get(n.partner_id);
     g.nominators.push(n.nominated_by);
     g.nomination_ids.push(n.id);
+    if (n.customer_notified) g.customer_notified = true;
   }
   return Array.from(byPartner.values());
 }
@@ -329,6 +371,20 @@ function OfferNominees({ offer, onBack }) {
     }
   };
 
+  const toggleNotified = async (group) => {
+    setBusyId(group.partner_id);
+    try {
+      await Promise.all(group.nomination_ids.map((id) => api.decideCollectionOfferNomination(offer.id, id, {
+        customer_notified: !group.customer_notified,
+      })));
+      load();
+    } catch (e) {
+      showToast(e.message, "error");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const handlePrint = async () => {
     setPrinting(true);
     try {
@@ -368,10 +424,12 @@ function OfferNominees({ offer, onBack }) {
                 <th>{t("balanceDue")}</th>
                 <th>{t("creditLimitLabel")}</th>
                 <th>{t("collectorField")}</th>
+                <th>{t("paymentTypeLabel")}</th>
                 <th>{t("nominatedBy")}</th>
                 <th>{t("status")}</th>
                 <th>{t("batchLabel")}</th>
                 <th>{t("noteLabel")}</th>
+                <th>{t("customerNotified")}</th>
                 <th>{t("actions")}</th>
               </tr>
             </thead>
@@ -389,6 +447,7 @@ function OfferNominees({ offer, onBack }) {
                   <td data-label={t("balanceDue")}><RiyalAmount amount={g.current_due || 0} /></td>
                   <td data-label={t("creditLimitLabel")}>{g.credit_limit ? <RiyalAmount amount={g.credit_limit} /> : t("noCreditLimit")}</td>
                   <td data-label={t("collectorField")}>{g.salesperson_name || "—"}</td>
+                  <td data-label={t("paymentTypeLabel")}>{g.payment_type || "—"}</td>
                   <td data-label={t("nominatedBy")} title={g.nominators.join(", ")}>{g.nominators.join(", ")}</td>
                   <td data-label={t("status")}><span className={`share-status-badge ${g.status}`}>{statusLabel[g.status] || g.status}</span></td>
                   <td data-label={t("batchLabel")}>
@@ -409,6 +468,14 @@ function OfferNominees({ offer, onBack }) {
                         onBlur={() => saveRow(g)}
                       />
                     </div>
+                  </td>
+                  <td data-label={t("customerNotified")}>
+                    <input
+                      type="checkbox"
+                      checked={!!g.customer_notified}
+                      disabled={busyId === g.partner_id}
+                      onChange={() => toggleNotified(g)}
+                    />
                   </td>
                   <td data-label={t("actions")}>
                     <div style={{ display: "flex", gap: 6 }}>

@@ -26,7 +26,11 @@ export default function CreditNominationReport({ onSelectCustomer, role }) {
   const [savingId, setSavingId] = useState(null);
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [importingPaymentTypes, setImportingPaymentTypes] = useState(false);
+  const [savingPaymentTypeId, setSavingPaymentTypeId] = useState(null);
   const fileInputRef = useRef(null);
+  const paymentTypeFileInputRef = useRef(null);
+  const PAYMENT_TYPES = ["نقدي", "آجل", "معلقة"];
 
   useEffect(() => {
     api.cities().then(setCities).catch(() => {});
@@ -102,7 +106,38 @@ export default function CreditNominationReport({ onSelectCustomer, role }) {
     }
   };
 
+  const savePaymentType = async (partnerId, value) => {
+    setSavingPaymentTypeId(partnerId);
+    try {
+      await api.updatePaymentType(partnerId, value || null);
+      load();
+    } catch (e) {
+      showToast(e.message, "error");
+    } finally {
+      setSavingPaymentTypeId(null);
+    }
+  };
+
   const handleImportClick = () => fileInputRef.current?.click();
+  const handleImportPaymentTypesClick = () => paymentTypeFileInputRef.current?.click();
+
+  const handleImportPaymentTypesFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setImportingPaymentTypes(true);
+    try {
+      const result = await api.importPaymentTypes(file);
+      showToast(t("paymentTypesImported").replace("{n}", result.updated), "success");
+      if (result.not_found_count > 0) showToast(t("creditLimitsImportSkipped").replace("{n}", result.not_found_count), "error");
+      if (result.invalid_count > 0) showToast(t("paymentTypesImportInvalid").replace("{n}", result.invalid_count), "error");
+      load();
+    } catch (e2) {
+      showToast(e2.message, "error");
+    } finally {
+      setImportingPaymentTypes(false);
+    }
+  };
 
   const handleImportFile = async (e) => {
     const file = e.target.files?.[0];
@@ -142,6 +177,11 @@ export default function CreditNominationReport({ onSelectCustomer, role }) {
                 {importing ? t("importing") : t("importCreditLimits")}
               </button>
               <input ref={fileInputRef} type="file" accept=".xlsx,.xls" style={{ display: "none" }} onChange={handleImportFile} />
+              <button className="btn-secondary sm" onClick={handleImportPaymentTypesClick} disabled={importingPaymentTypes}>
+                <Upload size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
+                {importingPaymentTypes ? t("importing") : t("importPaymentTypes")}
+              </button>
+              <input ref={paymentTypeFileInputRef} type="file" accept=".xlsx,.xls" style={{ display: "none" }} onChange={handleImportPaymentTypesFile} />
             </div>
           )}
         </div>
@@ -201,6 +241,7 @@ export default function CreditNominationReport({ onSelectCustomer, role }) {
                     <th>{t("cityLabel")}</th>
                     <th className="sortable" onClick={() => toggleSort("current_due")}>{t("balanceDue")} {sortIcon("current_due")}</th>
                     <th>{t("creditLimitLabel")}</th>
+                    <th>{t("paymentTypeLabel")}</th>
                     <th>{t("nominateForOffer")}</th>
                     <th>{t("nominateForCollection")}</th>
                   </tr>
@@ -248,6 +289,16 @@ export default function CreditNominationReport({ onSelectCustomer, role }) {
                               {isOver && <span className="mini-stat-days overdue" style={{ marginInlineStart: 6 }}>{t("overLimitWarning")}</span>}
                             </span>
                           )}
+                        </td>
+                        <td data-label={t("paymentTypeLabel")}>
+                          <select
+                            value={c.payment_type || ""}
+                            disabled={role !== "admin" || savingPaymentTypeId === c.partner_id}
+                            onChange={(e) => savePaymentType(c.partner_id, e.target.value)}
+                          >
+                            <option value="">—</option>
+                            {PAYMENT_TYPES.map((pt) => <option key={pt} value={pt}>{pt}</option>)}
+                          </select>
                         </td>
                         <td data-label={t("nominateForOffer")}>
                           <button

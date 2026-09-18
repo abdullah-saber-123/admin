@@ -198,6 +198,18 @@ export const api = {
   decideDebtWriteOff: (id, approve, note) =>
     request(`/api/admin/debt-write-offs/${id}/decide?approve=${approve}${note ? `&note=${encodeURIComponent(note)}` : ""}`, { method: "PATCH" }),
   reverseDebtWriteOff: (id) => request(`/api/admin/debt-write-offs/${id}/reverse`, { method: "PATCH" }),
+  visitRequests: (params = {}) => {
+    const qs = buildQueryString(params);
+    return request(`/api/visit-requests${qs ? `?${qs}` : ""}`);
+  },
+  createVisitRequest: (partner_id, reason) =>
+    request(`/api/visit-requests`, { method: "POST", body: JSON.stringify({ partner_id, reason }) }),
+  assignVisitRequest: (id, assigned_to) =>
+    request(`/api/visit-requests/${id}/assign`, { method: "PATCH", body: JSON.stringify({ assigned_to }) }),
+  rejectVisitRequest: (id, note) =>
+    request(`/api/visit-requests/${id}/reject`, { method: "PATCH", body: JSON.stringify({ note }) }),
+  completeVisitRequest: (id, payload) =>
+    request(`/api/visit-requests/${id}/complete`, { method: "PATCH", body: JSON.stringify(payload) }),
   invoicesReport: (params = {}) => {
     const qs = buildQueryString(params);
     return request(`/api/reports/invoices${qs ? `?${qs}` : ""}`);

@@ -43,6 +43,9 @@ export default function CustomerDetail({ partnerId, role, onClose, onSaved }) {
   const [error, setError] = useState(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showUrgentModal, setShowUrgentModal] = useState(false);
+  const [showVisitModal, setShowVisitModal] = useState(false);
+  const [visitReason, setVisitReason] = useState("");
+  const [requestingVisit, setRequestingVisit] = useState(false);
   const [staffList, setStaffList] = useState(null);
 
   const [invoicePage, setInvoicePage] = useState(1);
@@ -125,6 +128,22 @@ export default function CustomerDetail({ partnerId, role, onClose, onSaved }) {
   const openUrgentModal = () => {
     api.staffList().then(setStaffList).catch(() => setStaffList([]));
     setShowUrgentModal(true);
+  };
+
+  const handleRequestVisit = async (e) => {
+    e.preventDefault();
+    if (!visitReason.trim()) return;
+    setRequestingVisit(true);
+    try {
+      await api.createVisitRequest(partnerId, visitReason.trim());
+      showToast(t("visitRequested"), "success");
+      setShowVisitModal(false);
+      setVisitReason("");
+    } catch (e2) {
+      showToast(e2.message, "error");
+    } finally {
+      setRequestingVisit(false);
+    }
   };
 
   const loadPaymentPlans = () => {
@@ -430,6 +449,10 @@ export default function CustomerDetail({ partnerId, role, onClose, onSaved }) {
                 <button className="btn-secondary sm" onClick={() => setShowShareModal(true)}>
                   <Share2 size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
                   {t("shareCustomerButton")}
+                </button>
+                <button className="btn-secondary sm" onClick={() => setShowVisitModal(true)}>
+                  <MapPin size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
+                  {t("requestVisitButton")}
                 </button>
                 {role === "admin" && (
                   <button className="btn-secondary sm danger" onClick={openUrgentModal}>
@@ -933,6 +956,25 @@ export default function CustomerDetail({ partnerId, role, onClose, onSaved }) {
       </div>
       {showShareModal && (
         <ShareCustomerModal partnerId={partnerId} onClose={() => setShowShareModal(false)} />
+      )}
+      {showVisitModal && (
+        <div className="overlay modal-overlay" onClick={() => setShowVisitModal(false)}>
+          <div className="prompt-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="close-btn" onClick={() => setShowVisitModal(false)}><X size={16} /></button>
+            <h3><MapPin size={15} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />{t("requestVisitButton")}</h3>
+            <p className="prompt-message">{detail.profile.name}</p>
+            <form onSubmit={handleRequestVisit}>
+              <label>{t("visitReasonLabel")}</label>
+              <textarea rows={3} value={visitReason} onChange={(e) => setVisitReason(e.target.value)} placeholder={t("visitReasonPlaceholder")} autoFocus />
+              <div className="prompt-actions">
+                <button type="button" className="btn-secondary" onClick={() => setShowVisitModal(false)}>{t("cancel")}</button>
+                <button type="submit" className="btn-primary" disabled={!visitReason.trim() || requestingVisit}>
+                  {requestingVisit ? t("saving") : t("save")}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
       {showUrgentModal && (
         <AnnouncementComposeModal

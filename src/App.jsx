@@ -31,6 +31,7 @@ const CustomerShares = lazy(() => import("./components/CustomerShares.jsx"));
 const Trends = lazy(() => import("./components/Trends.jsx"));
 const DueTodayReport = lazy(() => import("./components/DueTodayReport.jsx"));
 const FollowupLogReport = lazy(() => import("./components/FollowupLogReport.jsx"));
+const VisitsReport = lazy(() => import("./components/VisitsReport.jsx"));
 const MyDay = lazy(() => import("./components/MyDay.jsx"));
 const PaymentPlansReport = lazy(() => import("./components/PaymentPlansReport.jsx"));
 const AnnouncementHistory = lazy(() => import("./components/AnnouncementHistory.jsx"));
@@ -182,6 +183,7 @@ export default function App() {
               : view === "staffChat" ? t("staffChatTitle")
               : view === "invoices" ? t("invoicesReportTitle")
               : view === "followupLog" ? t("followupLogTitle")
+              : view === "visits" ? t("visitsTitle")
               : view === "myDay" ? t("myDayTitle")
               : view === "performanceReport" ? t("performanceReportTitle")
               : view === "dailyActivity" ? t("dailyActivityTitle")
@@ -361,6 +363,9 @@ export default function App() {
                 onConsumeInitialFilter={() => setFollowupLogDateFilter(null)}
               />
             </Suspense>
+          )}
+          {view === "visits" && (
+            <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><VisitsReport onSelectCustomer={setSelectedId} role={session.role} username={session.username} /></Suspense>
           )}
           {view === "myDay" && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><MyDay onSelectCustomer={setSelectedId} /></Suspense>

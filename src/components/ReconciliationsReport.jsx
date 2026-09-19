@@ -512,6 +512,9 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
   const [statusFilter, setStatusFilter] = useState("");
   const [mineOnly, setMineOnly] = useState(false);
   const [statementSentFilter, setStatementSentFilter] = useState("");
+  const [assignedToFilter, setAssignedToFilter] = useState("");
+  const [lastReconciliationFrom, setLastReconciliationFrom] = useState("");
+  const [lastReconciliationTo, setLastReconciliationTo] = useState("");
   const [cities, setCities] = useState([]);
   const [collectors, setCollectors] = useState([]);
   const [staffList, setStaffList] = useState([]);
@@ -538,14 +541,21 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
     setError(null);
     const params = {
       search, city: cityFilter, collector: collectorFilter, status: statusFilter, mine: mineOnly, page, page_size: 25,
-      sort_by: sortBy, sort_dir: sortDir,
+      sort_by: sortBy, sort_dir: sortDir, assigned_to: assignedToFilter,
+      last_reconciliation_from: lastReconciliationFrom, last_reconciliation_to: lastReconciliationTo,
     };
     if (statementSentFilter) params.statement_sent = statementSentFilter === "sent";
     api.reconciliations(params).then(setData).catch((e) => setError(e.message));
-  }, [search, cityFilter, collectorFilter, statusFilter, mineOnly, statementSentFilter, page, sortBy, sortDir]);
+  }, [
+    search, cityFilter, collectorFilter, statusFilter, mineOnly, statementSentFilter,
+    assignedToFilter, lastReconciliationFrom, lastReconciliationTo, page, sortBy, sortDir,
+  ]);
 
   useEffect(() => { load(); }, [load]);
-  useEffect(() => { setPage(1); }, [search, cityFilter, collectorFilter, statusFilter, mineOnly, statementSentFilter, sortBy, sortDir]);
+  useEffect(() => { setPage(1); }, [
+    search, cityFilter, collectorFilter, statusFilter, mineOnly, statementSentFilter,
+    assignedToFilter, lastReconciliationFrom, lastReconciliationTo, sortBy, sortDir,
+  ]);
 
   const toggleSort = (field) => {
     if (sortBy === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -611,6 +621,21 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
               <option value="sent">{t("statementSentYes")}</option>
               <option value="not_sent">{t("statementSentNo")}</option>
             </select>
+          </div>
+          <div className="more-filter-field">
+            <label>{t("assignTo")}</label>
+            <select value={assignedToFilter} onChange={(e) => setAssignedToFilter(e.target.value)}>
+              <option value="">{t("allStatus")}</option>
+              {staffList.map((s) => <option key={s.username} value={s.username}>{s.full_name || s.username}</option>)}
+            </select>
+          </div>
+          <div className="more-filter-field">
+            <label>{t("lastReconciliationDate")} — {t("fromDate")}</label>
+            <input type="date" value={lastReconciliationFrom} onChange={(e) => setLastReconciliationFrom(e.target.value)} />
+          </div>
+          <div className="more-filter-field">
+            <label>{t("lastReconciliationDate")} — {t("toDate")}</label>
+            <input type="date" value={lastReconciliationTo} onChange={(e) => setLastReconciliationTo(e.target.value)} />
           </div>
         </div>
 

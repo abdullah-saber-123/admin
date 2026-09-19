@@ -3,7 +3,7 @@
 // check-in date) or flag a discrepancy, which detours to a specialist and
 // comes back to the same collector once resolved.
 import { useEffect, useState, useCallback } from "react";
-import { ClipboardCheck, Check, X as XIcon, AlertTriangle, FileText, Search, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { ClipboardCheck, Check, X as XIcon, AlertTriangle, FileText, Search, ArrowUp, ArrowDown, ArrowUpDown, History, Download } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 import { useToast } from "../toast.jsx";
@@ -183,6 +183,99 @@ function IssueModal({ item, staffList, onClose, onDone, t, showToast }) {
   );
 }
 
+function HistoryModal({ item, onClose, t, showToast }) {
+  const [rows, setRows] = useState(null);
+  const [error, setError] = useState(null);
+  const [viewerUrl, setViewerUrl] = useState(null);
+  const [viewerType, setViewerType] = useState(null);
+
+  useEffect(() => {
+    api.reconciliationHistory(item.partner_id).then(setRows).catch((e) => setError(e.message));
+  }, [item.partner_id]);
+
+  const view = async (loader, caseId) => {
+    try {
+      const { url, type } = await loader(caseId);
+      setViewerUrl(url);
+      setViewerType(type);
+    } catch (e) {
+      showToast(e.message, "error");
+    }
+  };
+
+  const download = async (loader, caseId) => {
+    try {
+      await loader(caseId);
+    } catch (e) {
+      showToast(e.message, "error");
+    }
+  };
+
+  return (
+    <div className="overlay modal-overlay" onClick={onClose}>
+      <div className="prompt-modal" style={{ maxWidth: 640 }} onClick={(e) => e.stopPropagation()}>
+        <button className="close-btn" onClick={onClose}><XIcon size={16} /></button>
+        <h3>{t("reconciliationHistoryTitle")}</h3>
+        <div className="my-day-city" style={{ marginBottom: 10 }}>{item.customer_name}</div>
+        {error && <div className="form-error">{error}</div>}
+        {!rows && !error && <div className="loading-state">{t("loadingDots")}</div>}
+        {rows && rows.length === 0 && <div className="empty-state">{t("noReconciliationHistory")}</div>}
+        {rows && rows.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: "60vh", overflowY: "auto" }}>
+            {rows.map((r) => (
+              <div key={r.id} className="panel" style={{ padding: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
+                  <span className={`fu-tag sm ${STATUS_TONE[r.status]}`}>{t(`reconciliationStatus_${r.status}`)}</span>
+                  <span className="my-day-city">{fmtDate(r.created_at)}</span>
+                </div>
+                {r.status === "matched" && (
+                  <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
+                    <div>{t("asOfDateLabel")}: {r.as_of_date ? fmtDate(r.as_of_date) : "—"}</div>
+                    <div>{t("reconciledBalanceLabel")}: {r.reconciled_balance !== null ? <RiyalAmount amount={r.reconciled_balance} /> : "—"}</div>
+                    <div>{t("nextReconciliationDate")}: {r.next_reconciliation_date ? fmtDate(r.next_reconciliation_date) : "—"}</div>
+                  </div>
+                )}
+                {r.issue_note && (
+                  <div style={{ marginTop: 8 }}>
+                    <div><strong>{t("issueNoteLabel")}</strong>: {r.issue_note}</div>
+                    {r.resolution_note && <div><strong>{t("resolutionReplyLabel")}</strong>: {r.resolution_note}</div>}
+                  </div>
+                )}
+                <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                  {r.has_proof && (
+                    <>
+                      <button className="btn-secondary sm" onClick={() => view(api.reconciliationProofFile, r.id)}><FileText size={13} /> {t("viewProofButton")}</button>
+                      <button className="icon-btn" title={t("downloadButton")} onClick={() => download(api.reconciliationProofDownload, r.id)}><Download size={13} /></button>
+                    </>
+                  )}
+                  {r.has_issue_file && (
+                    <>
+                      <button className="btn-secondary sm" onClick={() => view(api.reconciliationIssueFile, r.id)}><FileText size={13} /> {t("viewAttachmentButton")}</button>
+                      <button className="icon-btn" title={t("downloadButton")} onClick={() => download(api.reconciliationIssueFileDownload, r.id)}><Download size={13} /></button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {viewerUrl && (
+          <div className="overlay modal-overlay" onClick={() => setViewerUrl(null)}>
+            <div className="prompt-modal" style={{ maxWidth: 640 }} onClick={(e) => e.stopPropagation()}>
+              <button className="close-btn" onClick={() => setViewerUrl(null)}><XIcon size={16} /></button>
+              {viewerType === "application/pdf" ? (
+                <iframe src={viewerUrl} title="attachment" style={{ width: "100%", height: "60vh", border: "none" }} />
+              ) : (
+                <img src={viewerUrl} alt="attachment" style={{ width: "100%", borderRadius: 10 }} />
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ResolveModal({ item, onClose, onDone, t, showToast }) {
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
@@ -273,6 +366,7 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
   const [matchModal, setMatchModal] = useState(null);
   const [issueModal, setIssueModal] = useState(null);
   const [resolveModal, setResolveModal] = useState(null);
+  const [historyModal, setHistoryModal] = useState(null);
   const [viewerUrl, setViewerUrl] = useState(null);
   const [viewerType, setViewerType] = useState(null);
 
@@ -413,6 +507,9 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
                           {r.case_status === "matched" && r.case_id && (
                             <button className="icon-btn" title={t("viewProofButton")} onClick={() => viewProof(r.case_id)}><FileText size={13} /></button>
                           )}
+                          {r.case_status !== "unassigned" && (
+                            <button className="icon-btn" title={t("reconciliationHistoryButton")} onClick={() => setHistoryModal(r)}><History size={13} /></button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -440,6 +537,9 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
       )}
       {resolveModal && (
         <ResolveModal item={resolveModal} onClose={() => setResolveModal(null)} onDone={() => { setResolveModal(null); load(); }} t={t} showToast={showToast} />
+      )}
+      {historyModal && (
+        <HistoryModal item={historyModal} onClose={() => setHistoryModal(null)} t={t} showToast={showToast} />
       )}
       {viewerUrl && (
         <div className="overlay modal-overlay" onClick={() => setViewerUrl(null)}>

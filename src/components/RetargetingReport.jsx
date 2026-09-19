@@ -1,7 +1,7 @@
 // Dormant-customer reactivation (targeting stage) and customer issue handling
 // (issue stage) - two stages of the same case, see backend RetargetCase.
 import { useEffect, useState, useCallback, Fragment } from "react";
-import { Target, Check, X as XIcon, ClipboardList, Clock, AlertTriangle, MessageSquarePlus } from "lucide-react";
+import { Target, Check, X as XIcon, ClipboardList, Clock, AlertTriangle, MessageSquarePlus, Megaphone } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 import { useToast } from "../toast.jsx";
@@ -267,6 +267,10 @@ export default function RetargetingReport({ onSelectCustomer, role, username }) 
   const [followUpModal, setFollowUpModal] = useState(null);
   const [snoozeModal, setSnoozeModal] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
+  const [paymentTypeOptions, setPaymentTypeOptions] = useState([]);
+  const [savingPaymentTypeId, setSavingPaymentTypeId] = useState(null);
+  const [openOffer, setOpenOffer] = useState(null);
+  const [nominatingId, setNominatingId] = useState(null);
 
   const load = useCallback(() => {
     setError(null);
@@ -276,6 +280,42 @@ export default function RetargetingReport({ onSelectCustomer, role, username }) 
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { if (role === "admin") api.staffList().then(setStaffList).catch(() => {}); }, [role]);
+  useEffect(() => { api.fieldOptions("payment_type").then(setPaymentTypeOptions).catch(() => {}); }, []);
+  useEffect(() => {
+    const loadOffers = role === "admin" ? api.listCollectionOffers() : api.myCollectionOffers();
+    loadOffers.then((offers) => {
+      // Both endpoints already return offers ordered newest-first, so the
+      // first one still open is the current one - no re-sort needed (and
+      // the staff-facing endpoint doesn't even include created_at to sort by).
+      const open = (offers || []).find((o) => o.status === "open");
+      setOpenOffer(open || null);
+    }).catch(() => {});
+  }, [role]);
+
+  const savePaymentType = async (partnerId, value) => {
+    setSavingPaymentTypeId(partnerId);
+    try {
+      await api.updatePaymentType(partnerId, value || null);
+      load();
+    } catch (e) {
+      showToast(e.message, "error");
+    } finally {
+      setSavingPaymentTypeId(null);
+    }
+  };
+
+  const nominateForOffer = async (r) => {
+    if (!openOffer) return;
+    setNominatingId(r.id);
+    try {
+      await api.nominateForCollectionOffer(openOffer.id, r.partner_id);
+      showToast(`${t("nominationSubmitted")} - ${openOffer.name}`, "success");
+    } catch (e) {
+      showToast(e.message, "error");
+    } finally {
+      setNominatingId(null);
+    }
+  };
 
   return (
     <div className="content-stack" style={{ maxWidth: "100%" }}>
@@ -322,6 +362,7 @@ export default function RetargetingReport({ onSelectCustomer, role, username }) 
                   <th>{t("balanceDue")}</th>
                   <th>{stage === "targeting" ? t("lastPurchaseLabel") : t("visitReasonLabel")}</th>
                   <th>{t("status")}</th>
+                  <th>{t("paymentTypeLabel")}</th>
                   <th>{t("assignTo")}</th>
                   <th>{t("actions")}</th>
                 </tr>
@@ -349,11 +390,31 @@ export default function RetargetingReport({ onSelectCustomer, role, username }) 
                         <span className={`fu-tag sm ${STATUS_TONE[r.status]}`}>{t(`retargetStatus_${r.status}`)}</span>
                         {r.outcome && <div style={{ fontSize: 10.5, color: "var(--text-dim)" }}>{t(r.outcome === "won" ? "outcomeWon" : "outcomeNoSale")}</div>}
                       </td>
+                      <td data-label={t("paymentTypeLabel")} onClick={(e) => e.stopPropagation()}>
+                        <select
+                          value={r.payment_type || ""}
+                          disabled={role !== "admin" || savingPaymentTypeId === r.partner_id}
+                          onChange={(e) => savePaymentType(r.partner_id, e.target.value)}
+                        >
+                          <option value="">—</option>
+                          {paymentTypeOptions.map((o) => <option key={o.id} value={o.value}>{o.value}</option>)}
+                        </select>
+                      </td>
                       <td data-label={t("assignTo")}>{r.assigned_to || "—"}</td>
                       <td data-label={t("actions")}>
                         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                           {role === "admin" && r.status !== "closed" && (
                             <button className="icon-btn" title={t("assignRetargetTitle")} onClick={() => setAssignModal(r)}><Check size={13} /></button>
+                          )}
+                          {openOffer && (
+                            <button
+                              className="icon-btn"
+                              title={`${t("nominateForOffer")} - ${openOffer.name}`}
+                              disabled={nominatingId === r.id}
+                              onClick={() => nominateForOffer(r)}
+                            >
+                              <Megaphone size={13} />
+                            </button>
                           )}
                           {stage === "targeting" && r.status === "assigned" && (role === "admin" || r.assigned_to === username) && (
                             <button className="btn-secondary sm" onClick={() => setReportModal(r)}>{t("reportRetargetTitle")}</button>
@@ -377,7 +438,7 @@ export default function RetargetingReport({ onSelectCustomer, role, username }) 
                     </tr>
                     {expandedId === r.id && stage === "issue" && (
                       <tr>
-                        <td colSpan={6} style={{ background: "var(--card)" }}>
+                        <td colSpan={7} style={{ background: "var(--card)" }}>
                           <FollowUpsList caseId={r.id} t={t} />
                           {r.resolution_note && (
                             <div style={{ padding: "0 12px 12px" }}>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { X, Phone, MapPin, Receipt, Wallet, ChevronLeft, ChevronRight, ClipboardList, Download, Search, AlertTriangle, Mail, UserCheck, Flame, MessageCircle, CalendarClock, Banknote, TrendingUp, CalendarCheck, CircleDollarSign, Gift, Zap, CreditCard, Send, Share2, Megaphone } from "lucide-react";
+import { X, Phone, MapPin, Receipt, Wallet, ChevronLeft, ChevronRight, ClipboardList, Download, Search, AlertTriangle, Mail, UserCheck, Flame, MessageCircle, CalendarClock, Banknote, TrendingUp, CalendarCheck, CircleDollarSign, Gift, Zap, CreditCard, Send, Share2, Megaphone, BarChart3 } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 import { useToast } from "../toast.jsx";
@@ -35,9 +35,15 @@ function MiniPager({ page, pageSize, total, onPage }) {
   );
 }
 
-export default function CustomerDetail({ partnerId, role, onClose, onSaved }) {
+export default function CustomerDetail({ partnerId, role, permissions, onClose, onSaved }) {
   const { t, money, lang, statusLabel } = useLang();
   const { showToast } = useToast();
+  const canSeeAnalytics = role === "admin" || (permissions || "").split(",").map((p) => p.trim()).includes("customerAnalytics");
+  const openCustomerAnalysis = () => {
+    const url = new URL(window.location.href);
+    url.search = `?view=customerAnalytics&customer=${partnerId}`;
+    window.open(url.toString(), "_blank", "noopener");
+  };
   useBodyScrollLock(true);
   const [detail, setDetail] = useState(null);
   const [error, setError] = useState(null);
@@ -470,6 +476,12 @@ export default function CustomerDetail({ partnerId, role, onClose, onSaved }) {
                   <MapPin size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
                   {activeVisitRequest ? t(activeVisitRequest.status === "assigned" ? "visitStatus_assigned" : "visitStatus_pending") : t("requestVisitButton")}
                 </button>
+                {canSeeAnalytics && (
+                  <button className="btn-secondary sm" onClick={openCustomerAnalysis}>
+                    <BarChart3 size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
+                    {t("customerAnalysisButton")}
+                  </button>
+                )}
                 {role === "admin" && (
                   <button className="btn-secondary sm danger" onClick={openUrgentModal}>
                     <Megaphone size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />

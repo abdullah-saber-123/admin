@@ -67,7 +67,14 @@ export default function App() {
   const { t, dir } = useLang();
   const { showToast } = useToast();
   const [session, setSessionState] = useState(getSession());
-  const [view, setView] = useState(() => localStorage.getItem("collect_view") || "dashboard");
+  const [view, setView] = useState(() => {
+    const urlView = new URLSearchParams(window.location.search).get("view");
+    return urlView || localStorage.getItem("collect_view") || "dashboard";
+  });
+  const [initialAnalyticsPartnerId] = useState(() => {
+    const c = new URLSearchParams(window.location.search).get("customer");
+    return c ? Number(c) : null;
+  });
   const [kpis, setKpis] = useState(null);
   const [syncStatus, setSyncStatus] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
@@ -420,7 +427,7 @@ export default function App() {
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><CustomerScoreReport onSelectCustomer={setSelectedId} /></Suspense>
           )}
           {view === "customerAnalytics" && (session.role === "admin" || (session.permissions || "").includes("customerAnalytics")) && (
-            <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><CustomerAnalytics onSelectCustomer={setSelectedId} /></Suspense>
+            <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><CustomerAnalytics onSelectCustomer={setSelectedId} initialPartnerId={initialAnalyticsPartnerId} /></Suspense>
           )}
           {view === "brokenPromises" && (session.role === "admin" || (session.permissions || "").includes("brokenPromises")) && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><BrokenPromisesReport onSelectCustomer={setSelectedId} /></Suspense>
@@ -440,6 +447,7 @@ export default function App() {
         <CustomerDetail
           partnerId={selectedId}
           role={session.role}
+          permissions={session.permissions}
           onClose={() => setSelectedId(null)}
           onSaved={() => setRefreshSignal((s) => s + 1)}
         />

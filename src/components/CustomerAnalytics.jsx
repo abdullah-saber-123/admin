@@ -28,7 +28,7 @@ function TrendIcon({ trend }) {
   return <Minus size={13} color="#9ca3af" />;
 }
 
-export default function CustomerAnalytics({ onSelectCustomer }) {
+export default function CustomerAnalytics({ onSelectCustomer, initialPartnerId }) {
   const { t, lang, money } = useLang();
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
@@ -58,6 +58,16 @@ export default function CustomerAnalytics({ onSelectCustomer }) {
     api.cities().then(setCities).catch(() => {});
     api.collectors().then(setCollectors).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!initialPartnerId) return;
+    setDetail(null);
+    setDetailError(null);
+    api.customerAnalyticsDetail(initialPartnerId, currentYear)
+      .then((d) => { setSelectedCustomer({ partner_id: initialPartnerId, name: d.name }); setDetail(d); })
+      .catch((e) => { setSelectedCustomer({ partner_id: initialPartnerId, name: "" }); setDetailError(e.message); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPartnerId]);
 
   const loadOverview = useCallback(() => {
     setError(null);

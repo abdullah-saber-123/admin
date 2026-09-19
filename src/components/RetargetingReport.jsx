@@ -269,7 +269,7 @@ export default function RetargetingReport({ onSelectCustomer, role, username }) 
   const [expandedId, setExpandedId] = useState(null);
   const [paymentTypeOptions, setPaymentTypeOptions] = useState([]);
   const [savingPaymentTypeId, setSavingPaymentTypeId] = useState(null);
-  const [openOffer, setOpenOffer] = useState(null);
+  const [eligibleOffers, setEligibleOffers] = useState([]);
   const [nominatingId, setNominatingId] = useState(null);
 
   const load = useCallback(() => {
@@ -282,15 +282,15 @@ export default function RetargetingReport({ onSelectCustomer, role, username }) 
   useEffect(() => { if (role === "admin") api.staffList().then(setStaffList).catch(() => {}); }, [role]);
   useEffect(() => { api.fieldOptions("payment_type").then(setPaymentTypeOptions).catch(() => {}); }, []);
   useEffect(() => {
-    const loadOffers = role === "admin" ? api.listCollectionOffers() : api.myCollectionOffers();
-    loadOffers.then((offers) => {
-      // Both endpoints already return offers ordered newest-first, so the
-      // first one still open is the current one - no re-sort needed (and
-      // the staff-facing endpoint doesn't even include created_at to sort by).
-      const open = (offers || []).find((o) => o.status === "open");
-      setOpenOffer(open || null);
+    // Always scoped to offers the CURRENT user is actually a participant in
+    // (this is what nominating will succeed against) - never just "any open
+    // offer", since an admin browsing this screen isn't automatically a
+    // participant of every offer either, and a blind pick that fails is
+    // worse than not offering the button at all.
+    api.myCollectionOffers().then((offers) => {
+      setEligibleOffers((offers || []).filter((o) => o.status === "open"));
     }).catch(() => {});
-  }, [role]);
+  }, []);
 
   const savePaymentType = async (partnerId, value) => {
     setSavingPaymentTypeId(partnerId);
@@ -304,12 +304,11 @@ export default function RetargetingReport({ onSelectCustomer, role, username }) 
     }
   };
 
-  const nominateForOffer = async (r) => {
-    if (!openOffer) return;
+  const nominateForOffer = async (r, offer) => {
     setNominatingId(r.id);
     try {
-      await api.nominateForCollectionOffer(openOffer.id, r.partner_id);
-      showToast(`${t("nominationSubmitted")} - ${openOffer.name}`, "success");
+      await api.nominateForCollectionOffer(offer.id, r.partner_id);
+      showToast(`${t("nominationSubmitted")} - ${offer.name}`, "success");
     } catch (e) {
       showToast(e.message, "error");
     } finally {
@@ -363,6 +362,7 @@ export default function RetargetingReport({ onSelectCustomer, role, username }) 
                   <th>{stage === "targeting" ? t("lastPurchaseLabel") : t("visitReasonLabel")}</th>
                   <th>{t("status")}</th>
                   <th>{t("paymentTypeLabel")}</th>
+                  <th>{t("retargetBranchLabel")}</th>
                   <th>{t("assignTo")}</th>
                   <th>{t("actions")}</th>
                 </tr>
@@ -400,21 +400,37 @@ export default function RetargetingReport({ onSelectCustomer, role, username }) 
                           {paymentTypeOptions.map((o) => <option key={o.id} value={o.value}>{o.value}</option>)}
                         </select>
                       </td>
+                      <td data-label={t("retargetBranchLabel")}>{r.top_branch || "—"}</td>
                       <td data-label={t("assignTo")}>{r.assigned_to || "—"}</td>
                       <td data-label={t("actions")}>
                         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                           {role === "admin" && r.status !== "closed" && (
                             <button className="icon-btn" title={t("assignRetargetTitle")} onClick={() => setAssignModal(r)}><Check size={13} /></button>
                           )}
-                          {openOffer && (
+                          {eligibleOffers.length === 1 && (
                             <button
                               className="icon-btn"
-                              title={`${t("nominateForOffer")} - ${openOffer.name}`}
+                              title={`${t("nominateForOffer")} - ${eligibleOffers[0].name}`}
                               disabled={nominatingId === r.id}
-                              onClick={() => nominateForOffer(r)}
+                              onClick={() => nominateForOffer(r, eligibleOffers[0])}
                             >
                               <Megaphone size={13} />
                             </button>
+                          )}
+                          {eligibleOffers.length > 1 && (
+                            <select
+                              className="sm"
+                              title={t("nominateForOffer")}
+                              disabled={nominatingId === r.id}
+                              value=""
+                              onChange={(e) => {
+                                const offer = eligibleOffers.find((o) => String(o.id) === e.target.value);
+                                if (offer) nominateForOffer(r, offer);
+                              }}
+                            >
+                              <option value="" disabled>{t("nominateForOffer")}</option>
+                              {eligibleOffers.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+                            </select>
                           )}
                           {stage === "targeting" && r.status === "assigned" && (role === "admin" || r.assigned_to === username) && (
                             <button className="btn-secondary sm" onClick={() => setReportModal(r)}>{t("reportRetargetTitle")}</button>
@@ -438,7 +454,7 @@ export default function RetargetingReport({ onSelectCustomer, role, username }) 
                     </tr>
                     {expandedId === r.id && stage === "issue" && (
                       <tr>
-                        <td colSpan={7} style={{ background: "var(--card)" }}>
+                        <td colSpan={8} style={{ background: "var(--card)" }}>
                           <FollowUpsList caseId={r.id} t={t} />
                           {r.resolution_note && (
                             <div style={{ padding: "0 12px 12px" }}>

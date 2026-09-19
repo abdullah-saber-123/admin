@@ -75,6 +75,13 @@ export default function App() {
   });
   const [initialAnalyticsPartnerId] = useState(() => {
     const c = new URLSearchParams(window.location.search).get("customer");
+    // Consume the deep-link params once, then strip them from the URL - so
+    // navigating elsewhere afterward and refreshing lands on wherever the
+    // person actually is (view state / localStorage), not back on this
+    // one-time link every time.
+    if (window.location.search) {
+      window.history.replaceState({}, "", window.location.pathname);
+    }
     return c ? Number(c) : null;
   });
   const [kpis, setKpis] = useState(null);

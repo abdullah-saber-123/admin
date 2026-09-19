@@ -426,7 +426,11 @@ export default function App() {
           {view === "customerScore" && (session.role === "admin" || (session.permissions || "").includes("customerScore")) && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><CustomerScoreReport onSelectCustomer={setSelectedId} /></Suspense>
           )}
-          {view === "customerAnalytics" && (session.role === "admin" || (session.permissions || "").includes("customerAnalytics")) && (
+          {view === "customerAnalytics" && (
+            session.role === "admin"
+            || (session.permissions || "").includes("customerAnalytics")
+            || (initialAnalyticsPartnerId && (session.permissions || "").includes("customerOwnAnalysis"))
+          ) && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><CustomerAnalytics onSelectCustomer={setSelectedId} initialPartnerId={initialAnalyticsPartnerId} /></Suspense>
           )}
           {view === "brokenPromises" && (session.role === "admin" || (session.permissions || "").includes("brokenPromises")) && (

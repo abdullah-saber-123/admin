@@ -38,7 +38,8 @@ function MiniPager({ page, pageSize, total, onPage }) {
 export default function CustomerDetail({ partnerId, role, permissions, onClose, onSaved }) {
   const { t, money, lang, statusLabel } = useLang();
   const { showToast } = useToast();
-  const canSeeAnalytics = role === "admin" || (permissions || "").split(",").map((p) => p.trim()).includes("customerAnalytics");
+  const permsList = (permissions || "").split(",").map((p) => p.trim());
+  const canSeeAnalytics = role === "admin" || permsList.includes("customerAnalytics") || permsList.includes("customerOwnAnalysis");
   const openCustomerAnalysis = () => {
     const url = new URL(window.location.href);
     url.search = `?view=customerAnalytics&customer=${partnerId}`;

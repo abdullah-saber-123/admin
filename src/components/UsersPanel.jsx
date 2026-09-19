@@ -9,7 +9,7 @@ import Avatar from "./Avatar.jsx";
 
 const toggleInArray = (arr, val) => arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val];
 const PERMISSION_OPTIONS = [
-  "reports", "trends", "costOfDebt", "customerScore", "customerAnalytics", "reminders",
+  "reports", "trends", "costOfDebt", "customerScore", "customerAnalytics", "customerOwnAnalysis", "reminders",
   "portalManagement", "invoices", "creditNomination", "paymentProofs", "brokenPromises", "debtWriteOffs",
   "customerRetargeting",
 ];
@@ -17,6 +17,7 @@ const PERMISSION_LABEL_KEYS = {
   reports: "permCollectorReports", trends: "permTrends",
   costOfDebt: "costOfDebtTitle", customerScore: "customerScoreTitle",
   customerAnalytics: "customerAnalyticsTitle",
+  customerOwnAnalysis: "permCustomerOwnAnalysis",
   reminders: "remindersOverviewTitle",
   portalManagement: "portalManagementTitle", invoices: "invoicesReportTitle",
   creditNomination: "creditNominationTitle", paymentProofs: "paymentProofsTitle",

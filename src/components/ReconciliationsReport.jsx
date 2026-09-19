@@ -244,19 +244,33 @@ function ConfirmationFormModal({ item, onClose, t, showToast, lang }) {
 
 function SendStatementModal({ item, onClose, onDone, t, showToast, lang }) {
   const [template, setTemplate] = useState(t("reconciliationStatementTemplate"));
-  const [link, setLink] = useState("");
+  const [asOfDate, setAsOfDate] = useState(new Date().toISOString().slice(0, 10));
+  const [token, setToken] = useState("");
+  const [previewBalance, setPreviewBalance] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [marking, setMarking] = useState(false);
 
   useEffect(() => {
     api.statementLinks([item.partner_id]).then((map) => {
-      const token = map[item.partner_id];
-      setLink(token ? `${BASE}/api/public/statement/${token}` : "");
+      setToken(map[item.partner_id] || "");
     }).catch(() => {});
   }, [item.partner_id]);
 
+  useEffect(() => {
+    if (!asOfDate) { setPreviewBalance(null); return; }
+    setPreviewLoading(true);
+    api.reconciliationBalancePreview(item.case_id, asOfDate)
+      .then((res) => setPreviewBalance(res.balance))
+      .catch(() => setPreviewBalance(null))
+      .finally(() => setPreviewLoading(false));
+  }, [asOfDate, item.case_id]);
+
+  const link = token && asOfDate
+    ? `${BASE}/api/public/statement/${token}?lang=${lang}&as_of_date=${asOfDate}`
+    : "";
   const message = template
     .replace("{name}", item.customer_name || "")
-    .replace("{balance}", (item.current_balance ?? 0).toLocaleString());
+    .replace("{balance}", (previewBalance ?? item.current_balance ?? 0).toLocaleString());
   const fullMessage = link ? `${message}\n\n${t("statementLinkLabel")}: ${link}` : message;
 
   const sendAndMark = async () => {
@@ -281,7 +295,16 @@ function SendStatementModal({ item, onClose, onDone, t, showToast, lang }) {
         <div className="my-day-city" style={{ marginBottom: 10 }}>
           {item.customer_name} · <bdi dir="ltr">{item.phone}</bdi>
         </div>
-        <label>{t("messageTemplate")}</label>
+        <label>{t("asOfDateLabel")}</label>
+        <input type="date" value={asOfDate} onChange={(e) => setAsOfDate(e.target.value)} required />
+        {asOfDate && (
+          <p className="prompt-message" style={{ marginTop: 6 }}>
+            {t("reconciledBalanceLabel")}: {previewLoading ? t("loadingDots") : (
+              previewBalance !== null ? <strong><RiyalAmount amount={previewBalance} /></strong> : "—"
+            )}
+          </p>
+        )}
+        <label style={{ marginTop: 10, display: "block" }}>{t("messageTemplate")}</label>
         <textarea
           value={template}
           onChange={(e) => setTemplate(e.target.value)}
@@ -298,7 +321,7 @@ function SendStatementModal({ item, onClose, onDone, t, showToast, lang }) {
           {fullMessage}
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button className="btn-primary" disabled={!item.phone || marking} onClick={sendAndMark}>
+          <button className="btn-primary" disabled={!item.phone || !asOfDate || marking} onClick={sendAndMark}>
             <MessageCircle size={14} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />
             {t("openWhatsApp")}
           </button>

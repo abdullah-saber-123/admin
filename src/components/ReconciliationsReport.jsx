@@ -67,6 +67,17 @@ function MatchModal({ item, onClose, onDone, t, showToast }) {
   const [months, setMonths] = useState(1);
   const [file, setFile] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [previewBalance, setPreviewBalance] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  useEffect(() => {
+    if (!asOfDate) { setPreviewBalance(null); return; }
+    setPreviewLoading(true);
+    api.reconciliationBalancePreview(item.case_id, asOfDate)
+      .then((res) => setPreviewBalance(res.balance))
+      .catch(() => setPreviewBalance(null))
+      .finally(() => setPreviewLoading(false));
+  }, [asOfDate, item.case_id]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -96,6 +107,13 @@ function MatchModal({ item, onClose, onDone, t, showToast }) {
         <form onSubmit={handleSubmit}>
           <label>{t("asOfDateLabel")}</label>
           <input type="date" value={asOfDate} onChange={(e) => setAsOfDate(e.target.value)} required />
+          {asOfDate && (
+            <p className="prompt-message" style={{ marginTop: 6 }}>
+              {t("reconciledBalanceLabel")}: {previewLoading ? t("loadingDots") : (
+                previewBalance !== null ? <strong><RiyalAmount amount={previewBalance} /></strong> : "—"
+              )}
+            </p>
+          )}
           <label style={{ marginTop: 10, display: "block" }}>{t("nextReconciliationMonthsLabel")}</label>
           <select value={months} onChange={(e) => setMonths(Number(e.target.value))}>
             {MONTH_OPTIONS.map((m) => <option key={m} value={m}>{t(`monthsOption_${m}`)}</option>)}
@@ -313,6 +331,7 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
                     <th className="sortable" onClick={() => toggleSort("current_due")}>{t("balanceDue")} <SortIcon col="current_due" /></th>
                     <th>{t("collectorField")}</th>
                     <th className="sortable" onClick={() => toggleSort("last_reconciliation_date")}>{t("lastReconciliationDate")} <SortIcon col="last_reconciliation_date" /></th>
+                    <th className="sortable" onClick={() => toggleSort("reconciled_balance")}>{t("reconciledBalanceLabel")} <SortIcon col="reconciled_balance" /></th>
                     <th className="sortable" onClick={() => toggleSort("next_reconciliation_date")}>{t("nextReconciliationDate")} <SortIcon col="next_reconciliation_date" /></th>
                     <th>{t("status")}</th>
                     <th>{t("assignTo")}</th>
@@ -329,6 +348,7 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
                       <td data-label={t("balanceDue")}><RiyalAmount amount={r.current_balance} /></td>
                       <td data-label={t("collectorField")}>{r.collector || "—"}</td>
                       <td data-label={t("lastReconciliationDate")}>{r.last_reconciliation_date ? fmtDate(r.last_reconciliation_date) : "—"}</td>
+                      <td data-label={t("reconciledBalanceLabel")}>{r.reconciled_balance !== null && r.reconciled_balance !== undefined ? <RiyalAmount amount={r.reconciled_balance} /> : "—"}</td>
                       <td data-label={t("nextReconciliationDate")}>{r.next_reconciliation_date ? fmtDate(r.next_reconciliation_date) : "—"}</td>
                       <td data-label={t("status")}>
                         <span className={`fu-tag sm ${STATUS_TONE[r.case_status]}`}>{t(`reconciliationStatus_${r.case_status}`)}</span>

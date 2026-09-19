@@ -224,6 +224,8 @@ export const api = {
     request(`/api/reconciliations/assign`, { method: "POST", body: JSON.stringify({ partner_id, assigned_to }) }),
   matchReconciliation: (id, payload) =>
     request(`/api/reconciliations/${id}/match`, { method: "PATCH", body: JSON.stringify(payload) }),
+  reconciliationBalancePreview: (id, as_of_date) =>
+    request(`/api/reconciliations/${id}/balance-preview?as_of_date=${as_of_date}`),
   flagReconciliationIssue: (id, payload) =>
     request(`/api/reconciliations/${id}/flag-issue`, { method: "PATCH", body: JSON.stringify(payload) }),
   resolveReconciliationIssue: (id, resolution_note) =>

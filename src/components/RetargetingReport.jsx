@@ -1,7 +1,7 @@
 // Dormant-customer reactivation (targeting stage) and customer issue handling
 // (issue stage) - two stages of the same case, see backend RetargetCase.
 import { useEffect, useState, useCallback, Fragment } from "react";
-import { Target, Check, X as XIcon, ClipboardList, Clock, AlertTriangle, MessageSquarePlus, Megaphone } from "lucide-react";
+import { Target, Check, X as XIcon, ClipboardList, Clock, AlertTriangle, MessageSquarePlus, Megaphone, Search, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 import { useToast } from "../toast.jsx";
@@ -271,16 +271,39 @@ export default function RetargetingReport({ onSelectCustomer, role, username }) 
   const [savingPaymentTypeId, setSavingPaymentTypeId] = useState(null);
   const [eligibleOffers, setEligibleOffers] = useState([]);
   const [nominatingId, setNominatingId] = useState(null);
+  const [search, setSearch] = useState("");
+  const [cityFilter, setCityFilter] = useState("");
+  const [paymentTypeFilter, setPaymentTypeFilter] = useState("");
+  const [branchFilter, setBranchFilter] = useState("");
+  const [cities, setCities] = useState([]);
+  const [branchOptions, setBranchOptions] = useState([]);
+  const [sortBy, setSortBy] = useState("created_at");
+  const [sortDir, setSortDir] = useState("desc");
 
   const load = useCallback(() => {
     setError(null);
-    api.retargetCases({ stage, status: statusFilter, mine: mineOnly }).then(setRows).catch((e) => setError(e.message));
+    api.retargetCases({
+      stage, status: statusFilter, mine: mineOnly, search,
+      city: cityFilter, payment_type: paymentTypeFilter, branch: branchFilter,
+      sort_by: sortBy, sort_dir: sortDir,
+    }).then(setRows).catch((e) => setError(e.message));
     api.retargetCasesSummary().then(setSummary).catch(() => {});
-  }, [stage, statusFilter, mineOnly]);
+  }, [stage, statusFilter, mineOnly, search, cityFilter, paymentTypeFilter, branchFilter, sortBy, sortDir]);
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { if (role === "admin") api.staffList().then(setStaffList).catch(() => {}); }, [role]);
   useEffect(() => { api.fieldOptions("payment_type").then(setPaymentTypeOptions).catch(() => {}); }, []);
+  useEffect(() => { api.cities().then(setCities).catch(() => {}); }, []);
+  useEffect(() => { api.retargetBranchOptions().then(setBranchOptions).catch(() => {}); }, []);
+
+  const toggleSort = (field) => {
+    if (sortBy === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortBy(field); setSortDir(field === "customer_name" ? "asc" : "desc"); }
+  };
+  const SortIcon = ({ col }) => {
+    if (sortBy !== col) return <ArrowUpDown size={11} className="sort-icon idle" />;
+    return sortDir === "asc" ? <ArrowUp size={11} className="sort-icon active" /> : <ArrowDown size={11} className="sort-icon active" />;
+  };
   useEffect(() => {
     // Always scoped to offers the CURRENT user is actually a participant in
     // (this is what nominating will succeed against) - never just "any open
@@ -348,6 +371,36 @@ export default function RetargetingReport({ onSelectCustomer, role, username }) 
           </button>
         </div>
 
+        <div className="more-filters-row" style={{ marginBottom: 14 }}>
+          <div className="more-filter-field">
+            <div className="input-icon compact">
+              <Search size={13} />
+              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("visitSearchPlaceholder")} />
+            </div>
+          </div>
+          <div className="more-filter-field">
+            <label>{t("cityLabel")}</label>
+            <select value={cityFilter} onChange={(e) => setCityFilter(e.target.value)}>
+              <option value="">{t("allStatus")}</option>
+              {cities.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div className="more-filter-field">
+            <label>{t("paymentTypeLabel")}</label>
+            <select value={paymentTypeFilter} onChange={(e) => setPaymentTypeFilter(e.target.value)}>
+              <option value="">{t("allStatus")}</option>
+              {paymentTypeOptions.map((o) => <option key={o.id} value={o.value}>{o.value}</option>)}
+            </select>
+          </div>
+          <div className="more-filter-field">
+            <label>{t("retargetBranchLabel")}</label>
+            <select value={branchFilter} onChange={(e) => setBranchFilter(e.target.value)}>
+              <option value="">{t("allStatus")}</option>
+              {branchOptions.map((b) => <option key={b} value={b}>{b}</option>)}
+            </select>
+          </div>
+        </div>
+
         {error && <div className="error-state">{error}</div>}
         {!error && !rows && <div className="loading-state">{t("loadingDots")}</div>}
         {rows && rows.length === 0 && <div className="empty-state">{t("noActivity")}</div>}
@@ -357,13 +410,16 @@ export default function RetargetingReport({ onSelectCustomer, role, username }) 
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>{t("customer")}</th>
-                  <th>{t("balanceDue")}</th>
-                  <th>{stage === "targeting" ? t("lastPurchaseLabel") : t("visitReasonLabel")}</th>
-                  <th>{t("status")}</th>
-                  <th>{t("paymentTypeLabel")}</th>
-                  <th>{t("retargetBranchLabel")}</th>
-                  <th>{t("assignTo")}</th>
+                  <th className="sortable" onClick={() => toggleSort("customer_name")}>{t("customer")} <SortIcon col="customer_name" /></th>
+                  <th className="sortable" onClick={() => toggleSort("current_balance")}>{t("balanceDue")} <SortIcon col="current_balance" /></th>
+                  <th className={stage === "targeting" ? "sortable" : undefined} onClick={stage === "targeting" ? () => toggleSort("last_purchase_date") : undefined}>
+                    {stage === "targeting" ? t("lastPurchaseLabel") : t("visitReasonLabel")}
+                    {stage === "targeting" && <SortIcon col="last_purchase_date" />}
+                  </th>
+                  <th className="sortable" onClick={() => toggleSort("status")}>{t("status")} <SortIcon col="status" /></th>
+                  <th className="sortable" onClick={() => toggleSort("payment_type")}>{t("paymentTypeLabel")} <SortIcon col="payment_type" /></th>
+                  <th className="sortable" onClick={() => toggleSort("top_branch")}>{t("retargetBranchLabel")} <SortIcon col="top_branch" /></th>
+                  <th className="sortable" onClick={() => toggleSort("assigned_to")}>{t("assignTo")} <SortIcon col="assigned_to" /></th>
                   <th>{t("actions")}</th>
                 </tr>
               </thead>

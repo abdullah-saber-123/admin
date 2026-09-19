@@ -215,6 +215,7 @@ export const api = {
     return request(`/api/retarget-cases${qs ? `?${qs}` : ""}`);
   },
   retargetCasesSummary: () => request(`/api/retarget-cases/summary`),
+  retargetBranchOptions: () => request(`/api/retarget-cases/branch-options`),
   createRetargetCase: (partner_id, reason) =>
     request(`/api/retarget-cases`, { method: "POST", body: JSON.stringify({ partner_id, reason }) }),
   assignRetargetCase: (id, assigned_to) =>

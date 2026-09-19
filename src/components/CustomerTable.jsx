@@ -23,7 +23,7 @@ function waLink(phone) {
   return `https://wa.me/${digits}`;
 }
 
-const DEFAULT_COLUMNS = { city: true, collector: true, lastPayment: true, overdueAmount: true, upcomingDue: true, status: false };
+const DEFAULT_COLUMNS = { city: true, collector: true, lastPayment: true, lastInvoice: false, overdueAmount: true, upcomingDue: true, status: false };
 
 export default function CustomerTable({ onSelect, bucket, onClearBucket, city, onClearCity, onCityChange, ageBucket, onClearAgeBucket, followupStatus, onClearFollowupStatus, collector, onClearCollector, onCollectorChange, hideZeroBalance, onToggleHideZeroBalance, refreshSignal, role, onOpenCollectorProfile }) {
   const { t, money, statusLabel } = useLang();
@@ -54,6 +54,8 @@ export default function CustomerTable({ onSelect, bucket, onClearBucket, city, o
   const [followupFilter, setFollowupFilter] = useState("");
   const [minBalance, setMinBalance] = useState("");
   const [maxBalance, setMaxBalance] = useState("");
+  const [lastInvoiceDateFrom, setLastInvoiceDateFrom] = useState("");
+  const [lastInvoiceDateTo, setLastInvoiceDateTo] = useState("");
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [cities, setCities] = useState([]);
   const [followupStatuses, setFollowupStatuses] = useState([]);
@@ -165,6 +167,8 @@ export default function CustomerTable({ onSelect, bucket, onClearBucket, city, o
     max_balance: maxBalance !== "" ? maxBalance : "",
     collector: collectorFilter || "",
     age_bucket: ageBucketFilter || "",
+    last_invoice_date_from: lastInvoiceDateFrom || "",
+    last_invoice_date_to: lastInvoiceDateTo || "",
   });
 
   const load = useCallback(() => {
@@ -185,14 +189,14 @@ export default function CustomerTable({ onSelect, bucket, onClearBucket, city, o
         scrollLoadLockRef.current = false;
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, status, bucket, city, hideZeroBalance, followupFilter, minBalance, maxBalance, collectorFilter, ageBucketFilter, sortBy, sortDir, page]);
+  }, [search, status, bucket, city, hideZeroBalance, followupFilter, minBalance, maxBalance, collectorFilter, ageBucketFilter, lastInvoiceDateFrom, lastInvoiceDateTo, sortBy, sortDir, page]);
 
   useEffect(() => {
     const timer = setTimeout(load, 250);
     return () => clearTimeout(timer);
   }, [load]);
 
-  useEffect(() => { setPage(1); setAllRows([]); scrollLoadLockRef.current = false; }, [search, status, bucket, city, hideZeroBalance, followupFilter, minBalance, maxBalance, collectorFilter, ageBucketFilter, sortBy, sortDir]);
+  useEffect(() => { setPage(1); setAllRows([]); scrollLoadLockRef.current = false; }, [search, status, bucket, city, hideZeroBalance, followupFilter, minBalance, maxBalance, collectorFilter, ageBucketFilter, lastInvoiceDateFrom, lastInvoiceDateTo, sortBy, sortDir]);
 
   // "Next" does the same thing scrolling to the bottom does - loads the next
   // page and appends it. "Go to page" is a deliberate jump instead: clear
@@ -324,6 +328,7 @@ export default function CustomerTable({ onSelect, bucket, onClearBucket, city, o
   const activeFilterCount = [
     bucket, city, status, search, hideZeroBalance || null, followupFilter,
     minBalance !== "" ? minBalance : null, maxBalance !== "" ? maxBalance : null, collectorFilter, ageBucketFilter,
+    lastInvoiceDateFrom || null, lastInvoiceDateTo || null,
   ].filter((v) => v !== null && v !== undefined && v !== "").length;
 
   const handleSort = (col) => {
@@ -390,6 +395,8 @@ export default function CustomerTable({ onSelect, bucket, onClearBucket, city, o
     setMaxBalance("");
     setCollectorFilter("");
     setAgeBucketFilter("");
+    setLastInvoiceDateFrom("");
+    setLastInvoiceDateTo("");
     onToggleHideZeroBalance?.(false);
     onClearBucket?.();
     onClearCity?.();
@@ -499,6 +506,7 @@ export default function CustomerTable({ onSelect, bucket, onClearBucket, city, o
                 <div className="columns-menu">
                   {Object.entries({
                     city: t("cityLabel"), collector: t("collectorField"), lastPayment: t("lastPayment"),
+                    lastInvoice: t("lastInvoiceDate"),
                     overdueAmount: t("overdueAmount"), upcomingDue: t("upcomingDue"), status: t("status"),
                   }).map(([key, label]) => (
                     <label key={key} className="multiselect-item">
@@ -633,6 +641,14 @@ export default function CustomerTable({ onSelect, bucket, onClearBucket, city, o
             <label>{t("maxBalance")}</label>
             <input type="number" min="0" value={maxBalance} onChange={(e) => setMaxBalance(e.target.value)} placeholder="—" />
           </div>
+          <div className="more-filter-field">
+            <label>{t("lastInvoiceDateFrom")}</label>
+            <input type="date" value={lastInvoiceDateFrom} onChange={(e) => setLastInvoiceDateFrom(e.target.value)} />
+          </div>
+          <div className="more-filter-field">
+            <label>{t("lastInvoiceDateTo")}</label>
+            <input type="date" value={lastInvoiceDateTo} onChange={(e) => setLastInvoiceDateTo(e.target.value)} />
+          </div>
         </div>
       )}
 
@@ -685,6 +701,12 @@ export default function CustomerTable({ onSelect, bucket, onClearBucket, city, o
             <span className="filter-chip">
               {t("balanceDue")}: {minBalance || "0"} – {maxBalance || "∞"}
               <button onClick={() => { setMinBalance(""); setMaxBalance(""); }}><X size={11} /></button>
+            </span>
+          )}
+          {(lastInvoiceDateFrom || lastInvoiceDateTo) && (
+            <span className="filter-chip">
+              {t("lastInvoiceDate")}: {lastInvoiceDateFrom || "…"} – {lastInvoiceDateTo || "…"}
+              <button onClick={() => { setLastInvoiceDateFrom(""); setLastInvoiceDateTo(""); }}><X size={11} /></button>
             </span>
           )}
           {activeFilterCount > 1 && (
@@ -741,6 +763,11 @@ export default function CustomerTable({ onSelect, bucket, onClearBucket, city, o
                   {visibleColumns.lastPayment && (
                     <th className="sortable" onClick={() => handleSort("last_payment_date")}>
                       {t("lastPayment")} <SortIcon col="last_payment_date" />
+                    </th>
+                  )}
+                  {visibleColumns.lastInvoice && (
+                    <th className="sortable" onClick={() => handleSort("last_invoice_date")}>
+                      {t("lastInvoiceDate")} <SortIcon col="last_invoice_date" />
                     </th>
                   )}
                   <th className="sortable" onClick={() => handleSort("current_due")}>
@@ -836,6 +863,14 @@ export default function CustomerTable({ onSelect, bucket, onClearBucket, city, o
                           <CalendarCheck size={13} />
                           {fmtDate(c.last_payment_date)}
                           {c.last_payment_amount ? <> · <RiyalAmount amount={c.last_payment_amount} /></> : ""}
+                        </span>
+                      </td>
+                    )}
+                    {visibleColumns.lastInvoice && (
+                      <td data-label={t("lastInvoiceDate")}>
+                        <span className="cell-icon">
+                          <CalendarCheck size={13} />
+                          {fmtDate(c.last_invoice_date)}
                         </span>
                       </td>
                     )}

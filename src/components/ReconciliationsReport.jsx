@@ -189,6 +189,59 @@ function IssueModal({ item, staffList, onClose, onDone, t, showToast }) {
   );
 }
 
+function ConfirmationFormModal({ item, onClose, t, showToast, lang }) {
+  const [asOfDate, setAsOfDate] = useState(new Date().toISOString().slice(0, 10));
+  const [previewBalance, setPreviewBalance] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+
+  useEffect(() => {
+    if (!asOfDate) { setPreviewBalance(null); return; }
+    setPreviewLoading(true);
+    api.reconciliationBalancePreview(item.case_id, asOfDate)
+      .then((res) => setPreviewBalance(res.balance))
+      .catch(() => setPreviewBalance(null))
+      .finally(() => setPreviewLoading(false));
+  }, [asOfDate, item.case_id]);
+
+  const download = async () => {
+    if (!asOfDate) return;
+    setDownloading(true);
+    try {
+      await api.reconciliationConfirmationPdf(item.case_id, asOfDate, lang);
+    } catch (e) {
+      showToast(e.message, "error");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  return (
+    <div className="overlay modal-overlay" onClick={onClose}>
+      <div className="prompt-modal" onClick={(e) => e.stopPropagation()}>
+        <button className="close-btn" onClick={onClose}><XIcon size={16} /></button>
+        <h3><Printer size={15} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />{t("downloadConfirmationForm")}</h3>
+        <p className="prompt-message">{item.customer_name}</p>
+        <label>{t("asOfDateLabel")}</label>
+        <input type="date" value={asOfDate} onChange={(e) => setAsOfDate(e.target.value)} required />
+        {asOfDate && (
+          <p className="prompt-message" style={{ marginTop: 6 }}>
+            {t("reconciledBalanceLabel")}: {previewLoading ? t("loadingDots") : (
+              previewBalance !== null ? <strong><RiyalAmount amount={previewBalance} /></strong> : "—"
+            )}
+          </p>
+        )}
+        <div className="prompt-actions">
+          <button type="button" className="btn-secondary" onClick={onClose}>{t("cancel")}</button>
+          <button type="button" className="btn-primary" disabled={!asOfDate || downloading} onClick={download}>
+            {downloading ? t("loadingDots") : t("downloadButton")}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SendStatementModal({ item, onClose, onDone, t, showToast, lang }) {
   const [template, setTemplate] = useState(t("reconciliationStatementTemplate"));
   const [link, setLink] = useState("");
@@ -446,6 +499,7 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
   const [resolveModal, setResolveModal] = useState(null);
   const [historyModal, setHistoryModal] = useState(null);
   const [sendStatementModal, setSendStatementModal] = useState(null);
+  const [confirmationFormModal, setConfirmationFormModal] = useState(null);
   const [viewerUrl, setViewerUrl] = useState(null);
   const [viewerType, setViewerType] = useState(null);
 
@@ -489,14 +543,6 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
     try {
       await api.setReconciliationStatementSent(caseId, sent);
       load();
-    } catch (e) {
-      showToast(e.message, "error");
-    }
-  };
-
-  const downloadConfirmationForm = async (caseId) => {
-    try {
-      await api.reconciliationConfirmationPdf(caseId, new Date().toISOString().slice(0, 10), lang);
     } catch (e) {
       showToast(e.message, "error");
     }
@@ -596,7 +642,7 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
                               <button className="btn-secondary sm" onClick={() => setMatchModal(r)}>{t("matchReconciliationTitle")}</button>
                               <button className="icon-btn" title={t("flagIssueTitle")} onClick={() => setIssueModal(r)}><AlertTriangle size={13} /></button>
                               <button className="icon-btn" title={t("sendStatementButton")} onClick={() => setSendStatementModal(r)}><MessageCircle size={13} /></button>
-                              <button className="icon-btn" title={t("downloadConfirmationForm")} onClick={() => downloadConfirmationForm(r.case_id)}><Printer size={13} /></button>
+                              <button className="icon-btn" title={t("downloadConfirmationForm")} onClick={() => setConfirmationFormModal(r)}><Printer size={13} /></button>
                               <label className="checkbox-inline" title={t("statementSentLabel")} style={{ fontSize: 11 }}>
                                 <input
                                   type="checkbox"
@@ -652,6 +698,13 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
           item={sendStatementModal} lang={lang}
           onClose={() => setSendStatementModal(null)}
           onDone={() => { setSendStatementModal(null); load(); }}
+          t={t} showToast={showToast}
+        />
+      )}
+      {confirmationFormModal && (
+        <ConfirmationFormModal
+          item={confirmationFormModal} lang={lang}
+          onClose={() => setConfirmationFormModal(null)}
           t={t} showToast={showToast}
         />
       )}

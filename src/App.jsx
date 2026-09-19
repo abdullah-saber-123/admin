@@ -82,6 +82,7 @@ export default function App() {
   const [profileModal, setProfileModal] = useState(null); // { mode: "self" | "user" | "collector", userId?, collectorName? }
   const [myProfile, setMyProfile] = useState(null); // own full_name/avatar_url - drives the sidebar chip
   const [hideZeroBalance, setHideZeroBalance] = useState(true);
+  const [hideNegativeBalance, setHideNegativeBalance] = useState(false);
   const [collectorsList, setCollectorsList] = useState([]);
   const push = usePushNotifications();
   const [pushBannerDismissed, setPushBannerDismissed] = useState(() => localStorage.getItem("collect_push_banner_dismissed") === "1");
@@ -103,8 +104,9 @@ export default function App() {
     if (cityFilter) params.city = cityFilter;
     if (collectorFilter) params.collector = collectorFilter;
     if (hideZeroBalance) params.hide_zero_balance = true;
+    if (hideNegativeBalance) params.hide_negative_balance = true;
     api.kpis(params).then(setKpis).catch(() => {});
-  }, [cityFilter, collectorFilter, hideZeroBalance]);
+  }, [cityFilter, collectorFilter, hideZeroBalance, hideNegativeBalance]);
   const loadSyncStatus = useCallback(() => {
     api.syncStatus().then(setSyncStatus).catch(() => {});
   }, []);
@@ -318,6 +320,8 @@ export default function App() {
                 onCollectorChange={setCollectorFilter}
                 hideZeroBalance={hideZeroBalance}
                 onToggleHideZeroBalance={setHideZeroBalance}
+                hideNegativeBalance={hideNegativeBalance}
+                onToggleHideNegativeBalance={setHideNegativeBalance}
                 refreshSignal={refreshSignal}
                 role={session.role}
                 onOpenCollectorProfile={(name) => setProfileModal({ mode: "collector", collectorName: name })}

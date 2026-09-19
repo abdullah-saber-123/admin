@@ -25,7 +25,7 @@ function waLink(phone) {
 
 const DEFAULT_COLUMNS = { city: true, collector: true, lastPayment: true, lastInvoice: false, overdueAmount: true, upcomingDue: true, status: false };
 
-export default function CustomerTable({ onSelect, bucket, onClearBucket, city, onClearCity, onCityChange, ageBucket, onClearAgeBucket, followupStatus, onClearFollowupStatus, collector, onClearCollector, onCollectorChange, hideZeroBalance, onToggleHideZeroBalance, refreshSignal, role, onOpenCollectorProfile }) {
+export default function CustomerTable({ onSelect, bucket, onClearBucket, city, onClearCity, onCityChange, ageBucket, onClearAgeBucket, followupStatus, onClearFollowupStatus, collector, onClearCollector, onCollectorChange, hideZeroBalance, onToggleHideZeroBalance, hideNegativeBalance, onToggleHideNegativeBalance, refreshSignal, role, onOpenCollectorProfile }) {
   const { t, money, statusLabel } = useLang();
   const { showToast } = useToast();
 
@@ -56,7 +56,6 @@ export default function CustomerTable({ onSelect, bucket, onClearBucket, city, o
   const [maxBalance, setMaxBalance] = useState("");
   const [lastInvoiceDateFrom, setLastInvoiceDateFrom] = useState("");
   const [lastInvoiceDateTo, setLastInvoiceDateTo] = useState("");
-  const [hideNegativeBalance, setHideNegativeBalance] = useState(false);
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [cities, setCities] = useState([]);
   const [followupStatuses, setFollowupStatuses] = useState([]);
@@ -399,7 +398,7 @@ export default function CustomerTable({ onSelect, bucket, onClearBucket, city, o
     setAgeBucketFilter("");
     setLastInvoiceDateFrom("");
     setLastInvoiceDateTo("");
-    setHideNegativeBalance(false);
+    onToggleHideNegativeBalance?.(false);
     onToggleHideZeroBalance?.(false);
     onClearBucket?.();
     onClearCity?.();
@@ -494,7 +493,7 @@ export default function CustomerTable({ onSelect, bucket, onClearBucket, city, o
             <AnimatedToggle checked={hideZeroBalance} size={30} />
             {t("hideZeroBalance")}
           </label>
-          <label className="checkbox-inline" onClick={(e) => { e.preventDefault(); setHideNegativeBalance((v) => !v); }}>
+          <label className="checkbox-inline" onClick={(e) => { e.preventDefault(); onToggleHideNegativeBalance?.(!hideNegativeBalance); }}>
             <AnimatedToggle checked={hideNegativeBalance} size={30} />
             {t("hideNegativeBalance")}
           </label>
@@ -701,7 +700,7 @@ export default function CustomerTable({ onSelect, bucket, onClearBucket, city, o
           {hideNegativeBalance && (
             <span className="filter-chip">
               {t("hideNegativeBalance")}
-              <button onClick={() => setHideNegativeBalance(false)}><X size={11} /></button>
+              <button onClick={() => onToggleHideNegativeBalance?.(false)}><X size={11} /></button>
             </span>
           )}
           {followupFilter && (

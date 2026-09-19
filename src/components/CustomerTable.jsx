@@ -56,6 +56,7 @@ export default function CustomerTable({ onSelect, bucket, onClearBucket, city, o
   const [maxBalance, setMaxBalance] = useState("");
   const [lastInvoiceDateFrom, setLastInvoiceDateFrom] = useState("");
   const [lastInvoiceDateTo, setLastInvoiceDateTo] = useState("");
+  const [hideNegativeBalance, setHideNegativeBalance] = useState(false);
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [cities, setCities] = useState([]);
   const [followupStatuses, setFollowupStatuses] = useState([]);
@@ -162,6 +163,7 @@ export default function CustomerTable({ onSelect, bucket, onClearBucket, city, o
   const filterParams = () => ({
     search, status, bucket: bucket || "", city: city || "",
     hide_zero_balance: hideZeroBalance,
+    hide_negative_balance: hideNegativeBalance,
     followup_status: followupFilter || "",
     min_balance: minBalance !== "" ? minBalance : "",
     max_balance: maxBalance !== "" ? maxBalance : "",
@@ -189,14 +191,14 @@ export default function CustomerTable({ onSelect, bucket, onClearBucket, city, o
         scrollLoadLockRef.current = false;
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, status, bucket, city, hideZeroBalance, followupFilter, minBalance, maxBalance, collectorFilter, ageBucketFilter, lastInvoiceDateFrom, lastInvoiceDateTo, sortBy, sortDir, page]);
+  }, [search, status, bucket, city, hideZeroBalance, hideNegativeBalance, followupFilter, minBalance, maxBalance, collectorFilter, ageBucketFilter, lastInvoiceDateFrom, lastInvoiceDateTo, sortBy, sortDir, page]);
 
   useEffect(() => {
     const timer = setTimeout(load, 250);
     return () => clearTimeout(timer);
   }, [load]);
 
-  useEffect(() => { setPage(1); setAllRows([]); scrollLoadLockRef.current = false; }, [search, status, bucket, city, hideZeroBalance, followupFilter, minBalance, maxBalance, collectorFilter, ageBucketFilter, lastInvoiceDateFrom, lastInvoiceDateTo, sortBy, sortDir]);
+  useEffect(() => { setPage(1); setAllRows([]); scrollLoadLockRef.current = false; }, [search, status, bucket, city, hideZeroBalance, hideNegativeBalance, followupFilter, minBalance, maxBalance, collectorFilter, ageBucketFilter, lastInvoiceDateFrom, lastInvoiceDateTo, sortBy, sortDir]);
 
   // "Next" does the same thing scrolling to the bottom does - loads the next
   // page and appends it. "Go to page" is a deliberate jump instead: clear
@@ -326,7 +328,7 @@ export default function CustomerTable({ onSelect, bucket, onClearBucket, city, o
   }, [refreshSignal]);
 
   const activeFilterCount = [
-    bucket, city, status, search, hideZeroBalance || null, followupFilter,
+    bucket, city, status, search, hideZeroBalance || null, hideNegativeBalance || null, followupFilter,
     minBalance !== "" ? minBalance : null, maxBalance !== "" ? maxBalance : null, collectorFilter, ageBucketFilter,
     lastInvoiceDateFrom || null, lastInvoiceDateTo || null,
   ].filter((v) => v !== null && v !== undefined && v !== "").length;
@@ -397,6 +399,7 @@ export default function CustomerTable({ onSelect, bucket, onClearBucket, city, o
     setAgeBucketFilter("");
     setLastInvoiceDateFrom("");
     setLastInvoiceDateTo("");
+    setHideNegativeBalance(false);
     onToggleHideZeroBalance?.(false);
     onClearBucket?.();
     onClearCity?.();
@@ -490,6 +493,10 @@ export default function CustomerTable({ onSelect, bucket, onClearBucket, city, o
           <label className="checkbox-inline" onClick={(e) => { e.preventDefault(); onToggleHideZeroBalance?.(!hideZeroBalance); }}>
             <AnimatedToggle checked={hideZeroBalance} size={30} />
             {t("hideZeroBalance")}
+          </label>
+          <label className="checkbox-inline" onClick={(e) => { e.preventDefault(); setHideNegativeBalance((v) => !v); }}>
+            <AnimatedToggle checked={hideNegativeBalance} size={30} />
+            {t("hideNegativeBalance")}
           </label>
           <button className={`btn-secondary sm ${showMoreFilters ? "active-toggle" : ""}`} onClick={() => setShowMoreFilters((v) => !v)}>
             <SlidersHorizontal size={14} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
@@ -689,6 +696,12 @@ export default function CustomerTable({ onSelect, bucket, onClearBucket, city, o
             <span className="filter-chip">
               {t("hideZeroBalance")}
               <button onClick={() => onToggleHideZeroBalance?.(false)}><X size={11} /></button>
+            </span>
+          )}
+          {hideNegativeBalance && (
+            <span className="filter-chip">
+              {t("hideNegativeBalance")}
+              <button onClick={() => setHideNegativeBalance(false)}><X size={11} /></button>
             </span>
           )}
           {followupFilter && (

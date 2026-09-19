@@ -369,6 +369,7 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
                     <th className="sortable" onClick={() => toggleSort("current_due")}>{t("balanceDue")} <SortIcon col="current_due" /></th>
                     <th>{t("collectorField")}</th>
                     <th className="sortable" onClick={() => toggleSort("last_reconciliation_date")}>{t("lastReconciliationDate")} <SortIcon col="last_reconciliation_date" /></th>
+                    <th className="sortable" onClick={() => toggleSort("as_of_date")}>{t("asOfDateLabel")} <SortIcon col="as_of_date" /></th>
                     <th className="sortable" onClick={() => toggleSort("reconciled_balance")}>{t("reconciledBalanceLabel")} <SortIcon col="reconciled_balance" /></th>
                     <th className="sortable" onClick={() => toggleSort("next_reconciliation_date")}>{t("nextReconciliationDate")} <SortIcon col="next_reconciliation_date" /></th>
                     <th>{t("status")}</th>
@@ -386,6 +387,7 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
                       <td data-label={t("balanceDue")}><RiyalAmount amount={r.current_balance} /></td>
                       <td data-label={t("collectorField")}>{r.collector || "—"}</td>
                       <td data-label={t("lastReconciliationDate")}>{r.last_reconciliation_date ? fmtDate(r.last_reconciliation_date) : "—"}</td>
+                      <td data-label={t("asOfDateLabel")}>{r.as_of_date ? fmtDate(r.as_of_date) : "—"}</td>
                       <td data-label={t("reconciledBalanceLabel")}>{r.reconciled_balance !== null && r.reconciled_balance !== undefined ? <RiyalAmount amount={r.reconciled_balance} /> : "—"}</td>
                       <td data-label={t("nextReconciliationDate")}>{r.next_reconciliation_date ? fmtDate(r.next_reconciliation_date) : "—"}</td>
                       <td data-label={t("status")}>

@@ -210,6 +210,24 @@ export const api = {
     request(`/api/visit-requests/${id}/reject`, { method: "PATCH", body: JSON.stringify({ note }) }),
   completeVisitRequest: (id, payload) =>
     request(`/api/visit-requests/${id}/complete`, { method: "PATCH", body: JSON.stringify(payload) }),
+  retargetCases: (params = {}) => {
+    const qs = buildQueryString(params);
+    return request(`/api/retarget-cases${qs ? `?${qs}` : ""}`);
+  },
+  retargetCasesSummary: () => request(`/api/retarget-cases/summary`),
+  createRetargetCase: (partner_id, reason) =>
+    request(`/api/retarget-cases`, { method: "POST", body: JSON.stringify({ partner_id, reason }) }),
+  assignRetargetCase: (id, assigned_to) =>
+    request(`/api/retarget-cases/${id}/assign`, { method: "PATCH", body: JSON.stringify({ assigned_to }) }),
+  reportRetargetCase: (id, payload) =>
+    request(`/api/retarget-cases/${id}/report`, { method: "PATCH", body: JSON.stringify(payload) }),
+  resolveRetargetCase: (id, payload) =>
+    request(`/api/retarget-cases/${id}/resolve`, { method: "PATCH", body: JSON.stringify(payload) }),
+  snoozeRetargetCase: (id, snooze_until) =>
+    request(`/api/retarget-cases/${id}/snooze`, { method: "PATCH", body: JSON.stringify({ snooze_until }) }),
+  retargetFollowUps: (id) => request(`/api/retarget-cases/${id}/followups`),
+  addRetargetFollowUp: (id, note, reminder_date) =>
+    request(`/api/retarget-cases/${id}/followups`, { method: "POST", body: JSON.stringify({ note, reminder_date: reminder_date || null }) }),
   invoicesReport: (params = {}) => {
     const qs = buildQueryString(params);
     return request(`/api/reports/invoices${qs ? `?${qs}` : ""}`);

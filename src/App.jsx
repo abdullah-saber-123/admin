@@ -32,6 +32,7 @@ const Trends = lazy(() => import("./components/Trends.jsx"));
 const DueTodayReport = lazy(() => import("./components/DueTodayReport.jsx"));
 const FollowupLogReport = lazy(() => import("./components/FollowupLogReport.jsx"));
 const VisitsReport = lazy(() => import("./components/VisitsReport.jsx"));
+const RetargetingReport = lazy(() => import("./components/RetargetingReport.jsx"));
 const MyDay = lazy(() => import("./components/MyDay.jsx"));
 const PaymentPlansReport = lazy(() => import("./components/PaymentPlansReport.jsx"));
 const AnnouncementHistory = lazy(() => import("./components/AnnouncementHistory.jsx"));
@@ -186,6 +187,7 @@ export default function App() {
               : view === "invoices" ? t("invoicesReportTitle")
               : view === "followupLog" ? t("followupLogTitle")
               : view === "visits" ? t("visitsTitle")
+              : view === "retargeting" ? t("retargetingTitle")
               : view === "myDay" ? t("myDayTitle")
               : view === "performanceReport" ? t("performanceReportTitle")
               : view === "dailyActivity" ? t("dailyActivityTitle")
@@ -324,6 +326,7 @@ export default function App() {
                 onToggleHideNegativeBalance={setHideNegativeBalance}
                 refreshSignal={refreshSignal}
                 role={session.role}
+                permissions={session.permissions}
                 onOpenCollectorProfile={(name) => setProfileModal({ mode: "collector", collectorName: name })}
               />
             </>
@@ -370,6 +373,9 @@ export default function App() {
           )}
           {view === "visits" && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><VisitsReport onSelectCustomer={setSelectedId} role={session.role} username={session.username} /></Suspense>
+          )}
+          {view === "retargeting" && (session.role === "admin" || (session.permissions || "").includes("customerRetargeting")) && (
+            <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><RetargetingReport onSelectCustomer={setSelectedId} role={session.role} username={session.username} /></Suspense>
           )}
           {view === "myDay" && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><MyDay onSelectCustomer={setSelectedId} /></Suspense>

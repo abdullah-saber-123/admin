@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Search, Phone, CalendarCheck, Download, X, MessageCircle, Send, AlertTriangle, Check, ArrowUp, ArrowDown, ArrowUpDown, SlidersHorizontal, MapPin, Settings2, Trash2, StickyNote, ShieldAlert } from "lucide-react";
+import { Search, Phone, CalendarCheck, Download, X, MessageCircle, Send, AlertTriangle, Check, ArrowUp, ArrowDown, ArrowUpDown, SlidersHorizontal, MapPin, Settings2, Trash2, StickyNote, ShieldAlert, Target } from "lucide-react";
 import { api, BASE } from "../api";
 import Avatar from "./Avatar.jsx";
 import RiskBadge from "./RiskBadge.jsx";
@@ -25,9 +25,29 @@ function waLink(phone) {
 
 const DEFAULT_COLUMNS = { city: true, collector: true, lastPayment: true, lastInvoice: false, overdueAmount: true, upcomingDue: true, status: false };
 
-export default function CustomerTable({ onSelect, bucket, onClearBucket, city, onClearCity, onCityChange, ageBucket, onClearAgeBucket, followupStatus, onClearFollowupStatus, collector, onClearCollector, onCollectorChange, hideZeroBalance, onToggleHideZeroBalance, hideNegativeBalance, onToggleHideNegativeBalance, refreshSignal, role, onOpenCollectorProfile }) {
+export default function CustomerTable({ onSelect, bucket, onClearBucket, city, onClearCity, onCityChange, ageBucket, onClearAgeBucket, followupStatus, onClearFollowupStatus, collector, onClearCollector, onCollectorChange, hideZeroBalance, onToggleHideZeroBalance, hideNegativeBalance, onToggleHideNegativeBalance, refreshSignal, role, permissions, onOpenCollectorProfile }) {
   const { t, money, statusLabel } = useLang();
   const { showToast } = useToast();
+  const canRetarget = role === "admin" || (permissions || "").split(",").map((p) => p.trim()).includes("customerRetargeting");
+  const [retargetModalFor, setRetargetModalFor] = useState(null);
+  const [retargetReason, setRetargetReason] = useState("");
+  const [submittingRetarget, setSubmittingRetarget] = useState(false);
+
+  const handleRetarget = async (e) => {
+    e.preventDefault();
+    if (!retargetReason.trim() || !retargetModalFor) return;
+    setSubmittingRetarget(true);
+    try {
+      await api.createRetargetCase(retargetModalFor.partner_id, retargetReason.trim());
+      showToast(t("retargetCaseCreated"), "success");
+      setRetargetModalFor(null);
+      setRetargetReason("");
+    } catch (e2) {
+      showToast(e2.message, "error");
+    } finally {
+      setSubmittingRetarget(false);
+    }
+  };
 
   const BUCKET_LABELS = {
     late: t("lateFollowUps"),
@@ -812,6 +832,15 @@ export default function CustomerTable({ onSelect, bucket, onClearBucket, city, o
                         <Avatar name={c.name} size="sm" />
                         <span className="cust-name">{c.name}</span>
                         <RiskBadge level={c.risk_level} />
+                        {canRetarget && (
+                          <button
+                            className="icon-btn"
+                            title={t("retargetButton")}
+                            onClick={(e) => { e.stopPropagation(); setRetargetModalFor(c); setRetargetReason(""); }}
+                          >
+                            <Target size={13} />
+                          </button>
+                        )}
                       </div>
                     </td>
                     <td data-label={t("phone")}>
@@ -1110,6 +1139,26 @@ export default function CustomerTable({ onSelect, bucket, onClearBucket, city, o
           partnerIds={selectedIds}
           statuses={followupStatuses}
         />
+      )}
+
+      {retargetModalFor && (
+        <div className="overlay modal-overlay" onClick={() => setRetargetModalFor(null)}>
+          <div className="prompt-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="close-btn" onClick={() => setRetargetModalFor(null)}><X size={16} /></button>
+            <h3><Target size={15} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />{t("retargetButton")}</h3>
+            <p className="prompt-message">{retargetModalFor.name}</p>
+            <form onSubmit={handleRetarget}>
+              <label>{t("retargetReasonLabel")}</label>
+              <textarea rows={3} value={retargetReason} onChange={(e) => setRetargetReason(e.target.value)} placeholder={t("retargetReasonPlaceholder")} autoFocus />
+              <div className="prompt-actions">
+                <button type="button" className="btn-secondary" onClick={() => setRetargetModalFor(null)}>{t("cancel")}</button>
+                <button type="submit" className="btn-primary" disabled={!retargetReason.trim() || submittingRetarget}>
+                  {submittingRetarget ? t("saving") : t("save")}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

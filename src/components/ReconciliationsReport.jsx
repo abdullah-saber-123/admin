@@ -3,7 +3,7 @@
 // check-in date) or flag a discrepancy, which detours to a specialist and
 // comes back to the same collector once resolved.
 import { useEffect, useState, useCallback } from "react";
-import { ClipboardCheck, Check, X as XIcon, AlertTriangle, FileText, Search } from "lucide-react";
+import { ClipboardCheck, Check, X as XIcon, AlertTriangle, FileText, Search, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 import { useToast } from "../toast.jsx";
@@ -211,6 +211,8 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
   const [collectors, setCollectors] = useState([]);
   const [staffList, setStaffList] = useState([]);
   const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState("current_due");
+  const [sortDir, setSortDir] = useState("desc");
   const [assignModal, setAssignModal] = useState(null);
   const [matchModal, setMatchModal] = useState(null);
   const [issueModal, setIssueModal] = useState(null);
@@ -228,11 +230,21 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
     setError(null);
     api.reconciliations({
       search, city: cityFilter, collector: collectorFilter, status: statusFilter, mine: mineOnly, page, page_size: 25,
+      sort_by: sortBy, sort_dir: sortDir,
     }).then(setData).catch((e) => setError(e.message));
-  }, [search, cityFilter, collectorFilter, statusFilter, mineOnly, page]);
+  }, [search, cityFilter, collectorFilter, statusFilter, mineOnly, page, sortBy, sortDir]);
 
   useEffect(() => { load(); }, [load]);
-  useEffect(() => { setPage(1); }, [search, cityFilter, collectorFilter, statusFilter, mineOnly]);
+  useEffect(() => { setPage(1); }, [search, cityFilter, collectorFilter, statusFilter, mineOnly, sortBy, sortDir]);
+
+  const toggleSort = (field) => {
+    if (sortBy === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortBy(field); setSortDir(field === "name" ? "asc" : "desc"); }
+  };
+  const SortIcon = ({ col }) => {
+    if (sortBy !== col) return <ArrowUpDown size={11} className="sort-icon idle" />;
+    return sortDir === "asc" ? <ArrowUp size={11} className="sort-icon active" /> : <ArrowDown size={11} className="sort-icon active" />;
+  };
 
   const viewProof = async (caseId) => {
     try {
@@ -297,11 +309,11 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>{t("customer")}</th>
-                    <th>{t("balanceDue")}</th>
+                    <th className="sortable" onClick={() => toggleSort("name")}>{t("customer")} <SortIcon col="name" /></th>
+                    <th className="sortable" onClick={() => toggleSort("current_due")}>{t("balanceDue")} <SortIcon col="current_due" /></th>
                     <th>{t("collectorField")}</th>
-                    <th>{t("lastReconciliationDate")}</th>
-                    <th>{t("nextReconciliationDate")}</th>
+                    <th className="sortable" onClick={() => toggleSort("last_reconciliation_date")}>{t("lastReconciliationDate")} <SortIcon col="last_reconciliation_date" /></th>
+                    <th className="sortable" onClick={() => toggleSort("next_reconciliation_date")}>{t("nextReconciliationDate")} <SortIcon col="next_reconciliation_date" /></th>
                     <th>{t("status")}</th>
                     <th>{t("assignTo")}</th>
                     <th>{t("actions")}</th>

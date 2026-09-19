@@ -32,6 +32,9 @@ export default function CustomerAnalytics({ onSelectCustomer, initialPartnerId }
   const { t, lang, money } = useLang();
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
+  // Opened via the "Customer Analysis" deep link - show only that customer's
+  // own breakdown, never the company-wide overview/ranking below it.
+  const focusMode = !!initialPartnerId;
 
   const [regions, setRegions] = useState([]);
   const [cities, setCities] = useState([]);
@@ -75,7 +78,7 @@ export default function CustomerAnalytics({ onSelectCustomer, initialPartnerId }
       .then(setOverview).catch((e) => setError(e.message));
   }, [year, regionFilter, cityFilter, collectorFilter]);
 
-  useEffect(() => { loadOverview(); }, [loadOverview]);
+  useEffect(() => { if (!focusMode) loadOverview(); }, [loadOverview, focusMode]);
 
   useEffect(() => {
     if (search.trim().length < 2) {
@@ -125,20 +128,22 @@ export default function CustomerAnalytics({ onSelectCustomer, initialPartnerId }
         <h2><BarChart3 size={15} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />{t("customerAnalyticsTitle")}</h2>
         <p className="panel-sub">{t("customerAnalyticsHint")}</p>
 
-        <div className="search-bar" style={{ maxWidth: 320, marginBottom: 16, position: "relative" }}>
-          <Search size={14} />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("searchCustomerForReport")} />
-          {searchResults && searchResults.length > 0 && (
-            <div className="monthly-report-search-results">
-              {searchResults.map((c) => (
-                <button key={c.partner_id} className="global-search-result" onClick={() => pickCustomer(c)}>
-                  <span className="gsr-title">{c.name}</span>
-                  <span className="gsr-sub">{c.phone || ""}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        {!focusMode && (
+          <div className="search-bar" style={{ maxWidth: 320, marginBottom: 16, position: "relative" }}>
+            <Search size={14} />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("searchCustomerForReport")} />
+            {searchResults && searchResults.length > 0 && (
+              <div className="monthly-report-search-results">
+                {searchResults.map((c) => (
+                  <button key={c.partner_id} className="global-search-result" onClick={() => pickCustomer(c)}>
+                    <span className="gsr-title">{c.name}</span>
+                    <span className="gsr-sub">{c.phone || ""}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {selectedCustomer && (
           <div className="panel" style={{ marginBottom: 20, background: "var(--card)" }}>
@@ -154,7 +159,7 @@ export default function CustomerAnalytics({ onSelectCustomer, initialPartnerId }
                 {detail?.write_off_status === "approved" && <span className="fu-tag danger">{t("writtenOffBadge")}</span>}
                 {detail?.write_off_status === "pending" && <span className="fu-tag warn">{t("writeOffStatus_pending")}</span>}
               </h3>
-              <button className="icon-btn" onClick={clearCustomer} title={t("cancel")}><X size={15} /></button>
+              {!focusMode && <button className="icon-btn" onClick={clearCustomer} title={t("cancel")}><X size={15} /></button>}
             </div>
 
             {detailError && <div className="error-state">{detailError}</div>}
@@ -247,6 +252,8 @@ export default function CustomerAnalytics({ onSelectCustomer, initialPartnerId }
           </div>
         )}
 
+        {!focusMode && (
+        <>
         <div className="more-filters-row" style={{ marginBottom: 14 }}>
           <div className="more-filter-field">
             <label>{t("yearLabel")}</label>
@@ -397,6 +404,8 @@ export default function CustomerAnalytics({ onSelectCustomer, initialPartnerId }
               </div>
             )}
           </>
+        )}
+        </>
         )}
       </div>
 

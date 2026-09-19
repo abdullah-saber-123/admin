@@ -270,7 +270,8 @@ function SendStatementModal({ item, onClose, onDone, t, showToast, lang }) {
     : "";
   const message = template
     .replace("{name}", item.customer_name || "")
-    .replace("{balance}", (previewBalance ?? item.current_balance ?? 0).toLocaleString());
+    .replace("{balance}", (previewBalance ?? item.current_balance ?? 0).toLocaleString())
+    .replace("{date}", asOfDate ? fmtDate(asOfDate) : "");
   const fullMessage = link ? `${message}\n\n${t("statementLinkLabel")}: ${link}` : message;
 
   const sendAndMark = async () => {
@@ -313,7 +314,7 @@ function SendStatementModal({ item, onClose, onDone, t, showToast, lang }) {
             borderRadius: 9, color: "var(--text)", padding: 10, fontSize: 13, fontFamily: "inherit", marginTop: 6,
           }}
         />
-        <div style={{ fontSize: 11, color: "var(--text-faint)", margin: "4px 0 12px" }}>{"{name}"} / {"{balance}"}</div>
+        <div style={{ fontSize: 11, color: "var(--text-faint)", margin: "4px 0 12px" }}>{"{name}"} / {"{balance}"} / {"{date}"}</div>
         <div style={{
           fontSize: 12.5, background: "var(--panel)", border: "1px solid var(--border)",
           borderRadius: 8, padding: 10, marginBottom: 14, whiteSpace: "pre-wrap",

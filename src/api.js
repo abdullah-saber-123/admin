@@ -235,6 +235,10 @@ export const api = {
   reconciliationProofDownload: (id) => requestBlob(`/api/reconciliations/${id}/proof`),
   reconciliationIssueFileDownload: (id) => requestBlob(`/api/reconciliations/${id}/issue-file`),
   reconciliationHistory: (partnerId) => request(`/api/reconciliations/customer/${partnerId}/history`),
+  setReconciliationStatementSent: (id, sent) =>
+    request(`/api/reconciliations/${id}/statement-sent`, { method: "PATCH", body: JSON.stringify({ sent }) }),
+  reconciliationConfirmationPdf: (id, asOfDate, lang) =>
+    requestBlob(`/api/reconciliations/${id}/confirmation-pdf?as_of_date=${asOfDate}&lang=${lang}`),
   retargetBranchOptions: () => request(`/api/retarget-cases/branch-options`),
   createRetargetCase: (partner_id, reason) =>
     request(`/api/retarget-cases`, { method: "POST", body: JSON.stringify({ partner_id, reason }) }),

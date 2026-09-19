@@ -3,8 +3,8 @@
 // check-in date) or flag a discrepancy, which detours to a specialist and
 // comes back to the same collector once resolved.
 import { useEffect, useState, useCallback } from "react";
-import { ClipboardCheck, Check, X as XIcon, AlertTriangle, FileText, Search, ArrowUp, ArrowDown, ArrowUpDown, History, Download } from "lucide-react";
-import { api } from "../api";
+import { ClipboardCheck, Check, X as XIcon, AlertTriangle, FileText, Search, ArrowUp, ArrowDown, ArrowUpDown, History, Download, MessageCircle, Printer } from "lucide-react";
+import { api, BASE } from "../api";
 import { useLang } from "../i18n.jsx";
 import { useToast } from "../toast.jsx";
 import { fmtDate } from "../dateUtils.js";
@@ -12,6 +12,12 @@ import RiyalAmount from "./RiyalAmount.jsx";
 
 const STATUS_TONE = { unassigned: "faint", pending: "warn", issue: "danger", matched: "ok" };
 const MONTH_OPTIONS = [1, 2, 3, 4];
+
+function waLink(phone) {
+  if (!phone) return null;
+  const digits = phone.replace(/[^\d]/g, "");
+  return `https://wa.me/${digits}`;
+}
 
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
@@ -178,6 +184,74 @@ function IssueModal({ item, staffList, onClose, onDone, t, showToast }) {
             <button type="submit" className="btn-primary danger-btn" disabled={!note.trim() || !specialist || saving}>{saving ? t("saving") : t("save")}</button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+function SendStatementModal({ item, onClose, onDone, t, showToast, lang }) {
+  const [template, setTemplate] = useState(t("reconciliationStatementTemplate"));
+  const [link, setLink] = useState("");
+  const [marking, setMarking] = useState(false);
+
+  useEffect(() => {
+    api.statementLinks([item.partner_id]).then((map) => {
+      const token = map[item.partner_id];
+      setLink(token ? `${BASE}/api/public/statement/${token}` : "");
+    }).catch(() => {});
+  }, [item.partner_id]);
+
+  const message = template
+    .replace("{name}", item.customer_name || "")
+    .replace("{balance}", (item.current_balance ?? 0).toLocaleString());
+  const fullMessage = link ? `${message}\n\n${t("statementLinkLabel")}: ${link}` : message;
+
+  const sendAndMark = async () => {
+    window.open(`${waLink(item.phone)}?text=${encodeURIComponent(fullMessage)}`, "_blank");
+    setMarking(true);
+    try {
+      await api.setReconciliationStatementSent(item.case_id, true);
+      showToast(t("saved"), "success");
+      onDone();
+    } catch (e) {
+      showToast(e.message, "error");
+    } finally {
+      setMarking(false);
+    }
+  };
+
+  return (
+    <div className="overlay modal-overlay" onClick={onClose}>
+      <div className="prompt-modal" style={{ maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
+        <button className="close-btn" onClick={onClose}><XIcon size={16} /></button>
+        <h3>{t("sendStatementTitle")}</h3>
+        <div className="my-day-city" style={{ marginBottom: 10 }}>
+          {item.customer_name} · <bdi dir="ltr">{item.phone}</bdi>
+        </div>
+        <label>{t("messageTemplate")}</label>
+        <textarea
+          value={template}
+          onChange={(e) => setTemplate(e.target.value)}
+          style={{
+            width: "100%", minHeight: 90, background: "var(--card)", border: "1px solid var(--border)",
+            borderRadius: 9, color: "var(--text)", padding: 10, fontSize: 13, fontFamily: "inherit", marginTop: 6,
+          }}
+        />
+        <div style={{ fontSize: 11, color: "var(--text-faint)", margin: "4px 0 12px" }}>{"{name}"} / {"{balance}"}</div>
+        <div style={{
+          fontSize: 12.5, background: "var(--panel)", border: "1px solid var(--border)",
+          borderRadius: 8, padding: 10, marginBottom: 14, whiteSpace: "pre-wrap",
+        }}>
+          {fullMessage}
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button className="btn-primary" disabled={!item.phone || marking} onClick={sendAndMark}>
+            <MessageCircle size={14} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />
+            {t("openWhatsApp")}
+          </button>
+          <button className="btn-secondary" onClick={onClose}>{t("cancel")}</button>
+        </div>
+        {!item.phone && <div className="form-error" style={{ marginTop: 10 }}>{t("noPhoneNumber")}</div>}
       </div>
     </div>
   );
@@ -351,7 +425,7 @@ function ResolveModal({ item, onClose, onDone, t, showToast }) {
 }
 
 export default function ReconciliationsReport({ onSelectCustomer, role, username }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const { showToast } = useToast();
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
@@ -371,6 +445,7 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
   const [issueModal, setIssueModal] = useState(null);
   const [resolveModal, setResolveModal] = useState(null);
   const [historyModal, setHistoryModal] = useState(null);
+  const [sendStatementModal, setSendStatementModal] = useState(null);
   const [viewerUrl, setViewerUrl] = useState(null);
   const [viewerType, setViewerType] = useState(null);
 
@@ -405,6 +480,23 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
       const { url, type } = await api.reconciliationProofFile(caseId);
       setViewerUrl(url);
       setViewerType(type);
+    } catch (e) {
+      showToast(e.message, "error");
+    }
+  };
+
+  const toggleStatementSent = async (caseId, sent) => {
+    try {
+      await api.setReconciliationStatementSent(caseId, sent);
+      load();
+    } catch (e) {
+      showToast(e.message, "error");
+    }
+  };
+
+  const downloadConfirmationForm = async (caseId) => {
+    try {
+      await api.reconciliationConfirmationPdf(caseId, new Date().toISOString().slice(0, 10), lang);
     } catch (e) {
       showToast(e.message, "error");
     }
@@ -503,6 +595,16 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
                             <>
                               <button className="btn-secondary sm" onClick={() => setMatchModal(r)}>{t("matchReconciliationTitle")}</button>
                               <button className="icon-btn" title={t("flagIssueTitle")} onClick={() => setIssueModal(r)}><AlertTriangle size={13} /></button>
+                              <button className="icon-btn" title={t("sendStatementButton")} onClick={() => setSendStatementModal(r)}><MessageCircle size={13} /></button>
+                              <button className="icon-btn" title={t("downloadConfirmationForm")} onClick={() => downloadConfirmationForm(r.case_id)}><Printer size={13} /></button>
+                              <label className="checkbox-inline" title={t("statementSentLabel")} style={{ fontSize: 11 }}>
+                                <input
+                                  type="checkbox"
+                                  checked={!!r.statement_sent}
+                                  onChange={(e) => toggleStatementSent(r.case_id, e.target.checked)}
+                                />
+                                {t("statementSentLabel")}
+                              </label>
                             </>
                           )}
                           {r.case_status === "issue" && (role === "admin" || r.specialist_assigned_to === username) && (
@@ -544,6 +646,14 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
       )}
       {historyModal && (
         <HistoryModal item={historyModal} onClose={() => setHistoryModal(null)} t={t} showToast={showToast} />
+      )}
+      {sendStatementModal && (
+        <SendStatementModal
+          item={sendStatementModal} lang={lang}
+          onClose={() => setSendStatementModal(null)}
+          onDone={() => { setSendStatementModal(null); load(); }}
+          t={t} showToast={showToast}
+        />
       )}
       {viewerUrl && (
         <div className="overlay modal-overlay" onClick={() => setViewerUrl(null)}>

@@ -46,6 +46,7 @@ export default function CustomerDetail({ partnerId, role, onClose, onSaved }) {
   const [showVisitModal, setShowVisitModal] = useState(false);
   const [visitReason, setVisitReason] = useState("");
   const [requestingVisit, setRequestingVisit] = useState(false);
+  const [activeVisitRequest, setActiveVisitRequest] = useState(null);
   const [staffList, setStaffList] = useState(null);
 
   const [invoicePage, setInvoicePage] = useState(1);
@@ -109,9 +110,18 @@ export default function CustomerDetail({ partnerId, role, onClose, onSaved }) {
     setCostOfDebt(null);
     setShowChat(false);
     setChatMessages(null);
+    setActiveVisitRequest(null);
     load(1, 1);
     api.followupStatuses().then(setStatuses).catch(() => {});
+    loadActiveVisitRequest();
   }, [partnerId]);
+
+  const loadActiveVisitRequest = () => {
+    api.visitRequests({ partner_id: partnerId }).then((rows) => {
+      const active = (rows || []).find((r) => r.status === "pending" || r.status === "assigned");
+      setActiveVisitRequest(active || null);
+    }).catch(() => {});
+  };
 
   const loadActivity = () => {
     api.customerActivity(partnerId, { page_size: 40 }).then(setActivity).catch((e) => setError(e.message));
@@ -139,6 +149,7 @@ export default function CustomerDetail({ partnerId, role, onClose, onSaved }) {
       showToast(t("visitRequested"), "success");
       setShowVisitModal(false);
       setVisitReason("");
+      loadActiveVisitRequest();
     } catch (e2) {
       showToast(e2.message, "error");
     } finally {
@@ -450,9 +461,14 @@ export default function CustomerDetail({ partnerId, role, onClose, onSaved }) {
                   <Share2 size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
                   {t("shareCustomerButton")}
                 </button>
-                <button className="btn-secondary sm" onClick={() => setShowVisitModal(true)}>
+                <button
+                  className="btn-secondary sm"
+                  onClick={() => setShowVisitModal(true)}
+                  disabled={!!activeVisitRequest}
+                  title={activeVisitRequest ? t("visitAlreadyRequestedHint") : undefined}
+                >
                   <MapPin size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
-                  {t("requestVisitButton")}
+                  {activeVisitRequest ? t(activeVisitRequest.status === "assigned" ? "visitStatus_assigned" : "visitStatus_pending") : t("requestVisitButton")}
                 </button>
                 {role === "admin" && (
                   <button className="btn-secondary sm danger" onClick={openUrgentModal}>

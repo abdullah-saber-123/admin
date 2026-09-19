@@ -1,5 +1,6 @@
+// Customer field visit requests: request -> assign -> GPS-tagged report.
 import { useEffect, useState, useCallback, Fragment } from "react";
-import { MapPin, Check, X as XIcon, ClipboardList, Navigation, ExternalLink } from "lucide-react";
+import { MapPin, Check, X as XIcon, ClipboardList, Navigation, ExternalLink, Search } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 import { useToast } from "../toast.jsx";
@@ -162,16 +163,23 @@ export default function VisitsReport({ onSelectCustomer, role, username }) {
   const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState("");
   const [mineOnly, setMineOnly] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
   const [staffList, setStaffList] = useState([]);
   const [assignModal, setAssignModal] = useState(null);
   const [rejectModal, setRejectModal] = useState(null);
   const [completeModal, setCompleteModal] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
 
+  useEffect(() => {
+    const id = setTimeout(() => setSearch(searchInput.trim()), 300);
+    return () => clearTimeout(id);
+  }, [searchInput]);
+
   const load = useCallback(() => {
     setError(null);
-    api.visitRequests({ status: statusFilter, mine: mineOnly }).then(setRows).catch((e) => setError(e.message));
-  }, [statusFilter, mineOnly]);
+    api.visitRequests({ status: statusFilter, mine: mineOnly, search }).then(setRows).catch((e) => setError(e.message));
+  }, [statusFilter, mineOnly, search]);
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { if (role === "admin") api.staffList().then(setStaffList).catch(() => {}); }, [role]);
@@ -192,6 +200,16 @@ export default function VisitsReport({ onSelectCustomer, role, username }) {
           <button className={`quick-toggle-chip ${mineOnly ? "active" : ""}`} onClick={() => setMineOnly((v) => !v)}>
             {t("myVisitsFilter")}
           </button>
+        </div>
+
+        <div className="input-icon compact" style={{ marginBottom: 14, maxWidth: 320 }}>
+          <Search size={13} />
+          <input
+            type="text"
+            placeholder={t("visitSearchPlaceholder")}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+          />
         </div>
 
         {error && <div className="error-state">{error}</div>}

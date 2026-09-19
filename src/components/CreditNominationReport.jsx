@@ -4,6 +4,7 @@ import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 import { useToast } from "../toast.jsx";
 import RiyalAmount from "./RiyalAmount.jsx";
+import { fmtDate } from "../dateUtils.js";
 
 export default function CreditNominationReport({ onSelectCustomer, role }) {
   const { t } = useLang();
@@ -18,6 +19,8 @@ export default function CreditNominationReport({ onSelectCustomer, role }) {
   const [overLimitOnly, setOverLimitOnly] = useState(false);
   const [offerOnly, setOfferOnly] = useState(false);
   const [collectionOnly, setCollectionOnly] = useState(false);
+  const [lastInvoiceDateFrom, setLastInvoiceDateFrom] = useState("");
+  const [lastInvoiceDateTo, setLastInvoiceDateTo] = useState("");
   const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState("current_due");
   const [sortDir, setSortDir] = useState("desc");
@@ -53,16 +56,17 @@ export default function CreditNominationReport({ onSelectCustomer, role }) {
     api.customers({
       search, city: cityFilter, collector: collectorFilter, page, page_size: 25,
       over_limit_only: overLimitOnly, nominated_offer_only: offerOnly, nominated_collection_only: collectionOnly,
+      last_invoice_date_from: lastInvoiceDateFrom || "", last_invoice_date_to: lastInvoiceDateTo || "",
       sort_by: sortBy, sort_dir: sortDir,
     }).then(setData).catch((e) => setError(e.message));
-  }, [search, cityFilter, collectorFilter, page, overLimitOnly, offerOnly, collectionOnly, sortBy, sortDir]);
+  }, [search, cityFilter, collectorFilter, page, overLimitOnly, offerOnly, collectionOnly, lastInvoiceDateFrom, lastInvoiceDateTo, sortBy, sortDir]);
 
   useEffect(() => {
     const timer = setTimeout(load, 250);
     return () => clearTimeout(timer);
   }, [load]);
 
-  useEffect(() => { setPage(1); }, [search, cityFilter, collectorFilter, overLimitOnly, offerOnly, collectionOnly]);
+  useEffect(() => { setPage(1); }, [search, cityFilter, collectorFilter, overLimitOnly, offerOnly, collectionOnly, lastInvoiceDateFrom, lastInvoiceDateTo]);
 
   const toggleSort = (field) => {
     if (sortBy === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -108,6 +112,7 @@ export default function CreditNominationReport({ onSelectCustomer, role }) {
       await api.exportCustomers({
         search, city: cityFilter, collector: collectorFilter, over_limit_only: overLimitOnly,
         nominated_offer_only: offerOnly, nominated_collection_only: collectionOnly,
+        last_invoice_date_from: lastInvoiceDateFrom || "", last_invoice_date_to: lastInvoiceDateTo || "",
       });
       showToast(t("exportReady"), "success");
     } catch (e) {
@@ -272,6 +277,14 @@ export default function CreditNominationReport({ onSelectCustomer, role }) {
               ))}
             </select>
           </div>
+          <div className="more-filter-field">
+            <label>{t("lastInvoiceDateFrom")}</label>
+            <input type="date" value={lastInvoiceDateFrom} onChange={(e) => setLastInvoiceDateFrom(e.target.value)} />
+          </div>
+          <div className="more-filter-field">
+            <label>{t("lastInvoiceDateTo")}</label>
+            <input type="date" value={lastInvoiceDateTo} onChange={(e) => setLastInvoiceDateTo(e.target.value)} />
+          </div>
         </div>
 
         <div className="quick-toggle-row">
@@ -302,6 +315,7 @@ export default function CreditNominationReport({ onSelectCustomer, role }) {
                     <th>{t("cityLabel")}</th>
                     <th className="sortable" onClick={() => toggleSort("current_due")}>{t("balanceDue")} {sortIcon("current_due")}</th>
                     <th>{t("creditLimitLabel")}</th>
+                    <th className="sortable" onClick={() => toggleSort("last_invoice_date")}>{t("lastInvoiceDate")} {sortIcon("last_invoice_date")}</th>
                     <th>{t("paymentTypeLabel")}</th>
                     <th>{t("regionLabel")}</th>
                     <th>{t("nominateForOffer")}</th>
@@ -352,6 +366,7 @@ export default function CreditNominationReport({ onSelectCustomer, role }) {
                             </span>
                           )}
                         </td>
+                        <td data-label={t("lastInvoiceDate")}>{fmtDate(c.last_invoice_date)}</td>
                         <td data-label={t("paymentTypeLabel")}>
                           <select
                             value={c.payment_type || ""}

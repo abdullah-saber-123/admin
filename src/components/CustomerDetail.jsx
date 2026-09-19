@@ -40,11 +40,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
   const { showToast } = useToast();
   const permsList = (permissions || "").split(",").map((p) => p.trim());
   const canSeeAnalytics = role === "admin" || permsList.includes("customerAnalytics") || permsList.includes("customerOwnAnalysis");
-  const openCustomerAnalysis = () => {
-    const url = new URL(window.location.href);
-    url.search = `?view=customerAnalytics&customer=${partnerId}`;
-    window.open(url.toString(), "_blank", "noopener");
-  };
+  const customerAnalysisUrl = `${window.location.pathname}?view=customerAnalytics&customer=${partnerId}`;
   useBodyScrollLock(true);
   const [detail, setDetail] = useState(null);
   const [error, setError] = useState(null);
@@ -478,10 +474,10 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
                   {activeVisitRequest ? t(activeVisitRequest.status === "assigned" ? "visitStatus_assigned" : "visitStatus_pending") : t("requestVisitButton")}
                 </button>
                 {canSeeAnalytics && (
-                  <button className="btn-secondary sm" onClick={openCustomerAnalysis}>
+                  <a className="btn-secondary sm" href={customerAnalysisUrl} target="_blank" rel="noopener noreferrer">
                     <BarChart3 size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
                     {t("customerAnalysisButton")}
-                  </button>
+                  </a>
                 )}
                 {role === "admin" && (
                   <button className="btn-secondary sm danger" onClick={openUrgentModal}>

@@ -228,6 +228,10 @@ function HistoryModal({ item, onClose, t, showToast }) {
                   <span className={`fu-tag sm ${STATUS_TONE[r.status]}`}>{t(`reconciliationStatus_${r.status}`)}</span>
                   <span className="my-day-city">{fmtDate(r.created_at)}</span>
                 </div>
+                <div style={{ marginTop: 4 }}>{t("assignTo")}: {r.assigned_to || "—"}</div>
+                {r.status === "issue" && r.specialist_assigned_to && (
+                  <div>{t("specialistLabel")}: {r.specialist_assigned_to}</div>
+                )}
                 {r.status === "matched" && (
                   <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
                     <div>{t("asOfDateLabel")}: {r.as_of_date ? fmtDate(r.as_of_date) : "—"}</div>

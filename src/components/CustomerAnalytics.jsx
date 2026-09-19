@@ -45,6 +45,7 @@ export default function CustomerAnalytics({ onSelectCustomer }) {
   const [monthDrilldown, setMonthDrilldown] = useState(null); // { monthKey, label }
   const [monthRows, setMonthRows] = useState(null);
   const [monthError, setMonthError] = useState(null);
+  const [monthFilter, setMonthFilter] = useState("");
 
   const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState(null);
@@ -99,6 +100,10 @@ export default function CustomerAnalytics({ onSelectCustomer }) {
     setMonthError(null);
     api.monthlyReportCustomers(monthKey).then(setMonthRows).catch((e) => setMonthError(e.message));
   };
+
+  useEffect(() => {
+    if (monthFilter) openMonth({ month: Number(monthFilter) });
+  }, [monthFilter, year]);
 
   const chartData = overview ? overview.monthly.map((m) => ({ label: monthLabel(m.month, lang), sales: m.sales, payments: m.payments, other_credits: m.other_credits, month: m.month })) : [];
   const detailChartData = detail ? detail.monthly.map((m) => ({ label: monthLabel(m.month, lang), sales: m.sales, payments: m.payments, other_credits: m.other_credits })) : [];
@@ -260,6 +265,15 @@ export default function CustomerAnalytics({ onSelectCustomer }) {
               {collectors.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
+          <div className="more-filter-field">
+            <label>{t("monthLabel")}</label>
+            <select value={monthFilter} onChange={(e) => setMonthFilter(e.target.value)}>
+              <option value="">{t("allStatus")}</option>
+              {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                <option key={m} value={m}>{monthLabel(m, lang)}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {error && <div className="error-state">{error}</div>}
@@ -377,9 +391,9 @@ export default function CustomerAnalytics({ onSelectCustomer }) {
       </div>
 
       {monthDrilldown && (
-        <div className="overlay modal-overlay" onClick={() => setMonthDrilldown(null)}>
+        <div className="overlay modal-overlay" onClick={() => { setMonthDrilldown(null); setMonthFilter(""); }}>
           <div className="prompt-modal" style={{ maxWidth: 640, maxHeight: "80vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
-            <button className="close-btn" onClick={() => setMonthDrilldown(null)}><X size={16} /></button>
+            <button className="close-btn" onClick={() => { setMonthDrilldown(null); setMonthFilter(""); }}><X size={16} /></button>
             <h3>{monthDrilldown.label} {year}</h3>
             {monthError && <div className="error-state">{monthError}</div>}
             {!monthError && !monthRows && <div className="loading-state">{t("loadingDots")}</div>}

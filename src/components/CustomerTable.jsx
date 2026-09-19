@@ -56,6 +56,7 @@ export default function CustomerTable({ onSelect, bucket, onClearBucket, city, o
     overdue_45: t("overdue45"),
     broken_promise: t("brokenPromises"),
     followup_today: t("followupsTodayBanner"),
+    neglected_contact: t("alertNeglectedTitle"),
   };
 
   const [data, setData] = useState(null);

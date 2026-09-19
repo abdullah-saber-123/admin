@@ -12,6 +12,7 @@ import CallOverlay from "./components/CallOverlay.jsx";
 import ChatWidget from "./components/ChatWidget.jsx";
 import AnnouncementOverlay from "./components/AnnouncementOverlay.jsx";
 import PaymentCelebration from "./components/PaymentCelebration.jsx";
+import AlertToasts from "./components/AlertToasts.jsx";
 import usePushNotifications from "./hooks/usePushNotifications.js";
 import ProfileModal from "./components/ProfileModal.jsx";
 import NotificationBell from "./components/NotificationBell.jsx";
@@ -461,6 +462,12 @@ export default function App() {
       <ChatWidget callOverlayRef={callOverlayRef} />
       <AnnouncementOverlay />
       <PaymentCelebration />
+      <AlertToasts
+        role={session.role}
+        onViewDueToday={() => setView("dueToday")}
+        onViewNeglected={() => { setBucket("neglected_contact"); setView("dashboard"); }}
+        onReviewCollector={(name) => name && setProfileModal({ mode: "collector", collectorName: name })}
+      />
 
       {profileModal && (
         <ProfileModal

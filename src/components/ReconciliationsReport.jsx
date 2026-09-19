@@ -398,7 +398,7 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
                       </td>
                       <td data-label={t("actions")}>
                         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                          {role === "admin" && r.case_status === "unassigned" && (
+                          {role === "admin" && (r.case_status === "unassigned" || r.case_status === "matched") && (
                             <button className="icon-btn" title={t("assignReconciliationTitle")} onClick={() => setAssignModal(r)}><Check size={13} /></button>
                           )}
                           {r.case_status === "pending" && (role === "admin" || r.assigned_to === username) && (

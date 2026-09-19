@@ -511,6 +511,7 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
   const [collectorFilter, setCollectorFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [mineOnly, setMineOnly] = useState(false);
+  const [statementSentFilter, setStatementSentFilter] = useState("");
   const [cities, setCities] = useState([]);
   const [collectors, setCollectors] = useState([]);
   const [staffList, setStaffList] = useState([]);
@@ -535,14 +536,16 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
 
   const load = useCallback(() => {
     setError(null);
-    api.reconciliations({
+    const params = {
       search, city: cityFilter, collector: collectorFilter, status: statusFilter, mine: mineOnly, page, page_size: 25,
       sort_by: sortBy, sort_dir: sortDir,
-    }).then(setData).catch((e) => setError(e.message));
-  }, [search, cityFilter, collectorFilter, statusFilter, mineOnly, page, sortBy, sortDir]);
+    };
+    if (statementSentFilter) params.statement_sent = statementSentFilter === "sent";
+    api.reconciliations(params).then(setData).catch((e) => setError(e.message));
+  }, [search, cityFilter, collectorFilter, statusFilter, mineOnly, statementSentFilter, page, sortBy, sortDir]);
 
   useEffect(() => { load(); }, [load]);
-  useEffect(() => { setPage(1); }, [search, cityFilter, collectorFilter, statusFilter, mineOnly, sortBy, sortDir]);
+  useEffect(() => { setPage(1); }, [search, cityFilter, collectorFilter, statusFilter, mineOnly, statementSentFilter, sortBy, sortDir]);
 
   const toggleSort = (field) => {
     if (sortBy === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -599,6 +602,14 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
             <select value={collectorFilter} onChange={(e) => setCollectorFilter(e.target.value)}>
               <option value="">{t("allStatus")}</option>
               {collectors.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div className="more-filter-field">
+            <label>{t("statementSentLabel")}</label>
+            <select value={statementSentFilter} onChange={(e) => setStatementSentFilter(e.target.value)}>
+              <option value="">{t("allStatus")}</option>
+              <option value="sent">{t("statementSentYes")}</option>
+              <option value="not_sent">{t("statementSentNo")}</option>
             </select>
           </div>
         </div>

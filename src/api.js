@@ -216,6 +216,19 @@ export const api = {
   },
   retargetCasesSummary: () => request(`/api/retarget-cases/summary`),
   todayAlerts: () => request(`/api/alerts/today`),
+  reconciliations: (params = {}) => {
+    const qs = buildQueryString(params);
+    return request(`/api/reconciliations${qs ? `?${qs}` : ""}`);
+  },
+  assignReconciliation: (partner_id, assigned_to) =>
+    request(`/api/reconciliations/assign`, { method: "POST", body: JSON.stringify({ partner_id, assigned_to }) }),
+  matchReconciliation: (id, payload) =>
+    request(`/api/reconciliations/${id}/match`, { method: "PATCH", body: JSON.stringify(payload) }),
+  flagReconciliationIssue: (id, payload) =>
+    request(`/api/reconciliations/${id}/flag-issue`, { method: "PATCH", body: JSON.stringify(payload) }),
+  resolveReconciliationIssue: (id, resolution_note) =>
+    request(`/api/reconciliations/${id}/resolve-issue`, { method: "PATCH", body: JSON.stringify({ resolution_note }) }),
+  reconciliationProofFile: (id) => fetchFileObjectUrl(`/api/reconciliations/${id}/proof`),
   retargetBranchOptions: () => request(`/api/retarget-cases/branch-options`),
   createRetargetCase: (partner_id, reason) =>
     request(`/api/retarget-cases`, { method: "POST", body: JSON.stringify({ partner_id, reason }) }),

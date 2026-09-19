@@ -34,6 +34,7 @@ const DueTodayReport = lazy(() => import("./components/DueTodayReport.jsx"));
 const FollowupLogReport = lazy(() => import("./components/FollowupLogReport.jsx"));
 const VisitsReport = lazy(() => import("./components/VisitsReport.jsx"));
 const RetargetingReport = lazy(() => import("./components/RetargetingReport.jsx"));
+const ReconciliationsReport = lazy(() => import("./components/ReconciliationsReport.jsx"));
 const MyDay = lazy(() => import("./components/MyDay.jsx"));
 const PaymentPlansReport = lazy(() => import("./components/PaymentPlansReport.jsx"));
 const AnnouncementHistory = lazy(() => import("./components/AnnouncementHistory.jsx"));
@@ -196,6 +197,7 @@ export default function App() {
               : view === "followupLog" ? t("followupLogTitle")
               : view === "visits" ? t("visitsTitle")
               : view === "retargeting" ? t("retargetingTitle")
+              : view === "reconciliations" ? t("reconciliationsTitle")
               : view === "myDay" ? t("myDayTitle")
               : view === "performanceReport" ? t("performanceReportTitle")
               : view === "dailyActivity" ? t("dailyActivityTitle")
@@ -384,6 +386,9 @@ export default function App() {
           )}
           {view === "retargeting" && (session.role === "admin" || (session.permissions || "").includes("customerRetargeting")) && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><RetargetingReport onSelectCustomer={setSelectedId} role={session.role} username={session.username} /></Suspense>
+          )}
+          {view === "reconciliations" && (session.role === "admin" || (session.permissions || "").includes("reconciliations")) && (
+            <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><ReconciliationsReport onSelectCustomer={setSelectedId} role={session.role} username={session.username} /></Suspense>
           )}
           {view === "myDay" && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><MyDay onSelectCustomer={setSelectedId} /></Suspense>

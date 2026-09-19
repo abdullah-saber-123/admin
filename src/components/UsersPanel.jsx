@@ -11,7 +11,7 @@ const toggleInArray = (arr, val) => arr.includes(val) ? arr.filter((v) => v !== 
 const PERMISSION_OPTIONS = [
   "reports", "trends", "costOfDebt", "customerScore", "customerAnalytics", "customerOwnAnalysis", "reminders",
   "portalManagement", "invoices", "creditNomination", "paymentProofs", "brokenPromises", "debtWriteOffs",
-  "customerRetargeting",
+  "customerRetargeting", "reconciliations",
 ];
 const PERMISSION_LABEL_KEYS = {
   reports: "permCollectorReports", trends: "permTrends",
@@ -23,6 +23,7 @@ const PERMISSION_LABEL_KEYS = {
   creditNomination: "creditNominationTitle", paymentProofs: "paymentProofsTitle",
   brokenPromises: "brokenPromisesTitle", debtWriteOffs: "debtWriteOffsTitle",
   customerRetargeting: "retargetingTitle",
+  reconciliations: "reconciliationsTitle",
 };
 
 export default function UsersPanel({ onOpenUserProfile }) {

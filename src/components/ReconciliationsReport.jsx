@@ -133,6 +133,7 @@ function MatchModal({ item, onClose, onDone, t, showToast }) {
 function IssueModal({ item, staffList, onClose, onDone, t, showToast }) {
   const [note, setNote] = useState("");
   const [specialist, setSpecialist] = useState("");
+  const [file, setFile] = useState(null);
   const [saving, setSaving] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -140,7 +141,13 @@ function IssueModal({ item, staffList, onClose, onDone, t, showToast }) {
     if (!note.trim() || !specialist) return;
     setSaving(true);
     try {
-      await api.flagReconciliationIssue(item.case_id, { issue_note: note.trim(), specialist_assigned_to: specialist });
+      const payload = { issue_note: note.trim(), specialist_assigned_to: specialist };
+      if (file) {
+        payload.issue_file_name = file.name;
+        payload.issue_file_type = file.type;
+        payload.issue_file_data = await fileToBase64(file);
+      }
+      await api.flagReconciliationIssue(item.case_id, payload);
       showToast(t("saved"), "success");
       onDone();
     } catch (e2) {
@@ -159,6 +166,8 @@ function IssueModal({ item, staffList, onClose, onDone, t, showToast }) {
         <form onSubmit={handleSubmit}>
           <label>{t("issueNoteLabel")}</label>
           <textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} autoFocus required />
+          <label style={{ marginTop: 10, display: "block" }}>{t("attachmentOptionalLabel")}</label>
+          <input type="file" accept="image/*,application/pdf" onChange={(e) => setFile(e.target.files?.[0] || null)} />
           <label style={{ marginTop: 10, display: "block" }}>{t("specialistLabel")}</label>
           <select value={specialist} onChange={(e) => setSpecialist(e.target.value)} required>
             <option value="">{t("selectOption")}</option>
@@ -177,6 +186,18 @@ function IssueModal({ item, staffList, onClose, onDone, t, showToast }) {
 function ResolveModal({ item, onClose, onDone, t, showToast }) {
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
+  const [viewerUrl, setViewerUrl] = useState(null);
+  const [viewerType, setViewerType] = useState(null);
+
+  const viewIssueFile = async () => {
+    try {
+      const { url, type } = await api.reconciliationIssueFile(item.case_id);
+      setViewerUrl(url);
+      setViewerType(type);
+    } catch (e) {
+      showToast(e.message, "error");
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -200,10 +221,27 @@ function ResolveModal({ item, onClose, onDone, t, showToast }) {
         <h3>{t("resolveIssueTitle")}</h3>
         <p className="prompt-message">{item.customer_name}</p>
         {item.issue_note && (
-          <p className="prompt-message" style={{ color: "var(--danger)" }}>{t("issueNoteLabel")}: {item.issue_note}</p>
+          <div style={{ background: "var(--card)", borderRadius: 10, padding: 10, marginBottom: 6 }}>
+            <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--danger)", marginBottom: 4 }}>{t("issueNoteLabel")}</div>
+            <p className="prompt-message" style={{ margin: 0 }}>{item.issue_note}</p>
+            {item.has_issue_file && (
+              <button type="button" className="btn-secondary sm" style={{ marginTop: 8 }} onClick={viewIssueFile}>
+                {t("viewAttachmentButton")}
+              </button>
+            )}
+          </div>
+        )}
+        {viewerUrl && (
+          <div style={{ marginBottom: 10 }}>
+            {viewerType === "application/pdf" ? (
+              <iframe src={viewerUrl} title="issue-attachment" style={{ width: "100%", height: "40vh", border: "none" }} />
+            ) : (
+              <img src={viewerUrl} alt="issue-attachment" style={{ width: "100%", borderRadius: 10 }} />
+            )}
+          </div>
         )}
         <form onSubmit={handleSubmit}>
-          <label>{t("resolutionNoteLabel")}</label>
+          <label style={{ fontWeight: 700 }}>{t("resolutionReplyLabel")}</label>
           <textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} autoFocus required />
           <div className="prompt-actions">
             <button type="button" className="btn-secondary" onClick={onClose}>{t("cancel")}</button>

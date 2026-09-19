@@ -231,6 +231,7 @@ export const api = {
   resolveReconciliationIssue: (id, resolution_note) =>
     request(`/api/reconciliations/${id}/resolve-issue`, { method: "PATCH", body: JSON.stringify({ resolution_note }) }),
   reconciliationProofFile: (id) => fetchFileObjectUrl(`/api/reconciliations/${id}/proof`),
+  reconciliationIssueFile: (id) => fetchFileObjectUrl(`/api/reconciliations/${id}/issue-file`),
   retargetBranchOptions: () => request(`/api/retarget-cases/branch-options`),
   createRetargetCase: (partner_id, reason) =>
     request(`/api/retarget-cases`, { method: "POST", body: JSON.stringify({ partner_id, reason }) }),

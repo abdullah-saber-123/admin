@@ -190,6 +190,25 @@ function CalculatorModal({ customer, onClose, t, money }) {
     }
   };
 
+  // Full keyboard support - typing works the same as clicking the keys,
+  // so this doesn't need mouse/touch input at all.
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key >= "0" && e.key <= "9") { inputDigit(e.key); return; }
+      if (e.key === ".") { inputDecimal(); return; }
+      if (e.key === "+") { handleOperator("+"); return; }
+      if (e.key === "-") { handleOperator("-"); return; }
+      if (e.key === "*" || e.key.toLowerCase() === "x") { e.preventDefault(); handleOperator("×"); return; }
+      if (e.key === "/") { e.preventDefault(); handleOperator("÷"); return; }
+      if (e.key === "Enter" || e.key === "=") { e.preventDefault(); handleEquals(); return; }
+      if (e.key === "Backspace") { backspace(); return; }
+      if (e.key === "Escape") { onClose(); return; }
+      if (e.key.toLowerCase() === "c") { clearAll(); return; }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  });
+
   const CALC_KEYS = [
     { label: "C", onClick: clearAll },
     { label: "⌫", onClick: backspace },

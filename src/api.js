@@ -178,6 +178,7 @@ export const api = {
     const qs = buildQueryString(params);
     return request(`/api/admin/reminders-overview/send-teams${qs ? `?${qs}` : ""}`, { method: "POST" });
   },
+  notifyReminderCollector: (partnerId) => request(`/api/admin/reminders-overview/${partnerId}/notify`, { method: "POST" }),
   brokenPromisesLog: (params = {}) => {
     const qs = buildQueryString(params);
     return request(`/api/admin/broken-promises${qs ? `?${qs}` : ""}`);

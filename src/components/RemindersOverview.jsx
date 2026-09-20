@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BellRing, ArrowUp, ArrowDown, ArrowUpDown, Download, Send } from "lucide-react";
+import { BellRing, ArrowUp, ArrowDown, ArrowUpDown, Download, Send, BellPlus } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 import { useToast } from "../toast.jsx";
@@ -20,6 +20,7 @@ export default function RemindersOverview({ onSelectCustomer }) {
   const [sortDir, setSortDir] = useState("asc");
   const [exportingPdf, setExportingPdf] = useState(false);
   const [sendingTeams, setSendingTeams] = useState(false);
+  const [notifyingId, setNotifyingId] = useState(null);
 
   const toggleSort = (col) => {
     if (sortBy === col) {
@@ -90,6 +91,18 @@ export default function RemindersOverview({ onSelectCustomer }) {
       showToast(e.message, "error");
     } finally {
       setSendingTeams(false);
+    }
+  };
+
+  const handleNotifyRow = async (r) => {
+    setNotifyingId(r.partner_id);
+    try {
+      const res = await api.notifyReminderCollector(r.partner_id);
+      showToast(t("reminderSent").replace("{n}", res.recipients.join(", ")), "success");
+    } catch (e) {
+      showToast(e.message, "error");
+    } finally {
+      setNotifyingId(null);
     }
   };
 
@@ -165,6 +178,7 @@ export default function RemindersOverview({ onSelectCustomer }) {
                   <th className="sortable" onClick={() => toggleSort("follow_up_status")}>{t("followUp")} {sortIcon("follow_up_status")}</th>
                   <th className="sortable" onClick={() => toggleSort("next_follow_up_date")}>{t("nextFollowUpDate")} {sortIcon("next_follow_up_date")}</th>
                   <th>{t("balanceDue")}</th>
+                  <th>{t("actionsLabel")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -180,6 +194,15 @@ export default function RemindersOverview({ onSelectCustomer }) {
                       {r.is_overdue && <span className="fu-tag sm danger" style={{ marginInlineStart: 6 }}>{t("overdueReminders")}</span>}
                     </td>
                     <td data-label={t("balanceDue")}><RiyalAmount amount={r.current_due} /></td>
+                    <td data-label={t("actionsLabel")}>
+                      <button
+                        className="icon-btn" title={t("sendReminderButton")}
+                        disabled={notifyingId === r.partner_id}
+                        onClick={() => handleNotifyRow(r)}
+                      >
+                        <BellPlus size={14} />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

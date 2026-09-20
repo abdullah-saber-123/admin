@@ -104,6 +104,7 @@ export default function InvoicesReport({ onSelectCustomer }) {
   const [daysOverdueMin, setDaysOverdueMin] = useState("");
   const [daysOverdueMax, setDaysOverdueMax] = useState("");
   const [dueTodayOnly, setDueTodayOnly] = useState(false);
+  const [dueBucket, setDueBucket] = useState(null); // null | "overdue" | "due_today" | "not_due_yet"
   const [selectedDelayReasons, setSelectedDelayReasons] = useState([]);
   const [delayReasonOptions, setDelayReasonOptions] = useState([]);
   const [delayReasonSearch, setDelayReasonSearch] = useState("");
@@ -182,16 +183,16 @@ export default function InvoicesReport({ onSelectCustomer }) {
     setError(null);
     api.invoicesReport({
       search, status: status.join(","), collector: collectorFilter, date_from: dateFrom, date_to: dateTo, days_overdue_min: daysOverdueMin || null, days_overdue_max: daysOverdueMax || null,
-      due_today: dueTodayOnly, delay_reasons: selectedDelayReasons.join(","), page, page_size: 30,
+      due_today: dueTodayOnly, delay_reasons: selectedDelayReasons.join(","), due_bucket: dueBucket, page, page_size: 30,
     }).then(setData).catch((e) => setError(e.message));
-  }, [search, status, collectorFilter, dateFrom, dateTo, daysOverdueMin, daysOverdueMax, dueTodayOnly, selectedDelayReasons, page, groupMode]);
+  }, [search, status, collectorFilter, dateFrom, dateTo, daysOverdueMin, daysOverdueMax, dueTodayOnly, selectedDelayReasons, dueBucket, page, groupMode]);
 
   useEffect(() => {
     const timer = setTimeout(load, 250);
     return () => clearTimeout(timer);
   }, [load]);
 
-  useEffect(() => { setPage(1); }, [search, status, collectorFilter, dateFrom, dateTo, daysOverdueMin, daysOverdueMax, dueTodayOnly, selectedDelayReasons]);
+  useEffect(() => { setPage(1); }, [search, status, collectorFilter, dateFrom, dateTo, daysOverdueMin, daysOverdueMax, dueTodayOnly, selectedDelayReasons, dueBucket]);
 
 
   const loadInsights = useCallback(() => {
@@ -199,18 +200,18 @@ export default function InvoicesReport({ onSelectCustomer }) {
     setInsightsLoading(true);
     api.invoicesReportReasonGroups({
       search, status: status.join(","), collector: collectorFilter, date_from: dateFrom, date_to: dateTo, days_overdue_min: daysOverdueMin || null, days_overdue_max: daysOverdueMax || null,
-      due_today: dueTodayOnly, delay_reasons: selectedDelayReasons.join(","),
+      due_today: dueTodayOnly, delay_reasons: selectedDelayReasons.join(","), due_bucket: dueBucket,
     })
       .then(setInsights)
       .catch((e) => setInsightsError(e.message))
       .finally(() => setInsightsLoading(false));
     api.invoicesReportStatusGroups({
       search, status: status.join(","), collector: collectorFilter, date_from: dateFrom, date_to: dateTo, days_overdue_min: daysOverdueMin || null, days_overdue_max: daysOverdueMax || null,
-      due_today: dueTodayOnly, delay_reasons: selectedDelayReasons.join(","),
+      due_today: dueTodayOnly, delay_reasons: selectedDelayReasons.join(","), due_bucket: dueBucket,
     })
       .then(setStatusInsights)
       .catch(() => {});
-  }, [search, status, collectorFilter, dateFrom, dateTo, daysOverdueMin, daysOverdueMax, dueTodayOnly, selectedDelayReasons]);
+  }, [search, status, collectorFilter, dateFrom, dateTo, daysOverdueMin, daysOverdueMax, dueTodayOnly, selectedDelayReasons, dueBucket]);
 
   const handleExportReasonPdf = async () => {
     setExportingReasonPdf(true);
@@ -218,7 +219,7 @@ export default function InvoicesReport({ onSelectCustomer }) {
       await api.exportInvoicesByReasonPdf({
         search, status: status.join(","), collector: collectorFilter, date_from: dateFrom, date_to: dateTo,
         days_overdue_min: daysOverdueMin || null, days_overdue_max: daysOverdueMax || null,
-        due_today: dueTodayOnly, delay_reasons: selectedDelayReasons.join(","), lang,
+        due_today: dueTodayOnly, delay_reasons: selectedDelayReasons.join(","), due_bucket: dueBucket, lang,
       });
       showToast(t("exportReady"), "success");
     } catch (e) {
@@ -238,12 +239,12 @@ export default function InvoicesReport({ onSelectCustomer }) {
     setGroupsLoading(true);
     api.invoicesReportMonthGroups({
       search, status: status.join(","), collector: collectorFilter, date_from: dateFrom, date_to: dateTo, days_overdue_min: daysOverdueMin || null, days_overdue_max: daysOverdueMax || null,
-      due_today: dueTodayOnly, delay_reasons: selectedDelayReasons.join(","),
+      due_today: dueTodayOnly, delay_reasons: selectedDelayReasons.join(","), due_bucket: dueBucket,
     })
       .then((res) => setMonthGroups(res.groups))
       .catch((e) => setGroupsError(e.message))
       .finally(() => setGroupsLoading(false));
-  }, [search, status, collectorFilter, dateFrom, dateTo, daysOverdueMin, daysOverdueMax, dueTodayOnly, selectedDelayReasons]);
+  }, [search, status, collectorFilter, dateFrom, dateTo, daysOverdueMin, daysOverdueMax, dueTodayOnly, selectedDelayReasons, dueBucket]);
 
   useEffect(() => {
     if (groupMode !== "month") return;
@@ -266,14 +267,14 @@ export default function InvoicesReport({ onSelectCustomer }) {
     setGroupLoading((prev) => ({ ...prev, [key]: true }));
     api.invoicesReport({
       search, status: status.join(","), collector: collectorFilter,
-      due_today: dueTodayOnly, delay_reasons: selectedDelayReasons.join(","),
+      due_today: dueTodayOnly, delay_reasons: selectedDelayReasons.join(","), due_bucket: dueBucket,
       date_from: toISODate(effFrom), date_to: toISODate(effTo),
       page: pageNum, page_size: 30,
     })
       .then((res) => setGroupData((prev) => ({ ...prev, [key]: res })))
       .catch((e) => showToast(e.message, "error"))
       .finally(() => setGroupLoading((prev) => ({ ...prev, [key]: false })));
-  }, [search, status, collectorFilter, dueTodayOnly, selectedDelayReasons, dateFrom, dateTo, showToast]);
+  }, [search, status, collectorFilter, dueTodayOnly, selectedDelayReasons, dueBucket, dateFrom, dateTo, showToast]);
 
   const toggleMonth = (year, month) => {
     const key = `${year}-${month}`;
@@ -294,12 +295,12 @@ export default function InvoicesReport({ onSelectCustomer }) {
     setReasonGroupsLoading(true);
     api.invoicesReportReasonGroups({
       search, status: status.join(","), collector: collectorFilter, date_from: dateFrom, date_to: dateTo, days_overdue_min: daysOverdueMin || null, days_overdue_max: daysOverdueMax || null,
-      due_today: dueTodayOnly, delay_reasons: selectedDelayReasons.join(","),
+      due_today: dueTodayOnly, delay_reasons: selectedDelayReasons.join(","), due_bucket: dueBucket,
     })
       .then((res) => setReasonGroups(res.groups))
       .catch((e) => setReasonGroupsError(e.message))
       .finally(() => setReasonGroupsLoading(false));
-  }, [search, status, collectorFilter, dateFrom, dateTo, daysOverdueMin, daysOverdueMax, dueTodayOnly, selectedDelayReasons]);
+  }, [search, status, collectorFilter, dateFrom, dateTo, daysOverdueMin, daysOverdueMax, dueTodayOnly, selectedDelayReasons, dueBucket]);
 
   useEffect(() => {
     if (groupMode !== "reason") return;
@@ -314,7 +315,7 @@ export default function InvoicesReport({ onSelectCustomer }) {
     setReasonGroupLoading((prev) => ({ ...prev, [reasonKey]: true }));
     const params = {
       search, status: status.join(","), collector: collectorFilter, date_from: dateFrom, date_to: dateTo, days_overdue_min: daysOverdueMin || null, days_overdue_max: daysOverdueMax || null,
-      due_today: dueTodayOnly, page: pageNum, page_size: 30,
+      due_today: dueTodayOnly, due_bucket: dueBucket, page: pageNum, page_size: 30,
     };
     if (reasonKey === NO_REASON_KEY) {
       params.no_reason = true;
@@ -325,7 +326,7 @@ export default function InvoicesReport({ onSelectCustomer }) {
       .then((res) => setReasonGroupData((prev) => ({ ...prev, [reasonKey]: res })))
       .catch((e) => showToast(e.message, "error"))
       .finally(() => setReasonGroupLoading((prev) => ({ ...prev, [reasonKey]: false })));
-  }, [search, status, collectorFilter, dateFrom, dateTo, daysOverdueMin, daysOverdueMax, dueTodayOnly, showToast]);
+  }, [search, status, collectorFilter, dateFrom, dateTo, daysOverdueMin, daysOverdueMax, dueTodayOnly, dueBucket, showToast]);
 
   const toggleReason = (reasonKey) => {
     setExpandedReasons((prev) => {
@@ -412,7 +413,7 @@ export default function InvoicesReport({ onSelectCustomer }) {
         <InsightsPanel insights={insights} loading={insightsLoading} error={insightsError} t={t} money={money}
           hoveredAmountSlice={hoveredAmountSlice} setHoveredAmountSlice={setHoveredAmountSlice} />
 
-        <StatusInsightsPanel data={statusInsights} t={t} money={money} />
+        <StatusInsightsPanel data={statusInsights} t={t} money={money} dueBucket={dueBucket} onSelectDueBucket={(b) => setDueBucket((prev) => (prev === b ? null : b))} />
 
         <div className="receivable-compare-card">
           <div className="receivable-compare-head">
@@ -821,7 +822,7 @@ export default function InvoicesReport({ onSelectCustomer }) {
 
 const STATUS_CHART_COLORS = { not_paid: "#F4A460", paid: "#30C381", in_payment: "#5750f1", partial: "#D6145F", reversed: "#8a8f98" };
 
-function StatusInsightsPanel({ data, t, money }) {
+function StatusInsightsPanel({ data, t, money, dueBucket, onSelectDueBucket }) {
   if (!data) return null;
   const statusLabelMap = { not_paid: t("statusPosted"), paid: t("statusPaid"), in_payment: t("statusInPayment"), partial: t("statusPartial"), reversed: t("statusReversed") };
   const chartData = data.status_groups.map((g) => ({ ...g, label: statusLabelMap[g.status] || g.label }));
@@ -859,7 +860,11 @@ function StatusInsightsPanel({ data, t, money }) {
         </div>
 
         <div className="status-insights-due">
-          <div className="due-insight-card overdue">
+          <div
+            className={`due-insight-card overdue clickable-row ${dueBucket === "overdue" ? "active" : ""}`}
+            onClick={() => onSelectDueBucket?.("overdue")}
+            title={t("dueBucketFilterHint")}
+          >
             <div className="due-insight-icon"><Clock size={16} /></div>
             <div>
               <div className="due-insight-label">{t("overdueAndUnpaidLabel")}</div>
@@ -867,7 +872,11 @@ function StatusInsightsPanel({ data, t, money }) {
               <div className="due-insight-amount"><RiyalAmount amount={due.overdue.amount} /></div>
             </div>
           </div>
-          <div className="due-insight-card today">
+          <div
+            className={`due-insight-card today clickable-row ${dueBucket === "due_today" ? "active" : ""}`}
+            onClick={() => onSelectDueBucket?.("due_today")}
+            title={t("dueBucketFilterHint")}
+          >
             <div className="due-insight-icon"><CalendarClock size={16} /></div>
             <div>
               <div className="due-insight-label">{t("myDayDueToday")}</div>
@@ -875,7 +884,11 @@ function StatusInsightsPanel({ data, t, money }) {
               <div className="due-insight-amount"><RiyalAmount amount={due.due_today.amount} /></div>
             </div>
           </div>
-          <div className="due-insight-card upcoming">
+          <div
+            className={`due-insight-card upcoming clickable-row ${dueBucket === "not_due_yet" ? "active" : ""}`}
+            onClick={() => onSelectDueBucket?.("not_due_yet")}
+            title={t("dueBucketFilterHint")}
+          >
             <div className="due-insight-icon"><CheckCircle2 size={16} /></div>
             <div>
               <div className="due-insight-label">{t("notDueYetLabel")}</div>

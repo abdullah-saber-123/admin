@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { UserPlus, Trash2, KeyRound, Link2, ShieldCheck, Phone, Users2, ShieldHalf, UserCog, UserX, Search, Tag } from "lucide-react";
+import { UserPlus, Trash2, KeyRound, Link2, ShieldCheck, Phone, Users2, ShieldHalf, UserCog, UserX, Search, Tag, Globe } from "lucide-react";
 import { api, getSession } from "../api";
 import { useLang } from "../i18n.jsx";
 import { useToast } from "../toast.jsx";
@@ -38,6 +38,7 @@ export default function UsersPanel({ onOpenUserProfile }) {
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("staff");
   const [linkedSalespersons, setLinkedSalespersons] = useState([]);
+  const [newUserFullAccess, setNewUserFullAccess] = useState(false);
   const [newUserPermissions, setNewUserPermissions] = useState([]);
   const [creating, setCreating] = useState(false);
 
@@ -68,9 +69,10 @@ export default function UsersPanel({ onOpenUserProfile }) {
       await api.createUser({
         username, password, role, full_name: fullName || null,
         linked_salesperson: role === "staff" ? (linkedSalespersons.join(", ") || null) : null,
+        full_customer_access: role === "staff" ? newUserFullAccess : false,
         permissions: role === "staff" ? (newUserPermissions.join(",") || null) : null,
       });
-      setUsername(""); setFullName(""); setPassword(""); setRole("staff"); setLinkedSalespersons([]); setNewUserPermissions([]);
+      setUsername(""); setFullName(""); setPassword(""); setRole("staff"); setLinkedSalespersons([]); setNewUserFullAccess(false); setNewUserPermissions([]);
       load();
       showToast(`${username} created.`, "success");
     } catch (err) {
@@ -247,7 +249,17 @@ export default function UsersPanel({ onOpenUserProfile }) {
                     <span>{t("collectorField")}</span>
                     {linkedSalespersons.length > 0 && <span className="user-form-box-count">{linkedSalespersons.length}</span>}
                   </div>
-                  {salespersons.length === 0 ? (
+                  <label className="multiselect-item" style={{ borderBottom: "1px solid var(--border)" }}>
+                    <input
+                      type="checkbox"
+                      checked={newUserFullAccess}
+                      onChange={(e) => setNewUserFullAccess(e.target.checked)}
+                    />
+                    {t("fullCustomerAccessLabel")}
+                  </label>
+                  {newUserFullAccess ? (
+                    <div className="settings-meta" style={{ padding: "10px 12px" }}>{t("fullCustomerAccessHint")}</div>
+                  ) : salespersons.length === 0 ? (
                     <div className="settings-meta" style={{ padding: "10px 12px" }}>{t("chooseAfterSync")}</div>
                   ) : (
                     <div className="multiselect-list" style={{ maxHeight: 160 }}>
@@ -336,7 +348,7 @@ export default function UsersPanel({ onOpenUserProfile }) {
                     <td onClick={() => onOpenUserProfile?.(u.id)} className="user-row-name-cell">{u.full_name || "—"}</td>
                     <td><span className={`role-tag ${u.role}`}>{u.role === "admin" ? t("roleAdmin") : t("roleStaff")}</span></td>
                     <td>
-                      {u.role === "admin" ? (
+                      {u.role === "admin" || u.full_customer_access ? (
                         <span style={{ color: "var(--text-faint)" }}>{t("allCustomers")}</span>
                       ) : (
                         u.linked_salesperson || <span style={{ color: "var(--danger)" }}>{t("unassigned")}</span>
@@ -348,6 +360,22 @@ export default function UsersPanel({ onOpenUserProfile }) {
                         {u.role === "staff" && (
                           <button className="icon-btn" title="Assign collector" onClick={() => setReassignTarget(u)}>
                             <Link2 size={14} />
+                          </button>
+                        )}
+                        {u.role === "staff" && (
+                          <button
+                            className={`icon-btn ${u.full_customer_access ? "active-toggle" : ""}`}
+                            title={t("fullCustomerAccessLabel")}
+                            onClick={async () => {
+                              try {
+                                await api.setUserFullCustomerAccess(u.id, !u.full_customer_access);
+                                load();
+                              } catch (e) {
+                                showToast(e.message, "error");
+                              }
+                            }}
+                          >
+                            <Globe size={14} />
                           </button>
                         )}
                         {u.role === "staff" && (

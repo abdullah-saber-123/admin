@@ -128,7 +128,7 @@ export default function CustomerScoreReport({ onSelectCustomer }) {
                     <td data-label={t("balanceDue")}>
                       <RiyalAmount amount={r.current_due} />
                       {r.current_due > 0 && !r.has_open_invoice && (
-                        <span className="status-tag warn" style={{ marginInlineStart: 6 }} title={t("legacyBalanceHint")}>
+                        <span className="status-tag danger" style={{ marginInlineStart: 6 }} title={t("legacyBalanceHint")}>
                           {t("legacyBalanceTag")}
                         </span>
                       )}

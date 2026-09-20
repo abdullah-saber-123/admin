@@ -17,12 +17,16 @@ function waLink(phone) {
   if (!phone) return null;
   // Saudi numbers are usually saved in local form (05XXXXXXXX) - wa.me
   // needs the bare international digits (966XXXXXXXXX), same normalization
-  // as the backend's _wa_phone_digits.
+  // as the backend's _wa_phone_digits. Also strips a stray local-format "0"
+  // that sometimes ends up right after the country code (e.g. "+9660542...",
+  // a common data-entry mistake) - without that, the leading 0 there would
+  // make the whole number one digit too long and invalid.
   let digits = phone.replace(/\D/g, "");
   if (!digits) return null;
   if (digits.startsWith("00")) digits = digits.slice(2);
+  if (digits.startsWith("966")) digits = "966" + digits.slice(3).replace(/^0+/, "");
   else if (digits.startsWith("0")) digits = "966" + digits.slice(1);
-  else if (!digits.startsWith("966")) digits = "966" + digits;
+  else digits = "966" + digits;
   return `https://wa.me/${digits}`;
 }
 

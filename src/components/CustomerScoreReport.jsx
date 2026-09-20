@@ -123,7 +123,14 @@ export default function CustomerScoreReport({ onSelectCustomer }) {
                       <span className="cust-name">{r.name}</span>
                     </td>
                     <td data-label={t("collectorField")}>{r.collector || "—"}</td>
-                    <td data-label={t("balanceDue")}><RiyalAmount amount={r.current_due} /></td>
+                    <td data-label={t("balanceDue")}>
+                      <RiyalAmount amount={r.current_due} />
+                      {r.current_due > 0 && !r.has_open_invoice && (
+                        <span className="status-tag warn" style={{ marginInlineStart: 6 }} title={t("legacyBalanceHint")}>
+                          {t("legacyBalanceTag")}
+                        </span>
+                      )}
+                    </td>
                     <td data-label={t("paymentTypeLabel")}>{r.payment_type || "—"}</td>
                     <td data-label={t("status")}>
                       <span className={`status-tag ${r.status}`}>{r.status}</span>

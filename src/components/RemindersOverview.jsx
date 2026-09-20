@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BellRing } from "lucide-react";
+import { BellRing, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 import { fmtDate } from "../dateUtils.js";
@@ -11,6 +11,22 @@ export default function RemindersOverview({ onSelectCustomer }) {
   const [error, setError] = useState(null);
   const [collectors, setCollectors] = useState([]);
   const [collectorFilter, setCollectorFilter] = useState("");
+  const [sortBy, setSortBy] = useState("next_follow_up_date");
+  const [sortDir, setSortDir] = useState("asc");
+
+  const toggleSort = (col) => {
+    if (sortBy === col) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(col);
+      setSortDir("asc");
+    }
+  };
+
+  const sortIcon = (col) => {
+    if (sortBy !== col) return <ArrowUpDown size={11} style={{ opacity: 0.4 }} />;
+    return sortDir === "asc" ? <ArrowUp size={11} /> : <ArrowDown size={11} />;
+  };
 
   useEffect(() => {
     api.collectors().then(setCollectors).catch(() => {});
@@ -23,6 +39,16 @@ export default function RemindersOverview({ onSelectCustomer }) {
 
   const overdueCount = rows ? rows.filter((r) => r.is_overdue).length : 0;
   const todayCount = rows ? rows.filter((r) => !r.is_overdue).length : 0;
+
+  const sortedRows = rows ? [...rows].sort((a, b) => {
+    let cmp = 0;
+    if (sortBy === "follow_up_status") {
+      cmp = (statusLabel(a.follow_up_status) || "").localeCompare(statusLabel(b.follow_up_status) || "", "ar");
+    } else if (sortBy === "next_follow_up_date") {
+      cmp = new Date(a.next_follow_up_date || 0) - new Date(b.next_follow_up_date || 0);
+    }
+    return sortDir === "asc" ? cmp : -cmp;
+  }) : null;
 
   return (
     <div className="content-stack" style={{ maxWidth: "100%" }}>
@@ -60,13 +86,13 @@ export default function RemindersOverview({ onSelectCustomer }) {
                 <tr>
                   <th>{t("customer")}</th>
                   <th>{t("collectorField")}</th>
-                  <th>{t("followUp")}</th>
-                  <th>{t("nextFollowUpDate")}</th>
+                  <th className="sortable" onClick={() => toggleSort("follow_up_status")}>{t("followUp")} {sortIcon("follow_up_status")}</th>
+                  <th className="sortable" onClick={() => toggleSort("next_follow_up_date")}>{t("nextFollowUpDate")} {sortIcon("next_follow_up_date")}</th>
                   <th>{t("balanceDue")}</th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r) => (
+                {sortedRows.map((r) => (
                   <tr key={r.partner_id}>
                     <td data-label={t("customer")} className="clickable-row" onClick={() => onSelectCustomer?.(r.partner_id)}>
                       <span className="cust-name">{r.name}</span>

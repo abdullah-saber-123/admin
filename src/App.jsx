@@ -413,7 +413,7 @@ export default function App() {
           {view === "costOfDebt" && (session.role === "admin" || (session.permissions || "").includes("costOfDebt")) && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><CostOfDebtReport role={session.role} /></Suspense>
           )}
-          {view === "debtWriteOffs" && (session.role === "admin" || (session.permissions || "").includes("debtWriteOffs")) && (
+          {false && view === "debtWriteOffs" && (session.role === "admin" || (session.permissions || "").includes("debtWriteOffs")) && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><DebtWriteOffsReport onSelectCustomer={setSelectedId} role={session.role} /></Suspense>
           )}
           {view === "creditNomination" && (session.role === "admin" || (session.permissions || "").includes("creditNomination")) && (
@@ -422,7 +422,7 @@ export default function App() {
           {view === "collectionOffers" && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><CollectionOffers role={session.role} username={session.username} /></Suspense>
           )}
-          {view === "paymentProofs" && (session.role === "admin" || (session.permissions || "").includes("paymentProofs")) && (
+          {false && view === "paymentProofs" && (session.role === "admin" || (session.permissions || "").includes("paymentProofs")) && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><PaymentProofsReport onSelectCustomer={setSelectedId} /></Suspense>
           )}
           {view === "portalManagement" && (session.role === "admin" || (session.permissions || "").includes("portalManagement")) && (

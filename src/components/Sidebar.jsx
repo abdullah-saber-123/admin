@@ -38,10 +38,8 @@ export default function Sidebar({ view, setView, role, username, displayName, av
   const canSeeCustomerScore = role === "admin" || perms.includes("customerScore");
   const canSeeCustomerAnalytics = role === "admin" || perms.includes("customerAnalytics");
   const canSeeInvoices = role === "admin" || perms.includes("invoices");
-  const canSeePaymentProofs = role === "admin" || perms.includes("paymentProofs");
   const canSeeCreditNomination = role === "admin" || perms.includes("creditNomination");
   const canSeeCostOfDebt = role === "admin" || perms.includes("costOfDebt");
-  const canSeeDebtWriteOffs = role === "admin" || perms.includes("debtWriteOffs");
   const canSeeBrokenPromises = role === "admin" || perms.includes("brokenPromises");
   const canSeeRetargeting = role === "admin" || perms.includes("customerRetargeting");
   const canSeeReconciliations = role === "admin" || perms.includes("reconciliations");
@@ -91,9 +89,9 @@ export default function Sidebar({ view, setView, role, username, displayName, av
       label: t("categoryFinance"),
       items: [
         { view: "costOfDebt", icon: CircleDollarSign, label: t("costOfDebtTitle"), visible: canSeeCostOfDebt, color: "#30C381" },
-        { view: "debtWriteOffs", icon: FileX, label: t("debtWriteOffsTitle"), visible: canSeeDebtWriteOffs, color: "#e5484d" },
+        { view: "debtWriteOffs", icon: FileX, label: t("debtWriteOffsTitle"), visible: false, color: "#e5484d" },
         { view: "creditNomination", icon: CreditCard, label: t("creditNominationTitle"), visible: canSeeCreditNomination, color: "#9365B8" },
-        { view: "paymentProofs", icon: Receipt, label: t("paymentProofsTitle"), visible: canSeePaymentProofs, color: "#814968" },
+        { view: "paymentProofs", icon: Receipt, label: t("paymentProofsTitle"), visible: false, color: "#814968" },
         { view: "collectionsReport", icon: Wallet, label: t("collectionsReportTitle"), visible: true, color: "#30C381" },
         { view: "collectionOffers", icon: Megaphone, label: t("collectionOfferTitle"), visible: true, color: "#D6145F" },
       ],

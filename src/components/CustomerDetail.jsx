@@ -584,6 +584,18 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
                 <div className="k"><Banknote size={11} style={{ verticalAlign: -1, marginInlineEnd: 3 }} />{t("lastPaymentAmount")}</div>
                 <div className="v"><RiyalAmount amount={detail.summary.last_payment_amount} /></div>
               </div>
+              {canSeeReconciliations && latestMatchedReconciliation && (
+                <>
+                  <div className="mini-stat">
+                    <div className="k"><History size={11} style={{ verticalAlign: -1, marginInlineEnd: 3 }} />{t("lastReconciliationDate")}</div>
+                    <div className="v">{fmtDate(latestMatchedReconciliation.reconciliation_date)}</div>
+                  </div>
+                  <div className="mini-stat">
+                    <div className="k"><Wallet size={11} style={{ verticalAlign: -1, marginInlineEnd: 3 }} />{t("reconciledBalanceLabel")}</div>
+                    <div className="v"><RiyalAmount amount={latestMatchedReconciliation.reconciled_balance} /></div>
+                  </div>
+                </>
+              )}
               <div className="mini-stat next-due-stat">
                 <div className="k"><CalendarClock size={11} style={{ verticalAlign: -1, marginInlineEnd: 3 }} />{t("oldestUnpaidDue")}</div>
                 <div className={`v ${detail.summary.next_due_date && new Date(detail.summary.next_due_date) < new Date() ? "overdue-text" : ""}`}>
@@ -614,18 +626,6 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
                   ) : t("noUpcomingInstallment")}
                 </div>
               </div>
-              {canSeeReconciliations && latestMatchedReconciliation && (
-                <>
-                  <div className="mini-stat">
-                    <div className="k"><History size={11} style={{ verticalAlign: -1, marginInlineEnd: 3 }} />{t("lastReconciliationDate")}</div>
-                    <div className="v">{fmtDate(latestMatchedReconciliation.reconciliation_date)}</div>
-                  </div>
-                  <div className="mini-stat">
-                    <div className="k"><Wallet size={11} style={{ verticalAlign: -1, marginInlineEnd: 3 }} />{t("reconciledBalanceLabel")}</div>
-                    <div className="v"><RiyalAmount amount={latestMatchedReconciliation.reconciled_balance} /></div>
-                  </div>
-                </>
-              )}
             </div>
 
             <div className="followup-box">

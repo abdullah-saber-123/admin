@@ -2804,6 +2804,7 @@ input, select, textarea { font-family: inherit; }
   color: var(--text-dim);
 }
 .table-totals-item strong { color: var(--text); }
+.table-totals-item.active-filter { color: var(--primary); font-weight: 600; text-decoration: underline; }
 .data-table tbody tr {
   cursor: pointer;
   transition: background 0.1s;

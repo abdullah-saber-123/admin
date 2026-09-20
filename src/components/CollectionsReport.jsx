@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import {
   Wallet, Receipt, Users2, Calculator, Download, Search, Trophy, UserCheck2, AlertTriangle,
+  ArrowUp, ArrowDown, ArrowUpDown, X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell } from "recharts";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
+import { useToast } from "../toast.jsx";
 import { fmtDate } from "../dateUtils.js";
 import RiyalAmount from "./RiyalAmount.jsx";
 import DonutChart from "./DonutChart.jsx";
@@ -26,13 +28,19 @@ function todayISO() {
 }
 
 export default function CollectionsReport({ onSelectCustomer }) {
-  const { t, money } = useLang();
+  const { t, money, lang } = useLang();
+  const { showToast } = useToast();
   const [dateFrom, setDateFrom] = useState(todayISO());
   const [dateTo, setDateTo] = useState(todayISO());
   const [search, setSearch] = useState("");
   const [report, setReport] = useState(null);
   const [error, setError] = useState(null);
   const [hoveredJournal, setHoveredJournal] = useState(null);
+  const [journalFilter, setJournalFilter] = useState("");
+  const [collectorFilter, setCollectorFilter] = useState("");
+  const [sortBy, setSortBy] = useState("date");
+  const [sortDir, setSortDir] = useState("desc");
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   useEffect(() => {
     setError(null);
@@ -43,13 +51,56 @@ export default function CollectionsReport({ onSelectCustomer }) {
 
   const isToday = dateFrom === todayISO() && dateTo === todayISO();
 
-  const visiblePayments = (report?.payments || []).filter((p) => {
+  const toggleSort = (col) => {
+    if (sortBy === col) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(col);
+      setSortDir("asc");
+    }
+  };
+
+  const sortIcon = (col) => {
+    if (sortBy !== col) return <ArrowUpDown size={11} style={{ opacity: 0.4 }} />;
+    return sortDir === "asc" ? <ArrowUp size={11} /> : <ArrowDown size={11} />;
+  };
+
+  const filteredPayments = (report?.payments || []).filter((p) => {
+    if (journalFilter && (p.journal_name || "—") !== journalFilter) return false;
+    if (collectorFilter && (p.collector || "—") !== collectorFilter) return false;
     const q = search.trim().toLowerCase();
     if (!q) return true;
     return (p.customer_name || "").toLowerCase().includes(q)
       || (p.reference || "").toLowerCase().includes(q)
       || (p.collector || "").toLowerCase().includes(q);
   });
+
+  const visiblePayments = [...filteredPayments].sort((a, b) => {
+    let cmp = 0;
+    if (sortBy === "date") cmp = new Date(a.date) - new Date(b.date);
+    else if (sortBy === "customer_name") cmp = (a.customer_name || "").localeCompare(b.customer_name || "", "ar");
+    else if (sortBy === "amount") cmp = (a.amount || 0) - (b.amount || 0);
+    else if (sortBy === "journal_name") cmp = (a.journal_name || "").localeCompare(b.journal_name || "", "ar");
+    else if (sortBy === "collector") cmp = (a.collector || "").localeCompare(b.collector || "", "ar");
+    else if (sortBy === "reference") cmp = (a.reference || "").localeCompare(b.reference || "", "ar");
+    return sortDir === "asc" ? cmp : -cmp;
+  });
+
+  const handleExportPdf = async () => {
+    setExportingPdf(true);
+    try {
+      await api.exportCollectionsPdf({
+        date_from: dateFrom, date_to: dateTo,
+        journal: journalFilter || null, collector: collectorFilter || null,
+        search: search.trim() || null, lang,
+      });
+      showToast(t("exportReady"), "success");
+    } catch (e) {
+      showToast(e.message, "error");
+    } finally {
+      setExportingPdf(false);
+    }
+  };
 
   const journalData = (report?.by_journal || []).map((j, i) => ({
     label: j.journal, value: j.amount, color: ODOO_COLORS[i % ODOO_COLORS.length],
@@ -80,8 +131,16 @@ export default function CollectionsReport({ onSelectCustomer }) {
   return (
     <div className="content-stack" style={{ maxWidth: "100%" }}>
       <div className="panel">
-        <h2><Wallet size={15} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />{t("collectionsReportTitle")}</h2>
-        <p className="panel-sub">{t("collectionsReportHint")}</p>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
+          <div>
+            <h2><Wallet size={15} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />{t("collectionsReportTitle")}</h2>
+            <p className="panel-sub">{t("collectionsReportHint")}</p>
+          </div>
+          <button className="btn-secondary sm" onClick={handleExportPdf} disabled={exportingPdf || !report}>
+            <Download size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
+            {exportingPdf ? t("exporting") : t("print")}
+          </button>
+        </div>
 
         <div className="more-filters-row" style={{ marginBottom: 16 }}>
           <div className="more-filter-field">
@@ -211,7 +270,11 @@ export default function CollectionsReport({ onSelectCustomer }) {
                     />
                     <div className="donut-legend-list">
                       {journalData.map((seg) => (
-                        <div key={seg.label} className={`donut-legend-item ${hoveredJournal?.label === seg.label ? "active" : ""}`}>
+                        <div
+                          key={seg.label}
+                          className={`donut-legend-item clickable-row ${hoveredJournal?.label === seg.label ? "active" : ""} ${journalFilter === seg.label ? "selected" : ""}`}
+                          onClick={() => setJournalFilter((v) => (v === seg.label ? "" : seg.label))}
+                        >
                           <span className="donut-legend-dot" style={{ backgroundColor: seg.color }} />
                           <span className="donut-legend-label">{seg.label}</span>
                           <span className="donut-legend-value">
@@ -231,14 +294,35 @@ export default function CollectionsReport({ onSelectCustomer }) {
                              tickFormatter={(v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : v)} />
                       <YAxis type="category" dataKey="name" stroke="#6b7280" fontSize={11} tickLine={false} axisLine={false} width={110} />
                       <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v) => money(v)} />
-                      <Bar dataKey="amount" radius={[0, 4, 4, 0]}>
+                      <Bar
+                        dataKey="amount" radius={[0, 4, 4, 0]} cursor="pointer"
+                        onClick={(d) => setCollectorFilter((v) => (v === d.name ? "" : d.name))}
+                      >
                         {collectorBarData.map((d, i) => (
-                          <Cell key={d.name} fill={ODOO_COLORS[i % ODOO_COLORS.length]} />
+                          <Cell
+                            key={d.name} fill={ODOO_COLORS[i % ODOO_COLORS.length]}
+                            opacity={collectorFilter && collectorFilter !== d.name ? 0.35 : 1}
+                          />
                         ))}
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
+              </div>
+            )}
+
+            {(journalFilter || collectorFilter) && (
+              <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+                {journalFilter && (
+                  <span className="table-totals-item active-filter" style={{ cursor: "pointer" }} onClick={() => setJournalFilter("")}>
+                    {t("paymentMethod")}: <strong>{journalFilter}</strong> <X size={11} style={{ verticalAlign: -1 }} />
+                  </span>
+                )}
+                {collectorFilter && (
+                  <span className="table-totals-item active-filter" style={{ cursor: "pointer" }} onClick={() => setCollectorFilter("")}>
+                    {t("collectorField")}: <strong>{collectorFilter}</strong> <X size={11} style={{ verticalAlign: -1 }} />
+                  </span>
+                )}
               </div>
             )}
 
@@ -260,12 +344,12 @@ export default function CollectionsReport({ onSelectCustomer }) {
                 <table className="data-table">
                   <thead>
                     <tr>
-                      <th>{t("date")}</th>
-                      <th>{t("customer")}</th>
-                      <th>{t("amount")}</th>
-                      <th>{t("paymentMethod")}</th>
-                      <th>{t("collectorField")}</th>
-                      <th>{t("reference")}</th>
+                      <th className="sortable" onClick={() => toggleSort("date")}>{t("date")} {sortIcon("date")}</th>
+                      <th className="sortable" onClick={() => toggleSort("customer_name")}>{t("customer")} {sortIcon("customer_name")}</th>
+                      <th className="sortable" onClick={() => toggleSort("amount")}>{t("amount")} {sortIcon("amount")}</th>
+                      <th className="sortable" onClick={() => toggleSort("journal_name")}>{t("paymentMethod")} {sortIcon("journal_name")}</th>
+                      <th className="sortable" onClick={() => toggleSort("collector")}>{t("collectorField")} {sortIcon("collector")}</th>
+                      <th className="sortable" onClick={() => toggleSort("reference")}>{t("reference")} {sortIcon("reference")}</th>
                     </tr>
                   </thead>
                   <tbody>

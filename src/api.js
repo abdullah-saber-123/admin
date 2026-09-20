@@ -326,6 +326,10 @@ export const api = {
     const qs = buildQueryString(params);
     return request(`/api/reports/collections${qs ? `?${qs}` : ""}`);
   },
+  exportCollectionsPdf: (params = {}) => {
+    const qs = buildQueryString(params);
+    return requestBlob(`/api/reports/collections/export.pdf${qs ? `?${qs}` : ""}`);
+  },
   paymentProofs: (status = "") => request(`/api/payment-proofs${status ? `?status=${status}` : ""}`),
   reviewPaymentProof: (id, payload) => request(`/api/payment-proofs/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
   paymentProofFile: (id) => fetchFileObjectUrl(`/api/payment-proofs/${id}/file`),

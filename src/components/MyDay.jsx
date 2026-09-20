@@ -129,36 +129,109 @@ function HistoricalComparisonCard({ comparison, collectedToday, completedToday, 
   );
 }
 
-function SettlementCalculatorModal({ customer, onClose, t, money }) {
-  const [balance, setBalance] = useState(customer?.current_due || "");
-  const [discountPct, setDiscountPct] = useState("");
-  const [discountAmt, setDiscountAmt] = useState("");
+function CalculatorModal({ customer, onClose, t, money }) {
+  const [display, setDisplay] = useState(customer?.current_due ? String(customer.current_due) : "0");
+  const [stored, setStored] = useState(null);
+  const [operator, setOperator] = useState(null);
+  const [waitingForOperand, setWaitingForOperand] = useState(false);
 
-  const bal = parseFloat(balance) || 0;
-  const pctVal = parseFloat(discountPct) || 0;
-  const fixedVal = parseFloat(discountAmt) || 0;
-  const totalDiscount = fixedVal > 0 ? fixedVal : (bal * pctVal) / 100;
-  const settlementAmount = Math.max(0, bal - totalDiscount);
+  const inputDigit = (d) => {
+    if (waitingForOperand) {
+      setDisplay(d);
+      setWaitingForOperand(false);
+    } else {
+      setDisplay(display === "0" ? d : display + d);
+    }
+  };
+  const inputDecimal = () => {
+    if (waitingForOperand) {
+      setDisplay("0.");
+      setWaitingForOperand(false);
+      return;
+    }
+    if (!display.includes(".")) setDisplay(display + ".");
+  };
+  const clearAll = () => {
+    setDisplay("0");
+    setStored(null);
+    setOperator(null);
+    setWaitingForOperand(false);
+  };
+  const backspace = () => setDisplay(display.length > 1 ? display.slice(0, -1) : "0");
+
+  const compute = (a, b, op) => {
+    if (op === "+") return a + b;
+    if (op === "-") return a - b;
+    if (op === "×") return a * b;
+    if (op === "÷") return b === 0 ? 0 : a / b;
+    return b;
+  };
+
+  const handleOperator = (nextOperator) => {
+    const inputValue = parseFloat(display) || 0;
+    if (stored === null) {
+      setStored(inputValue);
+    } else if (operator) {
+      const result = compute(stored, inputValue, operator);
+      setStored(result);
+      setDisplay(String(result));
+    }
+    setWaitingForOperand(true);
+    setOperator(nextOperator);
+  };
+
+  const handleEquals = () => {
+    const inputValue = parseFloat(display) || 0;
+    if (operator && stored !== null) {
+      setDisplay(String(compute(stored, inputValue, operator)));
+      setStored(null);
+      setOperator(null);
+      setWaitingForOperand(true);
+    }
+  };
+
+  const CALC_KEYS = [
+    { label: "C", onClick: clearAll },
+    { label: "⌫", onClick: backspace },
+    { label: "÷", onClick: () => handleOperator("÷") },
+    { label: "×", onClick: () => handleOperator("×") },
+    { label: "7", onClick: () => inputDigit("7") },
+    { label: "8", onClick: () => inputDigit("8") },
+    { label: "9", onClick: () => inputDigit("9") },
+    { label: "−", onClick: () => handleOperator("-") },
+    { label: "4", onClick: () => inputDigit("4") },
+    { label: "5", onClick: () => inputDigit("5") },
+    { label: "6", onClick: () => inputDigit("6") },
+    { label: "+", onClick: () => handleOperator("+") },
+    { label: "1", onClick: () => inputDigit("1") },
+    { label: "2", onClick: () => inputDigit("2") },
+    { label: "3", onClick: () => inputDigit("3") },
+    { label: "=", onClick: handleEquals, primary: true },
+    { label: "0", onClick: () => inputDigit("0") },
+    { label: ".", onClick: inputDecimal },
+  ];
 
   return (
     <div className="overlay modal-overlay" onClick={onClose}>
-      <div className="prompt-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="prompt-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 300 }}>
         <button className="close-btn" onClick={onClose}><X size={16} /></button>
-        <h3><Calculator size={15} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />{t("settlementCalculatorTitle")}</h3>
-        <p className="prompt-message">{t("settlementCalculatorHint")}</p>
-        <div className="admin-form">
-          <label>{t("balanceDue")}</label>
-          <input type="number" min="0" step="0.01" value={balance} onChange={(e) => setBalance(e.target.value)} />
-          <label>{t("discountPercent")}</label>
-          <input type="number" min="0" max="100" step="1" value={discountPct} onChange={(e) => { setDiscountPct(e.target.value); setDiscountAmt(""); }} />
-          <label>{t("discountFixedAmount")}</label>
-          <input type="number" min="0" step="0.01" value={discountAmt} onChange={(e) => { setDiscountAmt(e.target.value); setDiscountPct(""); }} />
+        <h3><Calculator size={15} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />{t("calculatorTitle")}</h3>
+        <div className="my-day-calc-display">
+          <div className="my-day-calc-value">{display}</div>
+          <div className="my-day-calc-money">{money(parseFloat(display) || 0)}</div>
         </div>
-        <div className="my-day-settlement-result">
-          <div className="my-day-settlement-row"><span>{t("totalDiscountLabel")}</span><strong>{money(totalDiscount)}</strong></div>
-          <div className="my-day-settlement-row highlight"><span>{t("settlementAmountLabel")}</span><strong>{money(settlementAmount)}</strong></div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+          {CALC_KEYS.map((k) => (
+            <button
+              key={k.label}
+              className={k.primary ? "btn-primary" : "btn-secondary"}
+              style={{ justifyContent: "center", fontSize: 16, padding: "10px 0", gridColumn: k.label === "0" ? "span 2" : undefined }}
+              onClick={k.onClick}
+            >
+              {k.label}
+            </button>
+          ))}
         </div>
-        <button className="btn-secondary" style={{ width: "100%", justifyContent: "center", marginTop: 10 }} onClick={onClose}>{t("cancel")}</button>
       </div>
     </div>
   );
@@ -830,7 +903,7 @@ function CustomerRow({ c, t, statusLabel, onQuickCheckin, onUndo, onOpenHistory,
           <button className="icon-btn" title={t("viewDetails")} onClick={() => onSelectCustomer?.(c.partner_id)}>
             <ChevronRight size={14} />
           </button>
-          <button className="icon-btn" title={t("settlementCalculatorTitle")} onClick={() => onOpenSettlement(c)}>
+          <button className="icon-btn" title={t("calculatorTitle")} onClick={() => onOpenSettlement(c)}>
             <Calculator size={14} />
           </button>
           <SnoozeMenu partnerId={c.partner_id} onSnooze={onSnooze} />
@@ -1491,7 +1564,7 @@ export default function MyDay({ onSelectCustomer }) {
         />
       )}
       {settlementCustomer && (
-        <SettlementCalculatorModal customer={settlementCustomer} onClose={() => setSettlementCustomer(null)} t={t} money={money} />
+        <CalculatorModal customer={settlementCustomer} onClose={() => setSettlementCustomer(null)} t={t} money={money} />
       )}
       {quickOutcomeRequest && (
         <QuickOutcomeModal

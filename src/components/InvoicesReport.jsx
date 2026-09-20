@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, Fragment } from "react";
-import { Receipt as ReceiptIcon, Search, StickyNote, SlidersHorizontal, Check, X, ChevronDown, ChevronRight, Rows3, Tag, FileWarning, Wallet, Layers, Crown, Clock, CalendarClock, CheckCircle2 } from "lucide-react";
+import { Receipt as ReceiptIcon, Search, StickyNote, SlidersHorizontal, Check, X, ChevronDown, ChevronRight, Rows3, Tag, FileWarning, Wallet, Layers, Crown, Clock, CalendarClock, CheckCircle2, Download } from "lucide-react";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip as RTooltip } from "recharts";
 import { motion, AnimatePresence } from "framer-motion";
 import { api } from "../api";
@@ -128,6 +128,7 @@ export default function InvoicesReport({ onSelectCustomer }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [collectors, setCollectors] = useState([]);
+  const [exportingReasonPdf, setExportingReasonPdf] = useState(false);
 
   // Attractive KPI+chart insights panel at the top of the page, built from the
   // same delay-reason breakdown used by the "group by reason" view - always
@@ -210,6 +211,22 @@ export default function InvoicesReport({ onSelectCustomer }) {
       .then(setStatusInsights)
       .catch(() => {});
   }, [search, status, collectorFilter, dateFrom, dateTo, daysOverdueMin, daysOverdueMax, dueTodayOnly, selectedDelayReasons]);
+
+  const handleExportReasonPdf = async () => {
+    setExportingReasonPdf(true);
+    try {
+      await api.exportInvoicesByReasonPdf({
+        search, status: status.join(","), collector: collectorFilter, date_from: dateFrom, date_to: dateTo,
+        days_overdue_min: daysOverdueMin || null, days_overdue_max: daysOverdueMax || null,
+        due_today: dueTodayOnly, delay_reasons: selectedDelayReasons.join(","), lang,
+      });
+      showToast(t("exportReady"), "success");
+    } catch (e) {
+      showToast(e.message, "error");
+    } finally {
+      setExportingReasonPdf(false);
+    }
+  };
 
   useEffect(() => {
     const timer = setTimeout(loadInsights, 250);
@@ -381,8 +398,16 @@ export default function InvoicesReport({ onSelectCustomer }) {
   return (
     <div className="content-stack" style={{ maxWidth: "100%" }}>
       <div className="panel">
-        <h2><ReceiptIcon size={15} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />{t("invoicesReportTitle")}</h2>
-        <p className="panel-sub">{t("invoicesReportHint")}</p>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
+          <div>
+            <h2><ReceiptIcon size={15} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />{t("invoicesReportTitle")}</h2>
+            <p className="panel-sub">{t("invoicesReportHint")}</p>
+          </div>
+          <button className="btn-secondary sm" onClick={handleExportReasonPdf} disabled={exportingReasonPdf}>
+            <Download size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
+            {exportingReasonPdf ? t("exporting") : t("printDelayReasonReport")}
+          </button>
+        </div>
 
         <InsightsPanel insights={insights} loading={insightsLoading} error={insightsError} t={t} money={money}
           hoveredAmountSlice={hoveredAmountSlice} setHoveredAmountSlice={setHoveredAmountSlice} />

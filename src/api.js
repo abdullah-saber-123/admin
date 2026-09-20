@@ -277,6 +277,10 @@ export const api = {
     return request(`/api/reports/invoices/status-groups${qs ? `?${qs}` : ""}`);
   },
   invoiceDelayReasons: () => request("/api/reports/invoices/delay-reasons"),
+  exportInvoicesByReasonPdf: (params = {}) => {
+    const qs = buildQueryString(params);
+    return requestBlob(`/api/reports/invoices/export.pdf${qs ? `?${qs}` : ""}`);
+  },
   updateUserPhone: (id, phone) => request(`/api/admin/users/${id}/phone?phone=${encodeURIComponent(phone || "")}`, { method: "PATCH" }),
   updateUserFullName: (id, full_name) => request(`/api/admin/users/${id}/full-name?full_name=${encodeURIComponent(full_name || "")}`, { method: "PATCH" }),
   myProfile: () => request("/api/me"),

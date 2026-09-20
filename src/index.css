@@ -1093,6 +1093,8 @@ input, select, textarea { font-family: inherit; }
 .toast-item.success svg { color: var(--ok); flex-shrink: 0; }
 .toast-item.error { border-inline-start: 3px solid var(--danger); color: var(--text); }
 .toast-item.error svg { color: var(--danger); flex-shrink: 0; }
+.toast-item.info { border-inline-start: 3px solid var(--primary); color: var(--text); }
+.toast-item.info svg { color: var(--primary); flex-shrink: 0; }
 .toast-item button { margin-inline-start: auto; background: none; border: none; color: var(--text-faint); cursor: pointer; flex-shrink: 0; }
 @keyframes toast-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
 

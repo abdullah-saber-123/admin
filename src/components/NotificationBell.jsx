@@ -1,16 +1,33 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Bell, AlertOctagon, CalendarClock, HeartCrack, AtSign } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
+import { useToast } from "../toast.jsx";
 
 export default function NotificationBell({ kpis, syncStatus, isAdmin, onGoToDashboard, onSelectBucket, onSelectCustomer }) {
   const { t } = useLang();
+  const { showToast } = useToast();
   const [open, setOpen] = useState(false);
   const [mentions, setMentions] = useState([]);
+  const seenIds = useRef(null); // null until the first fetch, so existing unread ones don't all pop toasts at once
 
   const loadMentions = useCallback(() => {
-    api.notifications().then((res) => setMentions(res.results || [])).catch(() => {});
-  }, []);
+    api.notifications().then((res) => {
+      const results = res.results || [];
+      if (seenIds.current) {
+        // A side toast (auto-dismisses in 7s, or close it manually) for
+        // anything new since the last poll - the bell dropdown alone is
+        // easy to miss while working elsewhere on the page.
+        for (const n of results) {
+          if (!n.is_read && !seenIds.current.has(n.id)) {
+            showToast(n.message, "info", 7000);
+          }
+        }
+      }
+      seenIds.current = new Set(results.map((n) => n.id));
+      setMentions(results);
+    }).catch(() => {});
+  }, [showToast]);
 
   useEffect(() => {
     loadMentions();

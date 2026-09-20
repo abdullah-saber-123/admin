@@ -480,6 +480,7 @@ export default function App() {
         onViewNeglected={() => { setBucket("neglected_contact"); setView("dashboard"); }}
         onReviewCollector={(name) => name && setProfileModal({ mode: "collector", collectorName: name })}
         onViewReconciliations={() => setView("reconciliations")}
+        onViewMyDay={() => setView("myDay")}
       />
 
       {profileModal && (

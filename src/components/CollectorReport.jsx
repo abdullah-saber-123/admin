@@ -167,6 +167,7 @@ export default function CollectorReport({ onOpenProfile }) {
                   <th>{t("trend")}</th>
                   <th>{t("collectedLastMonth")}</th>
                   <th>{t("target")}</th>
+                  <th>{t("dailyTargetLabel")}</th>
                   <th>{t("supervisionLabel")}</th>
                   <th>{t("worked")}</th>
                   <th>{t("paidByLabel")}</th>
@@ -218,6 +219,30 @@ export default function CollectorReport({ onOpenProfile }) {
                           </span>
                         ) : (
                           <button className="icon-btn" title={t("target")} onClick={(e) => { e.stopPropagation(); setTargetModal(r); }}>
+                            <Target size={13} />
+                          </button>
+                        )}
+                      </td>
+                      <td>
+                        {r.daily_collection_target > 0 || r.daily_contact_target > 0 ? (
+                          <div
+                            style={{ display: "flex", flexDirection: "column", gap: 3, fontSize: 11.5, cursor: "pointer" }}
+                            onClick={(e) => { e.stopPropagation(); setSupervisionModal(r); }}
+                          >
+                            {r.daily_collection_target > 0 && (
+                              <span>{t("collectedLabel")}: {r.collection_pct ?? 0}% <span style={{ color: "var(--text-dim)" }}>({money(r.daily_collection_target)})</span></span>
+                            )}
+                            {r.daily_contact_target > 0 && (
+                              <span>{t("contactsLabel")}: {r.contacts_today}/{r.daily_contact_target} ({r.contact_pct ?? 0}%)</span>
+                            )}
+                            {r.daily_flag && r.daily_flag !== "ok" && (
+                              <span className={`fu-tag sm ${r.daily_flag === "critical" ? "danger" : "warn"}`}>
+                                {r.daily_flag === "critical" ? t("flagCritical") : t("flagWarning")}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <button className="icon-btn" title={t("supervisionLabel")} onClick={(e) => { e.stopPropagation(); setSupervisionModal(r); }}>
                             <Target size={13} />
                           </button>
                         )}

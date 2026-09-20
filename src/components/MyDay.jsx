@@ -1106,6 +1106,32 @@ export default function MyDay({ onSelectCustomer }) {
   const notDueYet = sortItems(filteredItems.filter((c) => c.not_due_yet));
   const dueQueue = [...carriedForward, ...todaysQueue];
 
+  // Focus Mode's own order: whoever's been sitting the longest without a
+  // status change, has the biggest balance, and hasn't actually been
+  // contacted in the longest time should come up first - not just "carried
+  // forward before today's". Ranked (not raw-value) so the three signals,
+  // which live on very different scales, weigh in evenly.
+  const focusQueue = (() => {
+    if (dueQueue.length === 0) return dueQueue;
+    const neglectDays = (c) => (
+      c.last_activity?.created_at ? (nowMs - new Date(c.last_activity.created_at).getTime()) / 86400000 : Infinity
+    );
+    const rankBy = (keyFn) => {
+      const sorted = [...dueQueue].sort((a, b) => keyFn(b) - keyFn(a));
+      const ranks = new Map();
+      sorted.forEach((c, i) => ranks.set(c.partner_id, i));
+      return ranks;
+    };
+    const overdueRank = rankBy((c) => c.days_overdue || 0);
+    const balanceRank = rankBy((c) => c.current_due || 0);
+    const neglectRank = rankBy(neglectDays);
+    return [...dueQueue].sort((a, b) => {
+      const scoreA = overdueRank.get(a.partner_id) + balanceRank.get(a.partner_id) + neglectRank.get(a.partner_id);
+      const scoreB = overdueRank.get(b.partner_id) + balanceRank.get(b.partner_id) + neglectRank.get(b.partner_id);
+      return scoreA - scoreB;
+    });
+  })();
+
   // City groups for the "group by city" view - one QueueTable per city,
   // sorted by group size (largest first) so the most efficient route to
   // work today shows up on top.
@@ -1193,7 +1219,7 @@ export default function MyDay({ onSelectCustomer }) {
 
         {focusMode && (
           <FocusModeView
-            queue={dueQueue} quickStatuses={quickStatuses} statuses={statuses}
+            queue={focusQueue} quickStatuses={quickStatuses} statuses={statuses}
             onQuickOutcome={submitQuickOutcome} onQuickCheckin={handleQuickCheckin} onUndo={handleUndo}
             onSnooze={handleSnooze} onFullFollowup={handleFullFollowup}
             onSelectCustomer={onSelectCustomer} onExit={() => setFocusMode(false)}

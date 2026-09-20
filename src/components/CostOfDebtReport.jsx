@@ -114,6 +114,22 @@ export default function CostOfDebtReport() {
               </span>
               <span className="table-totals-item"><strong><RiyalAmount amount={data.client_balance} /></strong></span>
             </div>
+
+            {data.summary && (
+              <div className="insights-kpi-grid" style={{ marginBottom: 18 }}>
+                <div className="insights-kpi-card accent-violet">
+                  <div className="insights-kpi-top"><div className="insights-kpi-label">{t("codAvgDiscountLabel")}</div></div>
+                  <div className="insights-kpi-value">{data.summary.avg_discount_percent !== null ? `${data.summary.avg_discount_percent}%` : "—"}</div>
+                  <div className="my-day-city"><RiyalAmount amount={data.summary.total_discount_cost} /></div>
+                </div>
+                <div className="insights-kpi-card accent-teal">
+                  <div className="insights-kpi-top"><div className="insights-kpi-label">{t("codAvgReturnLabel")}</div></div>
+                  <div className="insights-kpi-value">{data.summary.avg_return_on_capital_percent !== null ? `${data.summary.avg_return_on_capital_percent}%` : "—"}</div>
+                  <div className="my-day-city"><RiyalAmount amount={data.summary.total_return_on_capital_value} /></div>
+                </div>
+              </div>
+            )}
+
             <div className="table-wrap">
               <table className="data-table cost-of-debt-table">
                 <thead>

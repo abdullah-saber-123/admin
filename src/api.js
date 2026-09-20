@@ -423,6 +423,8 @@ export const api = {
   },
   getCostOfDebtSettings: () => request("/api/admin/cost-of-debt-settings"),
   saveCostOfDebtSettings: (payload) => request("/api/admin/cost-of-debt-settings", { method: "PUT", body: JSON.stringify(payload) }),
+  getCostOfDebtBucketSettings: () => request("/api/admin/cost-of-debt-bucket-settings"),
+  saveCostOfDebtBucketSettings: (payload) => request("/api/admin/cost-of-debt-bucket-settings", { method: "PUT", body: JSON.stringify(payload) }),
 
   // sync
   syncStatus: () => request("/api/sync/status"),

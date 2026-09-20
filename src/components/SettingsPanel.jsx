@@ -222,28 +222,27 @@ function FollowupStatusManager() {
 function CostOfDebtSettingsForm() {
   const { t } = useLang();
   const { showToast } = useToast();
-  const [discountPercent, setDiscountPercent] = useState(10);
-  const [returnPercent, setReturnPercent] = useState(35);
-  const [gracePeriod, setGracePeriod] = useState(45);
+  const [rows, setRows] = useState(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    api.getCostOfDebtSettings().then((s) => {
-      setDiscountPercent(s.discount_percent);
-      setReturnPercent(s.return_on_capital_percent);
-      setGracePeriod(s.grace_period_days);
-    }).catch(() => {});
+    api.getCostOfDebtBucketSettings().then(setRows).catch(() => {});
   }, []);
+
+  const updateRow = (bucket, field, value) => {
+    setRows((prev) => prev.map((r) => (r.bucket === bucket ? { ...r, [field]: value } : r)));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
-      await api.saveCostOfDebtSettings({
-        discount_percent: Number(discountPercent),
-        return_on_capital_percent: Number(returnPercent),
-        grace_period_days: Number(gracePeriod),
-      });
+      await api.saveCostOfDebtBucketSettings(rows.map((r) => ({
+        bucket: r.bucket,
+        discount_percent: Number(r.discount_percent) || 0,
+        return_on_capital_percent: Number(r.return_on_capital_percent) || 0,
+        grace_period_days: Number(r.grace_period_days) || 0,
+      })));
       showToast(t("exportReady"), "success");
     } catch (err) {
       showToast(err.message, "error");
@@ -256,17 +255,64 @@ function CostOfDebtSettingsForm() {
     <div className="panel">
       <h2><PlugZap size={15} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />{t("costOfDebtSettingsTitle")}</h2>
       <p className="panel-sub">{t("costOfDebtSettingsHint")}</p>
-      <form onSubmit={handleSubmit} className="admin-form" style={{ maxWidth: 320 }}>
-        <label>{t("discountPercentLabel")}</label>
-        <input type="number" step="0.1" value={discountPercent} onChange={(e) => setDiscountPercent(e.target.value)} />
-        <label>{t("returnOnCapitalLabel")}</label>
-        <input type="number" step="0.1" value={returnPercent} onChange={(e) => setReturnPercent(e.target.value)} />
-        <label>{t("gracePeriodLabel")}</label>
-        <input type="number" step="1" value={gracePeriod} onChange={(e) => setGracePeriod(e.target.value)} />
-        <button className="btn-primary sm" type="submit" disabled={saving} style={{ marginTop: 6, alignSelf: "flex-start" }}>
-          {saving ? t("saving") : t("save")}
-        </button>
-      </form>
+      {!rows && <div className="loading-state">{t("loadingDots")}</div>}
+      {rows && (
+        <form onSubmit={handleSubmit}>
+          <div className="table-wrap">
+            <table className="data-table cost-of-debt-table">
+              <thead>
+                <tr>
+                  <th>{t("codRow")}</th>
+                  {rows.map((r) => (
+                    <th key={r.bucket}>{t(`codBucket_${r.bucket}`)}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>{t("discountPercentLabel")}</td>
+                  {rows.map((r) => (
+                    <td key={r.bucket}>
+                      <input
+                        type="number" step="0.1" style={{ width: 70 }}
+                        value={r.discount_percent}
+                        onChange={(e) => updateRow(r.bucket, "discount_percent", e.target.value)}
+                      />
+                    </td>
+                  ))}
+                </tr>
+                <tr>
+                  <td>{t("returnOnCapitalLabel")}</td>
+                  {rows.map((r) => (
+                    <td key={r.bucket}>
+                      <input
+                        type="number" step="0.1" style={{ width: 70 }}
+                        value={r.return_on_capital_percent}
+                        onChange={(e) => updateRow(r.bucket, "return_on_capital_percent", e.target.value)}
+                      />
+                    </td>
+                  ))}
+                </tr>
+                <tr>
+                  <td>{t("gracePeriodLabel")}</td>
+                  {rows.map((r) => (
+                    <td key={r.bucket}>
+                      <input
+                        type="number" step="1" style={{ width: 70 }}
+                        value={r.grace_period_days}
+                        onChange={(e) => updateRow(r.bucket, "grace_period_days", e.target.value)}
+                      />
+                    </td>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <button className="btn-primary sm" type="submit" disabled={saving} style={{ marginTop: 12 }}>
+            {saving ? t("saving") : t("save")}
+          </button>
+        </form>
+      )}
     </div>
   );
 }

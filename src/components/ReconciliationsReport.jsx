@@ -286,13 +286,14 @@ function SendStatementModal({ item, onClose, onDone, t, showToast, lang }) {
   const fullMessage = link ? `${message}\n\n${t("statementLinkLabel")}: ${link}` : message;
 
   const [downloading, setDownloading] = useState(false);
+  const whatsappHref = item.phone ? `${waLink(item.phone)}?text=${encodeURIComponent(fullMessage)}` : null;
 
-  // Opened directly inside the click handler, before any async work - some
-  // browsers (Safari in particular) treat window.open as an untrusted popup
-  // the moment it's called from inside code that awaits anything first, even
-  // if the open() call itself comes before the first await.
-  const sendAndMark = () => {
-    window.open(`${waLink(item.phone)}?text=${encodeURIComponent(fullMessage)}`, "_blank");
+  // A real <a href> instead of window.open() - the customer table's own
+  // WhatsApp buttons (which do work reliably) use a plain anchor too. A
+  // script-triggered window.open(), even called synchronously, is still
+  // liable to be blocked by stricter browsers/extensions/webviews; a direct
+  // anchor click is native navigation and isn't subject to that at all.
+  const markSent = () => {
     setMarking(true);
     api.setReconciliationStatementSent(item.case_id, true)
       .then(() => { showToast(t("saved"), "success"); onDone(); })
@@ -347,10 +348,20 @@ function SendStatementModal({ item, onClose, onDone, t, showToast, lang }) {
         </div>
         <div style={{ fontSize: 11, color: "var(--text-faint)", marginBottom: 10 }}>{t("whatsappAttachHint")}</div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button className="btn-primary" disabled={!item.phone || !asOfDate || marking} onClick={sendAndMark}>
-            <MessageCircle size={14} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />
-            {t("openWhatsApp")}
-          </button>
+          {whatsappHref && asOfDate ? (
+            <a
+              className="btn-primary" href={whatsappHref} target="_blank" rel="noreferrer"
+              onClick={markSent} style={{ pointerEvents: marking ? "none" : "auto", opacity: marking ? 0.7 : 1 }}
+            >
+              <MessageCircle size={14} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />
+              {t("openWhatsApp")}
+            </a>
+          ) : (
+            <button className="btn-primary" disabled>
+              <MessageCircle size={14} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />
+              {t("openWhatsApp")}
+            </button>
+          )}
           <button className="btn-secondary" disabled={!asOfDate || downloading} onClick={downloadStatement}>
             <Download size={14} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />
             {downloading ? t("loadingDots") : t("downloadStatementPdf")}

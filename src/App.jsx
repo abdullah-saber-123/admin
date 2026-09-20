@@ -30,7 +30,6 @@ const CollectionsReport = lazy(() => import("./components/CollectionsReport.jsx"
 const LoginHistory = lazy(() => import("./components/LoginHistory.jsx"));
 const CustomerShares = lazy(() => import("./components/CustomerShares.jsx"));
 const Trends = lazy(() => import("./components/Trends.jsx"));
-const DueTodayReport = lazy(() => import("./components/DueTodayReport.jsx"));
 const FollowupLogReport = lazy(() => import("./components/FollowupLogReport.jsx"));
 const VisitsReport = lazy(() => import("./components/VisitsReport.jsx"));
 const RetargetingReport = lazy(() => import("./components/RetargetingReport.jsx"));
@@ -198,7 +197,6 @@ export default function App() {
               : view === "users" ? t("users")
               : view === "reports" ? t("collectorReports")
               : view === "trends" ? t("trends")
-              : view === "dueToday" ? t("dueTodayReportTitle")
               : view === "staffChat" ? t("staffChatTitle")
               : view === "invoices" ? t("invoicesReportTitle")
               : view === "followupLog" ? t("followupLogTitle")
@@ -368,9 +366,6 @@ export default function App() {
           {view === "trends" && (session.role === "admin" || (session.permissions || "").includes("trends")) && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><Trends /></Suspense>
           )}
-          {view === "dueToday" && (
-            <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><DueTodayReport onSelectCustomer={setSelectedId} /></Suspense>
-          )}
           {view === "staffChat" && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}>
               <StaffChat role={session.role} username={session.username} callOverlayRef={callOverlayRef} onOpenAnnouncementHistory={() => setView("announcementHistory")} />
@@ -476,7 +471,7 @@ export default function App() {
       <PaymentCelebration />
       <AlertToasts
         role={session.role}
-        onViewDueToday={() => setView("dueToday")}
+        onViewDueToday={() => setView("myDay")}
         onViewNeglected={() => { setBucket("neglected_contact"); setView("dashboard"); }}
         onReviewCollector={(name) => name && setProfileModal({ mode: "collector", collectorName: name })}
         onViewReconciliations={() => setView("reconciliations")}

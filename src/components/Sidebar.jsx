@@ -79,7 +79,6 @@ export default function Sidebar({ view, setView, role, username, displayName, av
         { view: "dailyActivity", icon: Activity, label: t("dailyActivityTitle"), visible: role === "admin" || isSupervisor, color: "#2C8397" },
         { view: "collectorActivityExplorer", icon: UserCircle, label: t("collectorActivityExplorerTitle"), visible: role === "admin", color: "#5750f1" },
         { view: "paymentPlans", icon: CalendarClock, label: t("paymentPlansPageTitle"), visible: true, color: "#8E6CEF" },
-        { view: "dueToday", icon: CalendarClock, label: t("dueTodayReportTitle"), visible: true, color: "#2C8397" },
         { view: "followupLog", icon: ClipboardList, label: t("followupLogTitle"), visible: true, color: "#F4A460" },
         { view: "visits", icon: MapPin, label: t("visitsTitle"), visible: true, color: "#5750f1" },
         { view: "invoices", icon: FileText, label: t("invoicesReportTitle"), visible: canSeeInvoices, color: "#F06050" },

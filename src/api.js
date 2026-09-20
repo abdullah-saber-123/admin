@@ -456,7 +456,6 @@ export const api = {
   collectorActivityForDate: (userId, targetDate) => request(`/api/admin/collector-activity?user_id=${userId}&target_date=${targetDate}`),
   collectorActivityPdf: (userId, targetDate, lang) => requestBlob(`/api/admin/collector-activity/pdf?user_id=${userId}&target_date=${targetDate}&lang=${lang}`),
   trends: (days = 90) => request(`/api/admin/trends?days=${days}`),
-  dueTodayReport: () => request("/api/reports/due-today"),
   followupReport: (params = {}) => {
     const qs = buildQueryString(params);
     return request(`/api/reports/followups${qs ? `?${qs}` : ""}`);

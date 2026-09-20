@@ -58,6 +58,7 @@ export default function CustomerScoreReport({ onSelectCustomer }) {
     else if (sortBy === "collector") cmp = (a.collector || "").localeCompare(b.collector || "", "ar");
     else if (sortBy === "current_due") cmp = (a.current_due || 0) - (b.current_due || 0);
     else if (sortBy === "payment_type") cmp = (a.payment_type || "").localeCompare(b.payment_type || "", "ar");
+    else if (sortBy === "months_to_clear") cmp = (a.months_to_clear ?? -1) - (b.months_to_clear ?? -1);
     else if (sortBy === "score") cmp = a.score - b.score;
     else if (sortBy === "grade") cmp = (a.grade || "").localeCompare(b.grade || "");
     return sortDir === "asc" ? cmp : -cmp;
@@ -111,6 +112,7 @@ export default function CustomerScoreReport({ onSelectCustomer }) {
                   <th className="sortable" onClick={() => toggleSort("collector")}>{t("collectorField")} {sortIcon("collector")}</th>
                   <th className="sortable" onClick={() => toggleSort("current_due")}>{t("balanceDue")} {sortIcon("current_due")}</th>
                   <th className="sortable" onClick={() => toggleSort("payment_type")}>{t("paymentTypeLabel")} {sortIcon("payment_type")}</th>
+                  <th className="sortable" onClick={() => toggleSort("months_to_clear")}>{t("monthsToClearLabel")} {sortIcon("months_to_clear")}</th>
                   <th>{t("status")}</th>
                   <th className="sortable" onClick={() => toggleSort("score")}>{t("scoreLabel")} {sortIcon("score")}</th>
                   <th className="sortable" onClick={() => toggleSort("grade")}>{t("gradeLabel")} {sortIcon("grade")}</th>
@@ -132,6 +134,11 @@ export default function CustomerScoreReport({ onSelectCustomer }) {
                       )}
                     </td>
                     <td data-label={t("paymentTypeLabel")}>{r.payment_type || "—"}</td>
+                    <td data-label={t("monthsToClearLabel")}>
+                      {r.current_due > 0
+                        ? (r.months_to_clear != null ? t("monthsToClearValue").replace("{n}", r.months_to_clear) : t("monthsToClearUnknown"))
+                        : "—"}
+                    </td>
                     <td data-label={t("status")}>
                       <span className={`status-tag ${r.status}`}>{r.status}</span>
                     </td>

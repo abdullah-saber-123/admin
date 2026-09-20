@@ -15,7 +15,14 @@ const MONTH_OPTIONS = [1, 2, 3, 4];
 
 function waLink(phone) {
   if (!phone) return null;
-  const digits = phone.replace(/[^\d]/g, "");
+  // Saudi numbers are usually saved in local form (05XXXXXXXX) - wa.me
+  // needs the bare international digits (966XXXXXXXXX), same normalization
+  // as the backend's _wa_phone_digits.
+  let digits = phone.replace(/\D/g, "");
+  if (!digits) return null;
+  if (digits.startsWith("00")) digits = digits.slice(2);
+  else if (digits.startsWith("0")) digits = "966" + digits.slice(1);
+  else if (!digits.startsWith("966")) digits = "966" + digits;
   return `https://wa.me/${digits}`;
 }
 

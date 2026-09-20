@@ -114,6 +114,7 @@ export default function PerformanceReport() {
                       <th>#</th>
                       <th>{t("collectorField")}</th>
                       <th>{t("collected")}</th>
+                      <th>{t("target")}</th>
                       <th>{t("balanceDue")}</th>
                       <th>{t("totalCustomersLabel")}</th>
                     </tr>
@@ -126,6 +127,11 @@ export default function PerformanceReport() {
                         </td>
                         <td data-label={t("collectorField")}><span className="cust-name">{r.collector}</span></td>
                         <td data-label={t("collected")}><strong><RiyalAmount amount={r.collected} /></strong></td>
+                        <td data-label={t("target")}>
+                          {r.target ? (
+                            <span className={r.target_pct >= 100 ? "trend-pill up" : ""}>{r.target_pct}%</span>
+                          ) : "—"}
+                        </td>
                         <td data-label={t("balanceDue")}><RiyalAmount amount={r.outstanding} /></td>
                         <td data-label={t("totalCustomersLabel")}>{r.customer_count}</td>
                       </tr>

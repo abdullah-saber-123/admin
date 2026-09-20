@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Target, Users2, Wallet, Trophy, TrendingUp, Search, Download, ArrowUp, ArrowDown, Minus, ArrowUpDown, X, ChevronRight, ShieldCheck } from "lucide-react";
+import { Target, Users2, Wallet, Trophy, TrendingUp, Search, Download, ArrowUp, ArrowDown, Minus, ArrowUpDown, X, ChevronRight, ShieldCheck, Users } from "lucide-react";
 import { api } from "../api";
 import Avatar from "./Avatar.jsx";
 import { useLang } from "../i18n.jsx";
@@ -188,7 +188,19 @@ export default function CollectorReport({ onOpenProfile }) {
                           <span className="cust-name">{r.full_name || r.username}</span>
                         </div>
                       </td>
-                      <td>{r.collector || <span style={{ color: "var(--danger)" }}>{t("unassigned")}</span>}</td>
+                      <td>
+                        {r.collector || <span style={{ color: "var(--danger)" }}>{t("unassigned")}</span>}
+                        {r.duplicate_accounts && r.duplicate_accounts.length > 0 && (
+                          <div
+                            className="fu-tag sm warn"
+                            style={{ marginTop: 4, width: "fit-content", cursor: "default" }}
+                            title={t("duplicateAccountHint").replace("{usernames}", r.duplicate_accounts.join(", "))}
+                          >
+                            <Users size={11} style={{ verticalAlign: -1, marginInlineEnd: 3 }} />
+                            {t("duplicateAccountBadge")}
+                          </div>
+                        )}
+                      </td>
                       <td>{r.customers_count}</td>
                       <td className={r.total_due > 0 ? "due-amount has-balance" : "due-amount zero"}>
                         <RiyalAmount amount={r.total_due} />

@@ -61,7 +61,7 @@ export default function KpiCards({ kpis, onCardClick, activeBucket }) {
     );
   }
 
-  const { appointments, balances, broken_promise_count, my_target, dso_days, collection_rate_ttm } = kpis;
+  const { appointments, balances, broken_promise_count, my_target, my_daily_target, dso_days, collection_rate_ttm } = kpis;
 
   const allCards = [
     {
@@ -190,6 +190,26 @@ export default function KpiCards({ kpis, onCardClick, activeBucket }) {
           {my_target.days_in_month > 0 && (
             <div className="target-timeline-label">
               {t("monthTimelineLabel").replace("{elapsed}", my_target.days_elapsed).replace("{total}", my_target.days_in_month)}
+            </div>
+          )}
+        </div>
+      )}
+
+      {my_daily_target && (my_daily_target.collection_target > 0 || my_daily_target.contact_target > 0) && (
+        <div className={`my-day-daily-target-card ${my_daily_target.flag}`} style={{ marginTop: 12 }}>
+          <div className="my-day-history-title"><Gauge size={13} /> {t("dailyProgressTitle")}</div>
+          {my_daily_target.collection_target > 0 && (
+            <div className="my-day-daily-target-row">
+              <span>{t("collectedLabel")}</span>
+              <span><RiyalAmount amount={my_daily_target.collected_today} animate /> / <RiyalAmount amount={my_daily_target.collection_target} /></span>
+              <div className="my-day-progress-track"><div className="my-day-progress-fill" style={{ width: `${Math.min(100, my_daily_target.collection_pct || 0)}%` }} /></div>
+            </div>
+          )}
+          {my_daily_target.contact_target > 0 && (
+            <div className="my-day-daily-target-row">
+              <span>{t("contactsLabel")}</span>
+              <span><AnimatedCount value={my_daily_target.contacts_today} /> / {my_daily_target.contact_target}</span>
+              <div className="my-day-progress-track"><div className="my-day-progress-fill" style={{ width: `${Math.min(100, my_daily_target.contact_pct || 0)}%` }} /></div>
             </div>
           )}
         </div>

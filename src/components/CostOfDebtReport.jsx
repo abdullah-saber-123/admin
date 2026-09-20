@@ -1,12 +1,28 @@
-import { useEffect, useState, useCallback } from "react";
-import { CircleDollarSign, Search, Save } from "lucide-react";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { CircleDollarSign, Search, Download } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 import { useToast } from "../toast.jsx";
 import RiyalAmount from "./RiyalAmount.jsx";
 
+// Mirrors the backend's per-bucket math exactly, so an edit shows its effect
+// immediately instead of waiting on a round trip - the debounced save below
+// is just to persist it, not to compute the numbers shown on screen.
+function computeDerived(amount, discountPct, returnPct, graceDays) {
+  const discountCost = (amount * discountPct) / 100;
+  const returnValue = (amount * returnPct) / 100;
+  const targetCost = returnValue * (graceDays / 365);
+  const breakevenDays = returnValue ? (discountCost / returnValue) * 365 : null;
+  return {
+    discount_cost: Math.round(discountCost * 100) / 100,
+    return_on_capital_value: Math.round(returnValue * 100) / 100,
+    target_cost: Math.round(targetCost * 100) / 100,
+    breakeven_days: breakevenDays !== null ? Math.round(breakevenDays * 100) / 100 : null,
+  };
+}
+
 export default function CostOfDebtReport({ role }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const { showToast } = useToast();
   const isAdmin = role === "admin";
   const [cities, setCities] = useState([]);
@@ -19,7 +35,8 @@ export default function CostOfDebtReport({ role }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [editedBuckets, setEditedBuckets] = useState({});
-  const [savingSettings, setSavingSettings] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const saveTimer = useRef(null);
 
   useEffect(() => {
     api.cities().then(setCities).catch(() => {});
@@ -44,27 +61,43 @@ export default function CostOfDebtReport({ role }) {
 
   useEffect(load, [load]);
 
+  useEffect(() => () => clearTimeout(saveTimer.current), []);
+
   const updateBucketField = (bucket, field, value) => {
     setEditedBuckets((prev) => ({ ...prev, [bucket]: { ...prev[bucket], [field]: value } }));
+    // Debounced auto-save - persists shortly after typing stops, no button
+    // to click and no toast on every keystroke.
+    clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(async () => {
+      try {
+        await api.saveCostOfDebtBucketSettings(
+          Object.entries({ ...editedBuckets, [bucket]: { ...editedBuckets[bucket], [field]: value } }).map(([bk, v]) => ({
+            bucket: bk,
+            discount_percent: Number(v.discount_percent) || 0,
+            return_on_capital_percent: Number(v.return_on_capital_percent) || 0,
+            grace_period_days: Number(v.grace_period_days) || 0,
+          }))
+        );
+      } catch (e) {
+        showToast(e.message, "error");
+      }
+    }, 700);
   };
 
-  const handleSaveSettings = async () => {
-    setSavingSettings(true);
+  const handleExportPdf = async () => {
+    setExportingPdf(true);
     try {
-      await api.saveCostOfDebtBucketSettings(
-        Object.entries(editedBuckets).map(([bucket, v]) => ({
-          bucket,
-          discount_percent: Number(v.discount_percent) || 0,
-          return_on_capital_percent: Number(v.return_on_capital_percent) || 0,
-          grace_period_days: Number(v.grace_period_days) || 0,
-        }))
-      );
+      await api.exportCostOfDebtPdf({
+        city: cityFilter || "",
+        collector: collectorFilter || "",
+        partner_id: selectedClient?.partner_id || "",
+        lang,
+      });
       showToast(t("exportReady"), "success");
-      load();
     } catch (e) {
       showToast(e.message, "error");
     } finally {
-      setSavingSettings(false);
+      setExportingPdf(false);
     }
   };
 
@@ -87,11 +120,50 @@ export default function CostOfDebtReport({ role }) {
     setClientSearch("");
   };
 
+  // Live buckets: the amount comes from the server, everything derived from
+  // the discount/return/grace assumptions is recomputed from whatever's
+  // currently in the edit fields (falling back to the server's own value
+  // before any edit), so the table updates the instant you type.
+  const liveBuckets = data ? data.buckets.map((b) => {
+    const edited = editedBuckets[b.bucket] || {};
+    const discountPct = Number(edited.discount_percent ?? b.discount_percent) || 0;
+    const returnPct = Number(edited.return_on_capital_percent ?? b.return_on_capital_percent) || 0;
+    const graceDays = Number(edited.grace_period_days ?? b.grace_period_days) || 0;
+    return {
+      ...b,
+      discount_percent: discountPct,
+      return_on_capital_percent: returnPct,
+      grace_period_days: graceDays,
+      ...computeDerived(b.current_amount || 0, discountPct, returnPct, graceDays),
+    };
+  }) : [];
+
+  const liveSummary = (() => {
+    if (!liveBuckets.length) return null;
+    const totalAmount = liveBuckets.reduce((s, b) => s + (b.current_amount || 0), 0);
+    const totalDiscountCost = liveBuckets.reduce((s, b) => s + b.discount_cost, 0);
+    const totalReturnValue = liveBuckets.reduce((s, b) => s + b.return_on_capital_value, 0);
+    return {
+      total_discount_cost: Math.round(totalDiscountCost * 100) / 100,
+      avg_discount_percent: totalAmount ? Math.round((totalDiscountCost / totalAmount) * 10000) / 100 : null,
+      total_return_on_capital_value: Math.round(totalReturnValue * 100) / 100,
+      avg_return_on_capital_percent: totalAmount ? Math.round((totalReturnValue / totalAmount) * 10000) / 100 : null,
+    };
+  })();
+
   return (
     <div className="content-stack" style={{ maxWidth: "100%" }}>
       <div className="panel">
-        <h2><CircleDollarSign size={15} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />{t("costOfDebtTitle")}</h2>
-        <p className="panel-sub">{t("costOfDebtReportHint")}</p>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
+          <div>
+            <h2><CircleDollarSign size={15} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />{t("costOfDebtTitle")}</h2>
+            <p className="panel-sub">{t("costOfDebtReportHint")}</p>
+          </div>
+          <button className="btn-secondary sm" onClick={handleExportPdf} disabled={exportingPdf || !data}>
+            <Download size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
+            {exportingPdf ? t("exporting") : t("print")}
+          </button>
+        </div>
 
         <div className="more-filters-row" style={{ marginBottom: 14 }}>
           <div className="more-filter-field">
@@ -151,17 +223,17 @@ export default function CostOfDebtReport({ role }) {
               <span className="table-totals-item"><strong><RiyalAmount amount={data.client_balance} /></strong></span>
             </div>
 
-            {data.summary && (
+            {liveSummary && (
               <div className="insights-kpi-grid" style={{ marginBottom: 18 }}>
                 <div className="insights-kpi-card accent-violet">
                   <div className="insights-kpi-top"><div className="insights-kpi-label">{t("codAvgDiscountLabel")}</div></div>
-                  <div className="insights-kpi-value">{data.summary.avg_discount_percent !== null ? `${data.summary.avg_discount_percent}%` : "—"}</div>
-                  <div className="my-day-city"><RiyalAmount amount={data.summary.total_discount_cost} /></div>
+                  <div className="insights-kpi-value">{liveSummary.avg_discount_percent !== null ? `${liveSummary.avg_discount_percent}%` : "—"}</div>
+                  <div className="my-day-city"><RiyalAmount amount={liveSummary.total_discount_cost} /></div>
                 </div>
                 <div className="insights-kpi-card accent-teal">
                   <div className="insights-kpi-top"><div className="insights-kpi-label">{t("codAvgReturnLabel")}</div></div>
-                  <div className="insights-kpi-value">{data.summary.avg_return_on_capital_percent !== null ? `${data.summary.avg_return_on_capital_percent}%` : "—"}</div>
-                  <div className="my-day-city"><RiyalAmount amount={data.summary.total_return_on_capital_value} /></div>
+                  <div className="insights-kpi-value">{liveSummary.avg_return_on_capital_percent !== null ? `${liveSummary.avg_return_on_capital_percent}%` : "—"}</div>
+                  <div className="my-day-city"><RiyalAmount amount={liveSummary.total_return_on_capital_value} /></div>
                 </div>
               </div>
             )}
@@ -171,7 +243,7 @@ export default function CostOfDebtReport({ role }) {
                 <thead>
                   <tr>
                     <th>{t("codRow")}</th>
-                    {data.buckets.map((b) => (
+                    {liveBuckets.map((b) => (
                       <th key={b.bucket}>{t(`codBucket_${b.bucket}`)}</th>
                     ))}
                   </tr>
@@ -179,13 +251,13 @@ export default function CostOfDebtReport({ role }) {
                 <tbody>
                   <tr>
                     <td>{t("codCurrentAmount")}</td>
-                    {data.buckets.map((b) => (
+                    {liveBuckets.map((b) => (
                       <td key={b.bucket}>{b.current_amount ? <RiyalAmount amount={b.current_amount} /> : "—"}</td>
                     ))}
                   </tr>
                   <tr>
                     <td>{t("codDiscountPct")}</td>
-                    {data.buckets.map((b) => (
+                    {liveBuckets.map((b) => (
                       <td key={b.bucket}>
                         {isAdmin ? (
                           <input
@@ -199,13 +271,13 @@ export default function CostOfDebtReport({ role }) {
                   </tr>
                   <tr>
                     <td>{t("codDiscountCost")}</td>
-                    {data.buckets.map((b) => (
+                    {liveBuckets.map((b) => (
                       <td key={b.bucket}>{b.discount_cost ? <RiyalAmount amount={b.discount_cost} /> : "—"}</td>
                     ))}
                   </tr>
                   <tr>
                     <td>{t("codReturnPct")}</td>
-                    {data.buckets.map((b) => (
+                    {liveBuckets.map((b) => (
                       <td key={b.bucket}>
                         {isAdmin ? (
                           <input
@@ -219,13 +291,13 @@ export default function CostOfDebtReport({ role }) {
                   </tr>
                   <tr>
                     <td>{t("codReturnValue")}</td>
-                    {data.buckets.map((b) => (
+                    {liveBuckets.map((b) => (
                       <td key={b.bucket}>{b.return_on_capital_value ? <RiyalAmount amount={b.return_on_capital_value} /> : "—"}</td>
                     ))}
                   </tr>
                   <tr>
                     <td>{t("codGracePeriod")}</td>
-                    {data.buckets.map((b) => (
+                    {liveBuckets.map((b) => (
                       <td key={b.bucket}>
                         {isAdmin ? (
                           <input
@@ -239,19 +311,19 @@ export default function CostOfDebtReport({ role }) {
                   </tr>
                   <tr>
                     <td>{t("codDaysOfYear")}</td>
-                    {data.buckets.map((b) => (
+                    {liveBuckets.map((b) => (
                       <td key={b.bucket}>{b.days_of_year}</td>
                     ))}
                   </tr>
                   <tr>
                     <td>{t("codTargetCost")}</td>
-                    {data.buckets.map((b) => (
+                    {liveBuckets.map((b) => (
                       <td key={b.bucket}>{b.target_cost ? <RiyalAmount amount={b.target_cost} /> : "—"}</td>
                     ))}
                   </tr>
                   <tr>
                     <td>{t("codBreakeven")}</td>
-                    {data.buckets.map((b) => (
+                    {liveBuckets.map((b) => (
                       <td key={b.bucket} style={{ fontWeight: 700 }}>
                         {b.breakeven_days !== null ? <bdi>{b.breakeven_days}</bdi> : t("codDivZero")}
                       </td>
@@ -260,12 +332,6 @@ export default function CostOfDebtReport({ role }) {
                 </tbody>
               </table>
             </div>
-            {isAdmin && (
-              <button className="btn-primary sm" onClick={handleSaveSettings} disabled={savingSettings} style={{ marginTop: 12 }}>
-                <Save size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
-                {savingSettings ? t("saving") : t("save")}
-              </button>
-            )}
           </>
         )}
       </div>

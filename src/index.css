@@ -1814,16 +1814,31 @@ input, select, textarea { font-family: inherit; }
   margin-bottom: 8px;
 }
 .target-track {
+  position: relative;
   height: 8px;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 20px;
-  overflow: hidden;
+  overflow: visible;
 }
 .target-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--primary), var(--accent));
   border-radius: 20px;
+}
+.target-timeline-marker {
+  position: absolute;
+  top: -3px;
+  width: 2px;
+  height: 14px;
+  background: var(--text-dim);
+  border-radius: 2px;
+  transform: translateX(-1px);
+}
+.target-timeline-label {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-faint);
 }
 
 /* ---------------- Charts ---------------- */

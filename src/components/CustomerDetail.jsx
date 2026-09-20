@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { X, Phone, MapPin, Receipt, Wallet, ChevronLeft, ChevronRight, ClipboardList, Download, Search, AlertTriangle, Mail, UserCheck, Flame, MessageCircle, CalendarClock, Banknote, TrendingUp, CalendarCheck, CircleDollarSign, Gift, Zap, CreditCard, Send, Share2, Megaphone, BarChart3 } from "lucide-react";
+import { X, Phone, MapPin, Receipt, Wallet, ChevronLeft, ChevronRight, ClipboardList, Download, Search, AlertTriangle, Mail, UserCheck, Flame, MessageCircle, CalendarClock, Banknote, TrendingUp, CalendarCheck, CircleDollarSign, Gift, Zap, CreditCard, Send, Share2, Megaphone, BarChart3, History, MapPinned } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 import { useToast } from "../toast.jsx";
@@ -40,6 +40,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
   const { showToast } = useToast();
   const permsList = (permissions || "").split(",").map((p) => p.trim());
   const canSeeAnalytics = role === "admin" || permsList.includes("customerAnalytics") || permsList.includes("customerOwnAnalysis");
+  const canSeeReconciliations = role === "admin" || permsList.includes("reconciliations");
   const customerAnalysisUrl = `${window.location.pathname}?view=customerAnalytics&customer=${partnerId}`;
   useBodyScrollLock(true);
   const [detail, setDetail] = useState(null);
@@ -51,6 +52,14 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
   const [requestingVisit, setRequestingVisit] = useState(false);
   const [activeVisitRequest, setActiveVisitRequest] = useState(null);
   const [staffList, setStaffList] = useState(null);
+  const [showVisitHistoryModal, setShowVisitHistoryModal] = useState(false);
+  const [visitHistory, setVisitHistory] = useState(null);
+  const [reconciliationHistory, setReconciliationHistory] = useState(null);
+  const [showReconciliationModal, setShowReconciliationModal] = useState(false);
+  const [nominableOffers, setNominableOffers] = useState([]);
+  const [showNominateModal, setShowNominateModal] = useState(false);
+  const [nominatingOfferId, setNominatingOfferId] = useState("");
+  const [nominating, setNominating] = useState(false);
 
   const [invoicePage, setInvoicePage] = useState(1);
   const [paymentPage, setPaymentPage] = useState(1);
@@ -114,9 +123,21 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
     setShowChat(false);
     setChatMessages(null);
     setActiveVisitRequest(null);
+    setVisitHistory(null);
+    setReconciliationHistory(null);
+    setNominableOffers([]);
     load(1, 1);
     api.followupStatuses().then(setStatuses).catch(() => {});
     loadActiveVisitRequest();
+    if (canSeeReconciliations) {
+      api.reconciliationHistory(partnerId).then(setReconciliationHistory).catch(() => {});
+    }
+    api.myCollectionOffers().then((offers) => {
+      setNominableOffers((offers || []).filter((o) =>
+        o.status === "open" && !o.my_nominations.some((n) => n.partner_id === partnerId)
+      ));
+    }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [partnerId]);
 
   const loadActiveVisitRequest = () => {
@@ -124,6 +145,28 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
       const active = (rows || []).find((r) => r.status === "pending" || r.status === "assigned");
       setActiveVisitRequest(active || null);
     }).catch(() => {});
+  };
+
+  const openVisitHistoryModal = () => {
+    setShowVisitHistoryModal(true);
+    if (!visitHistory) {
+      api.visitRequests({ partner_id: partnerId }).then(setVisitHistory).catch(() => setVisitHistory([]));
+    }
+  };
+
+  const handleNominate = async () => {
+    if (!nominatingOfferId) return;
+    setNominating(true);
+    try {
+      await api.nominateForCollectionOffer(Number(nominatingOfferId), partnerId);
+      showToast(t("saved"), "success");
+      setShowNominateModal(false);
+      setNominableOffers((prev) => prev.filter((o) => o.id !== Number(nominatingOfferId)));
+    } catch (e) {
+      showToast(e.message, "error");
+    } finally {
+      setNominating(false);
+    }
   };
 
   const loadActivity = () => {
@@ -359,6 +402,8 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
     ...detail.payments.results.map((p) => ({ kind: "payment", date: p.date, ...p })),
   ].sort((a, b) => new Date(b.date) - new Date(a.date)) : [];
 
+  const latestMatchedReconciliation = (reconciliationHistory || []).find((r) => r.status === "matched") || null;
+
   const priorityLabel = (p) => {
     if (p === "Critical - 90+ Days") return `${t("priorityCritical")} (90+)`;
     if (p === "High - 60+ Days") return `${t("priorityHigh")} (60+)`;
@@ -473,6 +518,22 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
                   <MapPin size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
                   {activeVisitRequest ? t(activeVisitRequest.status === "assigned" ? "visitStatus_assigned" : "visitStatus_pending") : t("requestVisitButton")}
                 </button>
+                <button className="btn-secondary sm" onClick={openVisitHistoryModal}>
+                  <MapPinned size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
+                  {t("visitHistoryButton")}
+                </button>
+                {nominableOffers.length > 0 && (
+                  <button className="btn-secondary sm" onClick={() => { setNominatingOfferId(String(nominableOffers[0].id)); setShowNominateModal(true); }}>
+                    <Gift size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
+                    {t("nominateButton")}
+                  </button>
+                )}
+                {canSeeReconciliations && (
+                  <button className="btn-secondary sm" onClick={() => setShowReconciliationModal(true)}>
+                    <History size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
+                    {t("viewReconciliationsButton")}
+                  </button>
+                )}
                 {canSeeAnalytics && (
                   <a className="btn-secondary sm" href={customerAnalysisUrl} target="_blank" rel="noopener noreferrer">
                     <BarChart3 size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
@@ -553,6 +614,18 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
                   ) : t("noUpcomingInstallment")}
                 </div>
               </div>
+              {canSeeReconciliations && latestMatchedReconciliation && (
+                <>
+                  <div className="mini-stat">
+                    <div className="k"><History size={11} style={{ verticalAlign: -1, marginInlineEnd: 3 }} />{t("lastReconciliationDate")}</div>
+                    <div className="v">{fmtDate(latestMatchedReconciliation.reconciliation_date)}</div>
+                  </div>
+                  <div className="mini-stat">
+                    <div className="k"><Wallet size={11} style={{ verticalAlign: -1, marginInlineEnd: 3 }} />{t("reconciledBalanceLabel")}</div>
+                    <div className="v"><RiyalAmount amount={latestMatchedReconciliation.reconciled_balance} /></div>
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="followup-box">
@@ -1009,6 +1082,87 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
           partnerId={partnerId}
           onClose={() => setShowUrgentModal(false)}
         />
+      )}
+      {showVisitHistoryModal && (
+        <div className="overlay modal-overlay" onClick={() => setShowVisitHistoryModal(false)}>
+          <div className="prompt-modal" style={{ maxWidth: 560 }} onClick={(e) => e.stopPropagation()}>
+            <button className="close-btn" onClick={() => setShowVisitHistoryModal(false)}><X size={16} /></button>
+            <h3><MapPinned size={15} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />{t("visitHistoryButton")}</h3>
+            {!visitHistory && <div className="loading-state">{t("loadingDots")}</div>}
+            {visitHistory && visitHistory.length === 0 && <div className="empty-state">{t("noVisitHistory")}</div>}
+            {visitHistory && visitHistory.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: "60vh", overflowY: "auto" }}>
+                {visitHistory.map((v) => (
+                  <div key={v.id} className="panel" style={{ padding: 12 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
+                      <span className={`fu-tag sm ${v.status === "completed" ? "ok" : v.status === "rejected" ? "danger" : "warn"}`}>
+                        {t(`visitStatus_${v.status}`) || v.status}
+                      </span>
+                      <span className="my-day-city">{v.visited_at ? fmtDate(v.visited_at) : fmtDate(v.requested_at)}</span>
+                    </div>
+                    {v.reason && <div style={{ marginTop: 6 }}>{t("visitReasonLabel")}: {v.reason}</div>}
+                    {v.report && <div style={{ marginTop: 6 }}>{t("visitReportLabel")}: {v.report}</div>}
+                    {v.assigned_to && <div style={{ marginTop: 6 }}>{t("assignTo")}: {v.assigned_to}</div>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {showNominateModal && (
+        <div className="overlay modal-overlay" onClick={() => setShowNominateModal(false)}>
+          <div className="prompt-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="close-btn" onClick={() => setShowNominateModal(false)}><X size={16} /></button>
+            <h3><Gift size={15} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />{t("nominateButton")}</h3>
+            <p className="prompt-message">{detail.profile.name}</p>
+            <label>{t("collectionOfferLabel")}</label>
+            <select value={nominatingOfferId} onChange={(e) => setNominatingOfferId(e.target.value)}>
+              {nominableOffers.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+            </select>
+            <div className="prompt-actions">
+              <button className="btn-secondary" onClick={() => setShowNominateModal(false)}>{t("cancel")}</button>
+              <button className="btn-primary" disabled={nominating} onClick={handleNominate}>{nominating ? t("saving") : t("save")}</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showReconciliationModal && (
+        <div className="overlay modal-overlay" onClick={() => setShowReconciliationModal(false)}>
+          <div className="prompt-modal" style={{ maxWidth: 560 }} onClick={(e) => e.stopPropagation()}>
+            <button className="close-btn" onClick={() => setShowReconciliationModal(false)}><X size={16} /></button>
+            <h3><History size={15} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />{t("viewReconciliationsButton")}</h3>
+            {!reconciliationHistory && <div className="loading-state">{t("loadingDots")}</div>}
+            {reconciliationHistory && reconciliationHistory.length === 0 && <div className="empty-state">{t("noReconciliationHistory")}</div>}
+            {reconciliationHistory && reconciliationHistory.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: "60vh", overflowY: "auto" }}>
+                {reconciliationHistory.map((r) => (
+                  <div key={r.id} className="panel" style={{ padding: 12 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
+                      <span className={`fu-tag sm ${r.status === "matched" ? "ok" : r.status === "issue" ? "danger" : "warn"}`}>
+                        {t(`reconciliationStatus_${r.status}`)}
+                      </span>
+                      <span className="my-day-city">{fmtDate(r.created_at)}</span>
+                    </div>
+                    <div style={{ marginTop: 6 }}>{t("assignTo")}: {r.assigned_to || "—"}</div>
+                    {r.status === "matched" && (
+                      <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 4 }}>
+                        <div>{t("lastReconciliationDate")}: {fmtDate(r.reconciliation_date)}</div>
+                        <div>{t("reconciledBalanceLabel")}: <RiyalAmount amount={r.reconciled_balance} /></div>
+                      </div>
+                    )}
+                    {r.issue_note && (
+                      <div style={{ marginTop: 6 }}>
+                        <div><strong>{t("issueNoteLabel")}</strong>: {r.issue_note}</div>
+                        {r.resolution_note && <div><strong>{t("resolutionReplyLabel")}</strong>: {r.resolution_note}</div>}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

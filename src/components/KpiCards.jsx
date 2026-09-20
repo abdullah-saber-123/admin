@@ -25,8 +25,11 @@ function AnimatedCount({ value }) {
 // list are optional/extra - hidden by default unless the person turns them on
 // (except promised_5days, which is useful enough to default ON). Persisted so
 // the choice sticks across visits.
-const OPTIONAL_CARD_IDS = ["over_credit_limit", "nominated", "nominated_collection", "followups_today_log"];
-const DEFAULT_VISIBLE_OPTIONAL = { promised_5days: true };
+const OPTIONAL_CARD_IDS = [
+  "over_credit_limit", "nominated", "nominated_collection", "followups_today_log",
+  "late", "due_today", "due_5days",
+];
+const DEFAULT_VISIBLE_OPTIONAL = { promised_5days: true, late: true, due_today: true, due_5days: true };
 
 export default function KpiCards({ kpis, onCardClick, activeBucket }) {
   const { t, money } = useLang();
@@ -67,7 +70,11 @@ export default function KpiCards({ kpis, onCardClick, activeBucket }) {
     },
     {
       id: "total_balance",
-      icon: Wallet, iconSvg: moneyIconSvg, label: t("totalBalanceDue"), value: <RiyalAmount amount={balances.total_balance} animate />, tone: "blue",
+      icon: Wallet, iconSvg: moneyIconSvg, label: t("totalCurrentBalance"), value: <RiyalAmount amount={balances.total_balance} animate />, tone: "blue",
+    },
+    {
+      id: "total_overdue",
+      icon: Wallet, label: t("totalOverdueBalance"), value: <RiyalAmount amount={balances.total_overdue} animate />, tone: "red",
     },
     {
       id: "dso_days",
@@ -172,7 +179,19 @@ export default function KpiCards({ kpis, onCardClick, activeBucket }) {
           </div>
           <div className="target-track">
             <div className="target-fill" style={{ width: `${my_target.progress_pct}%` }} />
+            {my_target.days_in_month > 0 && (
+              <div
+                className="target-timeline-marker"
+                title={t("monthTimelineLabel").replace("{elapsed}", my_target.days_elapsed).replace("{total}", my_target.days_in_month)}
+                style={{ insetInlineStart: `${Math.min(100, (my_target.days_elapsed / my_target.days_in_month) * 100)}%` }}
+              />
+            )}
           </div>
+          {my_target.days_in_month > 0 && (
+            <div className="target-timeline-label">
+              {t("monthTimelineLabel").replace("{elapsed}", my_target.days_elapsed).replace("{total}", my_target.days_in_month)}
+            </div>
+          )}
         </div>
       )}
     </>

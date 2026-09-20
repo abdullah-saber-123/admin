@@ -3331,6 +3331,10 @@ input, select, textarea { font-family: inherit; }
 .cost-of-debt-wrap { margin-top: 8px; }
 .cost-of-debt-table th, .cost-of-debt-table td { font-size: 11px; padding: 6px 8px; white-space: nowrap; }
 .cost-of-debt-table td:first-child { font-weight: 600; color: var(--text-dim); white-space: normal; }
+.cost-of-debt-input {
+  width: 64px; padding: 4px 6px; font-size: 11px;
+  border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--text);
+}
 
 .credit-nomination-row {
   display: flex;

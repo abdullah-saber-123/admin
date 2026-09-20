@@ -1,11 +1,14 @@
 import { useEffect, useState, useCallback } from "react";
-import { CircleDollarSign, Search } from "lucide-react";
+import { CircleDollarSign, Search, Save } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
+import { useToast } from "../toast.jsx";
 import RiyalAmount from "./RiyalAmount.jsx";
 
-export default function CostOfDebtReport() {
+export default function CostOfDebtReport({ role }) {
   const { t } = useLang();
+  const { showToast } = useToast();
+  const isAdmin = role === "admin";
   const [cities, setCities] = useState([]);
   const [collectors, setCollectors] = useState([]);
   const [cityFilter, setCityFilter] = useState("");
@@ -15,6 +18,8 @@ export default function CostOfDebtReport() {
   const [selectedClient, setSelectedClient] = useState(null);
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
+  const [editedBuckets, setEditedBuckets] = useState({});
+  const [savingSettings, setSavingSettings] = useState(false);
 
   useEffect(() => {
     api.cities().then(setCities).catch(() => {});
@@ -27,10 +32,41 @@ export default function CostOfDebtReport() {
       city: cityFilter || "",
       collector: collectorFilter || "",
       partner_id: selectedClient?.partner_id || "",
-    }).then(setData).catch((e) => setError(e.message));
+    }).then((res) => {
+      setData(res);
+      setEditedBuckets(Object.fromEntries(res.buckets.map((b) => [b.bucket, {
+        discount_percent: b.discount_percent,
+        return_on_capital_percent: b.return_on_capital_percent,
+        grace_period_days: b.grace_period_days,
+      }])));
+    }).catch((e) => setError(e.message));
   }, [cityFilter, collectorFilter, selectedClient]);
 
   useEffect(load, [load]);
+
+  const updateBucketField = (bucket, field, value) => {
+    setEditedBuckets((prev) => ({ ...prev, [bucket]: { ...prev[bucket], [field]: value } }));
+  };
+
+  const handleSaveSettings = async () => {
+    setSavingSettings(true);
+    try {
+      await api.saveCostOfDebtBucketSettings(
+        Object.entries(editedBuckets).map(([bucket, v]) => ({
+          bucket,
+          discount_percent: Number(v.discount_percent) || 0,
+          return_on_capital_percent: Number(v.return_on_capital_percent) || 0,
+          grace_period_days: Number(v.grace_period_days) || 0,
+        }))
+      );
+      showToast(t("exportReady"), "success");
+      load();
+    } catch (e) {
+      showToast(e.message, "error");
+    } finally {
+      setSavingSettings(false);
+    }
+  };
 
   useEffect(() => {
     if (!clientSearch.trim()) { setClientOptions([]); return; }
@@ -150,7 +186,15 @@ export default function CostOfDebtReport() {
                   <tr>
                     <td>{t("codDiscountPct")}</td>
                     {data.buckets.map((b) => (
-                      <td key={b.bucket}>{b.discount_percent}%</td>
+                      <td key={b.bucket}>
+                        {isAdmin ? (
+                          <input
+                            type="number" step="0.1" className="cost-of-debt-input"
+                            value={editedBuckets[b.bucket]?.discount_percent ?? b.discount_percent}
+                            onChange={(e) => updateBucketField(b.bucket, "discount_percent", e.target.value)}
+                          />
+                        ) : `${b.discount_percent}%`}
+                      </td>
                     ))}
                   </tr>
                   <tr>
@@ -162,7 +206,15 @@ export default function CostOfDebtReport() {
                   <tr>
                     <td>{t("codReturnPct")}</td>
                     {data.buckets.map((b) => (
-                      <td key={b.bucket}>{b.return_on_capital_percent}%</td>
+                      <td key={b.bucket}>
+                        {isAdmin ? (
+                          <input
+                            type="number" step="0.1" className="cost-of-debt-input"
+                            value={editedBuckets[b.bucket]?.return_on_capital_percent ?? b.return_on_capital_percent}
+                            onChange={(e) => updateBucketField(b.bucket, "return_on_capital_percent", e.target.value)}
+                          />
+                        ) : `${b.return_on_capital_percent}%`}
+                      </td>
                     ))}
                   </tr>
                   <tr>
@@ -174,7 +226,15 @@ export default function CostOfDebtReport() {
                   <tr>
                     <td>{t("codGracePeriod")}</td>
                     {data.buckets.map((b) => (
-                      <td key={b.bucket}>{b.grace_period_days}</td>
+                      <td key={b.bucket}>
+                        {isAdmin ? (
+                          <input
+                            type="number" step="1" className="cost-of-debt-input"
+                            value={editedBuckets[b.bucket]?.grace_period_days ?? b.grace_period_days}
+                            onChange={(e) => updateBucketField(b.bucket, "grace_period_days", e.target.value)}
+                          />
+                        ) : b.grace_period_days}
+                      </td>
                     ))}
                   </tr>
                   <tr>
@@ -200,6 +260,12 @@ export default function CostOfDebtReport() {
                 </tbody>
               </table>
             </div>
+            {isAdmin && (
+              <button className="btn-primary sm" onClick={handleSaveSettings} disabled={savingSettings} style={{ marginTop: 12 }}>
+                <Save size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
+                {savingSettings ? t("saving") : t("save")}
+              </button>
+            )}
           </>
         )}
       </div>

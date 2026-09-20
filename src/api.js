@@ -421,8 +421,6 @@ export const api = {
     const qs = buildQueryString(params);
     return request(`/api/reports/cost-of-debt${qs ? `?${qs}` : ""}`);
   },
-  getCostOfDebtSettings: () => request("/api/admin/cost-of-debt-settings"),
-  saveCostOfDebtSettings: (payload) => request("/api/admin/cost-of-debt-settings", { method: "PUT", body: JSON.stringify(payload) }),
   getCostOfDebtBucketSettings: () => request("/api/admin/cost-of-debt-bucket-settings"),
   saveCostOfDebtBucketSettings: (payload) => request("/api/admin/cost-of-debt-bucket-settings", { method: "PUT", body: JSON.stringify(payload) }),
 

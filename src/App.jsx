@@ -411,7 +411,7 @@ export default function App() {
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><AnnouncementHistory onSelectCustomer={setSelectedId} /></Suspense>
           )}
           {view === "costOfDebt" && (session.role === "admin" || (session.permissions || "").includes("costOfDebt")) && (
-            <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><CostOfDebtReport /></Suspense>
+            <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><CostOfDebtReport role={session.role} /></Suspense>
           )}
           {view === "debtWriteOffs" && (session.role === "admin" || (session.permissions || "").includes("debtWriteOffs")) && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><DebtWriteOffsReport onSelectCustomer={setSelectedId} role={session.role} /></Suspense>

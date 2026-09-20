@@ -1106,18 +1106,21 @@ export default function MyDay({ onSelectCustomer }) {
   const notDueYet = sortItems(filteredItems.filter((c) => c.not_due_yet));
   const dueQueue = [...carriedForward, ...todaysQueue];
 
-  // Focus Mode's own order: whoever's been sitting the longest without a
-  // status change, has the biggest balance, and hasn't actually been
-  // contacted in the longest time should come up first - not just "carried
-  // forward before today's". Ranked (not raw-value) so the three signals,
-  // which live on very different scales, weigh in evenly.
+  // Focus Mode's own order: a customer who owes nothing (or is in credit)
+  // isn't a collections priority no matter how overdue or neglected they
+  // are, so they're dropped from Focus Mode entirely. Among the rest,
+  // balance is weighted as the dominant signal, with staleness (longest
+  // overdue) and neglect (longest since last contact) breaking ties -
+  // ranked, not raw-value, so the three signals weigh in evenly on their
+  // own scale before balance is doubled.
   const focusQueue = (() => {
-    if (dueQueue.length === 0) return dueQueue;
+    const eligible = dueQueue.filter((c) => (c.current_due || 0) > 0);
+    if (eligible.length === 0) return eligible;
     const neglectDays = (c) => (
       c.last_activity?.created_at ? (nowMs - new Date(c.last_activity.created_at).getTime()) / 86400000 : Infinity
     );
     const rankBy = (keyFn) => {
-      const sorted = [...dueQueue].sort((a, b) => keyFn(b) - keyFn(a));
+      const sorted = [...eligible].sort((a, b) => keyFn(b) - keyFn(a));
       const ranks = new Map();
       sorted.forEach((c, i) => ranks.set(c.partner_id, i));
       return ranks;
@@ -1125,9 +1128,9 @@ export default function MyDay({ onSelectCustomer }) {
     const overdueRank = rankBy((c) => c.days_overdue || 0);
     const balanceRank = rankBy((c) => c.current_due || 0);
     const neglectRank = rankBy(neglectDays);
-    return [...dueQueue].sort((a, b) => {
-      const scoreA = overdueRank.get(a.partner_id) + balanceRank.get(a.partner_id) + neglectRank.get(a.partner_id);
-      const scoreB = overdueRank.get(b.partner_id) + balanceRank.get(b.partner_id) + neglectRank.get(b.partner_id);
+    return [...eligible].sort((a, b) => {
+      const scoreA = overdueRank.get(a.partner_id) + balanceRank.get(a.partner_id) * 2 + neglectRank.get(a.partner_id);
+      const scoreB = overdueRank.get(b.partner_id) + balanceRank.get(b.partner_id) * 2 + neglectRank.get(b.partner_id);
       return scoreA - scoreB;
     });
   })();
@@ -1200,7 +1203,7 @@ export default function MyDay({ onSelectCustomer }) {
             {attendance && attendance.clock_in && attendance.clock_out && (
               <span className="my-day-clocked-out-note">{t("clockedOutNote")}</span>
             )}
-            {!focusMode && dueQueue.length > 0 && (
+            {!focusMode && focusQueue.length > 0 && (
               <button className="btn-primary sm" onClick={() => setFocusMode(true)}>
                 <PlayCircle size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
                 {t("startFocusMode")}

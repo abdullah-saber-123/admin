@@ -3,6 +3,7 @@ import { Bell, AlertOctagon, CalendarClock, HeartCrack, AtSign } from "lucide-re
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 import { useToast } from "../toast.jsx";
+import { subscribeSignal } from "../callSocket.js";
 
 export default function NotificationBell({ kpis, syncStatus, isAdmin, onGoToDashboard, onSelectBucket, onSelectCustomer }) {
   const { t } = useLang();
@@ -32,7 +33,16 @@ export default function NotificationBell({ kpis, syncStatus, isAdmin, onGoToDash
   useEffect(() => {
     loadMentions();
     const interval = setInterval(loadMentions, 60000); // poll every minute
-    return () => clearInterval(interval);
+    // A share accepted/declined should show up right away, not up to a
+    // minute later - refresh immediately over the same live signal channel
+    // used for share requests, instead of waiting for the next poll.
+    const unsubscribe = subscribeSignal((data) => {
+      if (data.type === "share_response") loadMentions();
+    });
+    return () => {
+      clearInterval(interval);
+      unsubscribe();
+    };
   }, [loadMentions]);
 
   const handleMentionClick = async (n) => {

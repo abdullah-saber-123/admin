@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Search, Phone, CalendarCheck, Download, X, MessageCircle, Send, AlertTriangle, Check, ArrowUp, ArrowDown, ArrowUpDown, SlidersHorizontal, MapPin, Settings2, Trash2, StickyNote, ShieldAlert, Target } from "lucide-react";
+import { Search, Phone, CalendarCheck, Download, X, MessageCircle, Send, AlertTriangle, Check, ArrowUp, ArrowDown, ArrowUpDown, SlidersHorizontal, MapPin, Settings2, Trash2, StickyNote, ShieldAlert, Target, Share2 } from "lucide-react";
 import { api, BASE } from "../api";
 import Avatar from "./Avatar.jsx";
 import RiskBadge from "./RiskBadge.jsx";
 import AnimatedToggle from "./AnimatedToggle.jsx";
+import ShareCustomerModal from "./ShareCustomerModal.jsx";
 import { useLang } from "../i18n.jsx";
 import { useToast } from "../toast.jsx";
 import { fmtDate } from "../dateUtils.js";
@@ -32,6 +33,7 @@ export default function CustomerTable({ onSelect, bucket, onClearBucket, city, o
   const [retargetModalFor, setRetargetModalFor] = useState(null);
   const [retargetReason, setRetargetReason] = useState("");
   const [submittingRetarget, setSubmittingRetarget] = useState(false);
+  const [shareModalFor, setShareModalFor] = useState(null);
 
   const handleRetarget = async (e) => {
     e.preventDefault();
@@ -842,6 +844,13 @@ export default function CustomerTable({ onSelect, bucket, onClearBucket, city, o
                             <Target size={13} />
                           </button>
                         )}
+                        <button
+                          className="icon-btn"
+                          title={t("shareCustomerButton")}
+                          onClick={(e) => { e.stopPropagation(); setShareModalFor(c); }}
+                        >
+                          <Share2 size={13} />
+                        </button>
                       </div>
                     </td>
                     <td data-label={t("phone")}>
@@ -1160,6 +1169,10 @@ export default function CustomerTable({ onSelect, bucket, onClearBucket, city, o
             </form>
           </div>
         </div>
+      )}
+
+      {shareModalFor && (
+        <ShareCustomerModal partnerId={shareModalFor.partner_id} onClose={() => setShareModalFor(null)} />
       )}
     </div>
   );

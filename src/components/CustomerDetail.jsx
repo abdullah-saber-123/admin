@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
-import { X, Phone, MapPin, Receipt, Wallet, ChevronLeft, ChevronRight, ClipboardList, Download, Search, AlertTriangle, Mail, UserCheck, Flame, MessageCircle, CalendarClock, Banknote, TrendingUp, CalendarCheck, CircleDollarSign, Gift, Zap, CreditCard, Send, Share2, Megaphone, BarChart3, History, MapPinned } from "lucide-react";
+import { X, Phone, MapPin, Receipt, Wallet, ChevronLeft, ChevronRight, ClipboardList, Download, Search, AlertTriangle, Mail, UserCheck, Flame, MessageCircle, CalendarClock, Banknote, TrendingUp, CalendarCheck, CircleDollarSign, Gift, Zap, CreditCard, Send, Megaphone, BarChart3, History, MapPinned } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 import { useToast } from "../toast.jsx";
 import { fmtDate, fmtDateTime, daysUntil } from "../dateUtils.js";
 import RiyalAmount from "./RiyalAmount.jsx";
 import useBodyScrollLock from "../hooks/useBodyScrollLock.js";
-import ShareCustomerModal from "./ShareCustomerModal.jsx";
 import RiskBadge from "./RiskBadge.jsx";
 import AnnouncementComposeModal from "./AnnouncementComposeModal.jsx";
 function waLink(phone) {
@@ -45,7 +44,6 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
   useBodyScrollLock(true);
   const [detail, setDetail] = useState(null);
   const [error, setError] = useState(null);
-  const [showShareModal, setShowShareModal] = useState(false);
   const [showUrgentModal, setShowUrgentModal] = useState(false);
   const [showVisitModal, setShowVisitModal] = useState(false);
   const [visitReason, setVisitReason] = useState("");
@@ -504,10 +502,6 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
                 <button className="btn-secondary sm" onClick={handlePdfExport} disabled={exportingPdf}>
                   <Receipt size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
                   {exportingPdf ? t("exporting") : t("pdfStatement")}
-                </button>
-                <button className="btn-secondary sm" onClick={() => setShowShareModal(true)}>
-                  <Share2 size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
-                  {t("shareCustomerButton")}
                 </button>
                 <button
                   className="btn-secondary sm"
@@ -1052,9 +1046,6 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
           </>
         )}
       </div>
-      {showShareModal && (
-        <ShareCustomerModal partnerId={partnerId} onClose={() => setShowShareModal(false)} />
-      )}
       {showVisitModal && (
         <div className="overlay modal-overlay" onClick={() => setShowVisitModal(false)}>
           <div className="prompt-modal" onClick={(e) => e.stopPropagation()}>

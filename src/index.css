@@ -690,6 +690,43 @@ input, select, textarea { font-family: inherit; }
   border-radius: 20px;
   margin-bottom: 10px;
 }
+.pending-share-overlay {
+  position: fixed;
+  top: 16px;
+  inset-inline-end: 16px;
+  z-index: 2900;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.pending-share-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 18px;
+  width: 300px;
+  max-width: calc(100vw - 32px);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.28);
+  animation: modal-scale-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.pending-share-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+.pending-share-heading { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.pending-share-body { font-size: 12.5px; color: var(--text-dim); line-height: 1.5; }
+.pending-share-reason { font-size: 11.5px; color: var(--text-faint); margin-top: 6px; }
+.pending-share-expiry { font-size: 11px; color: var(--text-faint); margin-top: 6px; }
+.pending-share-actions { display: flex; gap: 8px; margin-top: 12px; }
+.pending-share-actions button { flex: 1; justify-content: center; }
+.pending-share-more { font-size: 10.5px; color: var(--text-faint); margin-top: 8px; text-align: center; }
 .announcement-history-card {
   background: var(--card);
   border: 1px solid var(--border);

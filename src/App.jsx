@@ -11,6 +11,7 @@ import CustomerDetail from "./components/CustomerDetail.jsx";
 import CallOverlay from "./components/CallOverlay.jsx";
 import ChatWidget from "./components/ChatWidget.jsx";
 import AnnouncementOverlay from "./components/AnnouncementOverlay.jsx";
+import PendingShareOverlay from "./components/PendingShareOverlay.jsx";
 import PaymentCelebration from "./components/PaymentCelebration.jsx";
 import AlertToasts from "./components/AlertToasts.jsx";
 import usePushNotifications from "./hooks/usePushNotifications.js";
@@ -468,6 +469,7 @@ export default function App() {
       <CallOverlay ref={callOverlayRef} username={session.username} />
       <ChatWidget callOverlayRef={callOverlayRef} />
       <AnnouncementOverlay />
+      <PendingShareOverlay />
       <PaymentCelebration />
       <AlertToasts
         role={session.role}

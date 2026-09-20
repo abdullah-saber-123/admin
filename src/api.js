@@ -170,6 +170,14 @@ export const api = {
   updateTeamsSettings: (data) => request("/api/admin/teams-settings", { method: "PUT", body: JSON.stringify(data) }),
   testTeamsSettings: () => request("/api/admin/teams-settings/test", { method: "POST" }),
   remindersOverview: (collector = "") => request(`/api/admin/reminders-overview${collector ? `?collector=${encodeURIComponent(collector)}` : ""}`),
+  exportRemindersOverviewPdf: (params = {}) => {
+    const qs = buildQueryString(params);
+    return requestBlob(`/api/admin/reminders-overview/export.pdf${qs ? `?${qs}` : ""}`);
+  },
+  sendRemindersOverviewToTeams: (params = {}) => {
+    const qs = buildQueryString(params);
+    return request(`/api/admin/reminders-overview/send-teams${qs ? `?${qs}` : ""}`, { method: "POST" });
+  },
   brokenPromisesLog: (params = {}) => {
     const qs = buildQueryString(params);
     return request(`/api/admin/broken-promises${qs ? `?${qs}` : ""}`);

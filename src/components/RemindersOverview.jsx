@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
-import { BellRing, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { BellRing, ArrowUp, ArrowDown, ArrowUpDown, Download, Send } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
+import { useToast } from "../toast.jsx";
 import { fmtDate } from "../dateUtils.js";
 import RiyalAmount from "./RiyalAmount.jsx";
 
 export default function RemindersOverview({ onSelectCustomer }) {
-  const { t, statusLabel } = useLang();
+  const { t, statusLabel, lang } = useLang();
+  const { showToast } = useToast();
   const [rows, setRows] = useState(null);
   const [error, setError] = useState(null);
   const [collectors, setCollectors] = useState([]);
@@ -16,6 +18,8 @@ export default function RemindersOverview({ onSelectCustomer }) {
   const [overdueFilter, setOverdueFilter] = useState(""); // "" | "overdue" | "today"
   const [sortBy, setSortBy] = useState("next_follow_up_date");
   const [sortDir, setSortDir] = useState("asc");
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [sendingTeams, setSendingTeams] = useState(false);
 
   const toggleSort = (col) => {
     if (sortBy === col) {
@@ -63,11 +67,51 @@ export default function RemindersOverview({ onSelectCustomer }) {
     return sortDir === "asc" ? cmp : -cmp;
   }) : null;
 
+  const currentFilterParams = { collector: collectorFilter || null, status: statusFilter || null, overdue: overdueFilter || null };
+
+  const handleExportPdf = async () => {
+    setExportingPdf(true);
+    try {
+      await api.exportRemindersOverviewPdf({ ...currentFilterParams, lang });
+      showToast(t("exportReady"), "success");
+    } catch (e) {
+      showToast(e.message, "error");
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
+  const handleSendTeams = async () => {
+    setSendingTeams(true);
+    try {
+      const res = await api.sendRemindersOverviewToTeams(currentFilterParams);
+      showToast(t("sentToTeams").replace("{n}", res.count), "success");
+    } catch (e) {
+      showToast(e.message, "error");
+    } finally {
+      setSendingTeams(false);
+    }
+  };
+
   return (
     <div className="content-stack" style={{ maxWidth: "100%" }}>
       <div className="panel">
-        <h2><BellRing size={15} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />{t("remindersOverviewTitle")}</h2>
-        <p className="panel-sub">{t("remindersOverviewHint")}</p>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
+          <div>
+            <h2><BellRing size={15} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />{t("remindersOverviewTitle")}</h2>
+            <p className="panel-sub">{t("remindersOverviewHint")}</p>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="btn-secondary sm" onClick={handleExportPdf} disabled={exportingPdf}>
+              <Download size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
+              {exportingPdf ? t("exporting") : t("print")}
+            </button>
+            <button className="btn-secondary sm" onClick={handleSendTeams} disabled={sendingTeams}>
+              <Send size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
+              {sendingTeams ? t("sending") : t("sendToTeams")}
+            </button>
+          </div>
+        </div>
 
         <div className="more-filters-row" style={{ marginBottom: 14 }}>
           <div className="more-filter-field">

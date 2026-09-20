@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Gauge, Search } from "lucide-react";
+import { Gauge, Search, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 import RiyalAmount from "./RiyalAmount.jsx";
@@ -19,18 +19,49 @@ export default function CustomerScoreReport({ onSelectCustomer }) {
   const { t } = useLang();
   const [search, setSearch] = useState("");
   const [gradeFilter, setGradeFilter] = useState("");
+  const [paymentTypeFilter, setPaymentTypeFilter] = useState("");
+  const [paymentTypeOptions, setPaymentTypeOptions] = useState([]);
+  const [sortBy, setSortBy] = useState("score");
+  const [sortDir, setSortDir] = useState("asc");
   const [rows, setRows] = useState(null);
   const [error, setError] = useState(null);
 
+  useEffect(() => { api.fieldOptions("payment_type").then(setPaymentTypeOptions).catch(() => {}); }, []);
+
   const load = useCallback(() => {
     setError(null);
-    api.customerScores({ search, grade: gradeFilter }).then(setRows).catch((e) => setError(e.message));
-  }, [search, gradeFilter]);
+    api.customerScores({ search, grade: gradeFilter, payment_type: paymentTypeFilter || null }).then(setRows).catch((e) => setError(e.message));
+  }, [search, gradeFilter, paymentTypeFilter]);
 
   useEffect(() => {
     const timer = setTimeout(load, 250);
     return () => clearTimeout(timer);
   }, [load]);
+
+  const toggleSort = (col) => {
+    if (sortBy === col) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(col);
+      setSortDir("asc");
+    }
+  };
+
+  const sortIcon = (col) => {
+    if (sortBy !== col) return <ArrowUpDown size={11} style={{ opacity: 0.4 }} />;
+    return sortDir === "asc" ? <ArrowUp size={11} /> : <ArrowDown size={11} />;
+  };
+
+  const sortedRows = rows ? [...rows].sort((a, b) => {
+    let cmp = 0;
+    if (sortBy === "name") cmp = (a.name || "").localeCompare(b.name || "", "ar");
+    else if (sortBy === "collector") cmp = (a.collector || "").localeCompare(b.collector || "", "ar");
+    else if (sortBy === "current_due") cmp = (a.current_due || 0) - (b.current_due || 0);
+    else if (sortBy === "payment_type") cmp = (a.payment_type || "").localeCompare(b.payment_type || "", "ar");
+    else if (sortBy === "score") cmp = a.score - b.score;
+    else if (sortBy === "grade") cmp = (a.grade || "").localeCompare(b.grade || "");
+    return sortDir === "asc" ? cmp : -cmp;
+  }) : null;
 
   const counts = rows
     ? { A: rows.filter((r) => r.grade === "A").length, B: rows.filter((r) => r.grade === "B").length, C: rows.filter((r) => r.grade === "C").length, D: rows.filter((r) => r.grade === "D").length }
@@ -49,6 +80,13 @@ export default function CustomerScoreReport({ onSelectCustomer }) {
               <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("searchPlaceholder")} />
             </div>
           </div>
+          <div className="more-filter-field">
+            <label>{t("paymentTypeLabel")}</label>
+            <select value={paymentTypeFilter} onChange={(e) => setPaymentTypeFilter(e.target.value)}>
+              <option value="">{t("allStatus")}</option>
+              {paymentTypeOptions.map((o) => <option key={o.id} value={o.value}>{o.value}</option>)}
+            </select>
+          </div>
         </div>
 
         <div className="quick-toggle-row">
@@ -62,29 +100,31 @@ export default function CustomerScoreReport({ onSelectCustomer }) {
 
         {error && <div className="error-state">{error}</div>}
         {!error && !rows && <div className="loading-state">{t("loadingDots")}</div>}
-        {rows && rows.length === 0 && <div className="empty-state">{t("noActivity")}</div>}
+        {sortedRows && sortedRows.length === 0 && <div className="empty-state">{t("noActivity")}</div>}
 
-        {rows && rows.length > 0 && (
+        {sortedRows && sortedRows.length > 0 && (
           <div className="table-wrap">
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>{t("customer")}</th>
-                  <th>{t("collectorField")}</th>
-                  <th>{t("balanceDue")}</th>
+                  <th className="sortable" onClick={() => toggleSort("name")}>{t("customer")} {sortIcon("name")}</th>
+                  <th className="sortable" onClick={() => toggleSort("collector")}>{t("collectorField")} {sortIcon("collector")}</th>
+                  <th className="sortable" onClick={() => toggleSort("current_due")}>{t("balanceDue")} {sortIcon("current_due")}</th>
+                  <th className="sortable" onClick={() => toggleSort("payment_type")}>{t("paymentTypeLabel")} {sortIcon("payment_type")}</th>
                   <th>{t("status")}</th>
-                  <th>{t("scoreLabel")}</th>
-                  <th>{t("gradeLabel")}</th>
+                  <th className="sortable" onClick={() => toggleSort("score")}>{t("scoreLabel")} {sortIcon("score")}</th>
+                  <th className="sortable" onClick={() => toggleSort("grade")}>{t("gradeLabel")} {sortIcon("grade")}</th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r) => (
+                {sortedRows.map((r) => (
                   <tr key={r.partner_id}>
                     <td data-label={t("customer")} className="clickable-row" onClick={() => onSelectCustomer?.(r.partner_id)}>
                       <span className="cust-name">{r.name}</span>
                     </td>
                     <td data-label={t("collectorField")}>{r.collector || "—"}</td>
                     <td data-label={t("balanceDue")}><RiyalAmount amount={r.current_due} /></td>
+                    <td data-label={t("paymentTypeLabel")}>{r.payment_type || "—"}</td>
                     <td data-label={t("status")}>
                       <span className={`status-tag ${r.status}`}>{r.status}</span>
                     </td>

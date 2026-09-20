@@ -46,7 +46,7 @@ export default function ProfileModal({ mode, userId, collectorName, onClose, cal
     setNotFound(false);
     const loader = mode === "self" ? api.myProfile()
       : mode === "user" ? api.userProfile(userId)
-      : api.collectorProfile(collectorName);
+      : api.collectorProfileByName(collectorName);
     loader
       .then((p) => {
         setProfile(p);

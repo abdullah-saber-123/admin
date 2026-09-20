@@ -282,7 +282,7 @@ export const api = {
   changeMyPassword: (current_password, new_password) =>
     request("/api/me/password", { method: "POST", body: JSON.stringify({ current_password, new_password }) }),
   userProfile: (id) => request(`/api/users/${id}/profile`),
-  collectorProfile: (name) => request(`/api/collector-profile?name=${encodeURIComponent(name)}`),
+  collectorProfileByName: (name) => request(`/api/collector-profile?name=${encodeURIComponent(name)}`),
   globalSearch: (q) => request(`/api/search?q=${encodeURIComponent(q)}`),
   loginHistory: () => request("/api/admin/login-history"),
   statementLinks: (partnerIds) => request("/api/statement-links", { method: "POST", body: JSON.stringify({ partner_ids: partnerIds }) }),

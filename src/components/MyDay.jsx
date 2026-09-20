@@ -186,6 +186,7 @@ function FocusModeView({ queue, quickStatuses, statuses, onQuickOutcome, onQuick
   const [index, setIndex] = useState(0);
   const [jumpSearch, setJumpSearch] = useState("");
   const [showFullForm, setShowFullForm] = useState(false);
+  const [quickOutcomeStatus, setQuickOutcomeStatus] = useState(null);
   const [sessionStats, setSessionStats] = useState({ done: 0, snoozed: 0, skipped: 0, fullFollowups: 0 });
   const [advancing, setAdvancing] = useState(false);
   const [callSeconds, setCallSeconds] = useState(0);
@@ -453,7 +454,7 @@ function FocusModeView({ queue, quickStatuses, statuses, onQuickOutcome, onQuick
             ) : (
               <div className="my-day-focus-outcomes">
                 {quickStatuses.map((qs) => (
-                  <button key={qs.id} className="btn-primary sm" onClick={() => handleAction(() => onQuickOutcome(c.partner_id, qs.name), "done")}>
+                  <button key={qs.id} className="btn-primary sm" onClick={() => setQuickOutcomeStatus(qs)}>
                     {statusLabel(qs.name)}
                   </button>
                 ))}
@@ -488,6 +489,17 @@ function FocusModeView({ queue, quickStatuses, statuses, onQuickOutcome, onQuick
           onSubmit={async (payload) => {
             setShowFullForm(false);
             await handleAction(() => onFullFollowup(c.partner_id, payload), "fullFollowups");
+          }}
+        />
+      )}
+      {quickOutcomeStatus && (
+        <QuickOutcomeModal
+          customerName={c.name} status={quickOutcomeStatus} statusLabel={statusLabel} t={t}
+          onClose={() => setQuickOutcomeStatus(null)}
+          onSubmit={async (note, nextDate) => {
+            const status = quickOutcomeStatus;
+            setQuickOutcomeStatus(null);
+            await handleAction(() => onQuickOutcome(c.partner_id, status.name, note, nextDate), "done");
           }}
         />
       )}
@@ -550,6 +562,48 @@ function FullFollowupModal({ customer, statuses, onClose, onSubmit, t, statusLab
           <input type="date" value={nextDate} onChange={(e) => setNextDate(e.target.value)} />
           <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
             <button className="btn-primary" type="submit" disabled={saving || !status}>
+              {saving ? t("saving") : t("logFollowup")}
+            </button>
+            <button className="btn-secondary" type="button" onClick={onClose}>{t("cancel")}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function QuickOutcomeModal({ customerName, status, statusLabel, onClose, onSubmit, t }) {
+  const [note, setNote] = useState("");
+  const [nextDate, setNextDate] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await onSubmit(note.trim(), status.requires_next_date ? nextDate : null);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="overlay modal-overlay" onClick={onClose}>
+      <div className="prompt-modal" onClick={(e) => e.stopPropagation()}>
+        <button className="close-btn" onClick={onClose}><X size={16} /></button>
+        <h3>{customerName}</h3>
+        <p className="panel-sub">{statusLabel(status.name)}</p>
+        <form onSubmit={handleSubmit} className="admin-form">
+          <label>{t("note")}</label>
+          <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} required autoFocus />
+          {status.requires_next_date && (
+            <>
+              <label>{t("nextFollowupDate")}</label>
+              <input type="date" value={nextDate} onChange={(e) => setNextDate(e.target.value)} required />
+            </>
+          )}
+          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+            <button className="btn-primary" type="submit" disabled={saving || !note.trim() || (status.requires_next_date && !nextDate)}>
               {saving ? t("saving") : t("logFollowup")}
             </button>
             <button className="btn-secondary" type="button" onClick={onClose}>{t("cancel")}</button>
@@ -936,7 +990,11 @@ export default function MyDay({ onSelectCustomer }) {
     }
   };
 
-  const handleQuickOutcome = async (partnerId, status) => {
+  // Every follow-up log requires a note (and, for some statuses, a next
+  // date) server-side - a quick-outcome tap can't skip straight to the API
+  // like quick check-in does, so it opens a one-field modal to collect just
+  // that before submitting.
+  const submitQuickOutcome = async (partnerId, status, note, nextFollowUpDate) => {
     setData((prev) => {
       if (!prev) return prev;
       const alreadyDone = prev.items.find((i) => i.partner_id === partnerId)?.done_today;
@@ -947,13 +1005,20 @@ export default function MyDay({ onSelectCustomer }) {
       };
     });
     try {
-      await api.logFollowup(partnerId, { status });
+      await api.logFollowup(partnerId, { status, note, next_follow_up_date: nextFollowUpDate || null });
       showToast(t("outcomeLogged"), "success");
       api.myDay().then(setData).catch(() => {});
     } catch (e) {
       showToast(e.message, "error");
       api.myDay().then(setData).catch(() => {});
     }
+  };
+
+  const [quickOutcomeRequest, setQuickOutcomeRequest] = useState(null); // { partnerId, name, status }
+  const requestQuickOutcome = (partnerId, statusName) => {
+    const statusObj = statuses.find((s) => s.name === statusName) || { name: statusName, requires_next_date: false };
+    const customer = items.find((i) => i.partner_id === partnerId);
+    setQuickOutcomeRequest({ partnerId, name: customer?.name || "", status: statusObj });
   };
 
   const handleSnooze = async (partnerId, hours) => {
@@ -1129,7 +1194,7 @@ export default function MyDay({ onSelectCustomer }) {
         {focusMode && (
           <FocusModeView
             queue={dueQueue} quickStatuses={quickStatuses} statuses={statuses}
-            onQuickOutcome={handleQuickOutcome} onQuickCheckin={handleQuickCheckin} onUndo={handleUndo}
+            onQuickOutcome={submitQuickOutcome} onQuickCheckin={handleQuickCheckin} onUndo={handleUndo}
             onSnooze={handleSnooze} onFullFollowup={handleFullFollowup}
             onSelectCustomer={onSelectCustomer} onExit={() => setFocusMode(false)}
             t={t} statusLabel={statusLabel} money={money} nowMs={nowMs}
@@ -1307,7 +1372,7 @@ export default function MyDay({ onSelectCustomer }) {
                       <QueueTable
                         items={cityItems} t={t} statusLabel={statusLabel}
                         onQuickCheckin={handleQuickCheckin} onUndo={handleUndo} onOpenHistory={setHistoryCustomer} onSelectCustomer={onSelectCustomer} onSnooze={handleSnooze}
-                        quickStatuses={quickStatuses} onQuickOutcome={handleQuickOutcome} nowMs={nowMs} onOpenSettlement={setSettlementCustomer}
+                        quickStatuses={quickStatuses} onQuickOutcome={requestQuickOutcome} nowMs={nowMs} onOpenSettlement={setSettlementCustomer}
                       />
                     </div>
                   ))
@@ -1315,7 +1380,7 @@ export default function MyDay({ onSelectCustomer }) {
                   <QueueTable
                     items={carriedForward} t={t} statusLabel={statusLabel}
                     onQuickCheckin={handleQuickCheckin} onUndo={handleUndo} onOpenHistory={setHistoryCustomer} onSelectCustomer={onSelectCustomer} onSnooze={handleSnooze}
-                    quickStatuses={quickStatuses} onQuickOutcome={handleQuickOutcome} nowMs={nowMs} onOpenSettlement={setSettlementCustomer}
+                    quickStatuses={quickStatuses} onQuickOutcome={requestQuickOutcome} nowMs={nowMs} onOpenSettlement={setSettlementCustomer}
                   />
                 )}
               </>
@@ -1340,7 +1405,7 @@ export default function MyDay({ onSelectCustomer }) {
                       <QueueTable
                         items={cityItems} t={t} statusLabel={statusLabel}
                         onQuickCheckin={handleQuickCheckin} onUndo={handleUndo} onOpenHistory={setHistoryCustomer} onSelectCustomer={onSelectCustomer} onSnooze={handleSnooze}
-                        quickStatuses={quickStatuses} onQuickOutcome={handleQuickOutcome} nowMs={nowMs} onOpenSettlement={setSettlementCustomer}
+                        quickStatuses={quickStatuses} onQuickOutcome={requestQuickOutcome} nowMs={nowMs} onOpenSettlement={setSettlementCustomer}
                       />
                     </div>
                   ))
@@ -1348,7 +1413,7 @@ export default function MyDay({ onSelectCustomer }) {
                   <QueueTable
                     items={todaysQueue} t={t} statusLabel={statusLabel}
                     onQuickCheckin={handleQuickCheckin} onUndo={handleUndo} onOpenHistory={setHistoryCustomer} onSelectCustomer={onSelectCustomer} onSnooze={handleSnooze}
-                    quickStatuses={quickStatuses} onQuickOutcome={handleQuickOutcome} nowMs={nowMs} onOpenSettlement={setSettlementCustomer}
+                    quickStatuses={quickStatuses} onQuickOutcome={requestQuickOutcome} nowMs={nowMs} onOpenSettlement={setSettlementCustomer}
                   />
                 )}
               </>
@@ -1370,7 +1435,7 @@ export default function MyDay({ onSelectCustomer }) {
                         <QueueTable
                           items={cityItems} t={t} statusLabel={statusLabel}
                           onQuickCheckin={handleQuickCheckin} onUndo={handleUndo} onOpenHistory={setHistoryCustomer} onSelectCustomer={onSelectCustomer} onSnooze={handleSnooze}
-                          quickStatuses={quickStatuses} onQuickOutcome={handleQuickOutcome} nowMs={nowMs} onOpenSettlement={setSettlementCustomer}
+                          quickStatuses={quickStatuses} onQuickOutcome={requestQuickOutcome} nowMs={nowMs} onOpenSettlement={setSettlementCustomer}
                         />
                       </div>
                     ))
@@ -1378,7 +1443,7 @@ export default function MyDay({ onSelectCustomer }) {
                     <QueueTable
                       items={notDueYet} t={t} statusLabel={statusLabel}
                       onQuickCheckin={handleQuickCheckin} onUndo={handleUndo} onOpenHistory={setHistoryCustomer} onSelectCustomer={onSelectCustomer} onSnooze={handleSnooze}
-                      quickStatuses={quickStatuses} onQuickOutcome={handleQuickOutcome} nowMs={nowMs} onOpenSettlement={setSettlementCustomer}
+                      quickStatuses={quickStatuses} onQuickOutcome={requestQuickOutcome} nowMs={nowMs} onOpenSettlement={setSettlementCustomer}
                     />
                   )
                 )}
@@ -1398,6 +1463,18 @@ export default function MyDay({ onSelectCustomer }) {
       )}
       {settlementCustomer && (
         <SettlementCalculatorModal customer={settlementCustomer} onClose={() => setSettlementCustomer(null)} t={t} money={money} />
+      )}
+      {quickOutcomeRequest && (
+        <QuickOutcomeModal
+          customerName={quickOutcomeRequest.name} status={quickOutcomeRequest.status}
+          statusLabel={statusLabel} t={t}
+          onClose={() => setQuickOutcomeRequest(null)}
+          onSubmit={async (note, nextDate) => {
+            const { partnerId, status } = quickOutcomeRequest;
+            setQuickOutcomeRequest(null);
+            await submitQuickOutcome(partnerId, status.name, note, nextDate);
+          }}
+        />
       )}
     </div>
   );

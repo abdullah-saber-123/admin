@@ -239,6 +239,12 @@ export const api = {
     request(`/api/reconciliations/${id}/statement-sent`, { method: "PATCH", body: JSON.stringify({ sent }) }),
   reconciliationConfirmationPdf: (id, asOfDate, lang) =>
     requestBlob(`/api/reconciliations/${id}/confirmation-pdf?as_of_date=${asOfDate}&lang=${lang}`),
+  reconciliationsExportPdf: (params = {}) => {
+    const qs = buildQueryString(params);
+    return requestBlob(`/api/reconciliations/export.pdf${qs ? `?${qs}` : ""}`);
+  },
+  reconciliationStatementPdfDownload: (partnerId, asOfDate, lang) =>
+    requestBlob(`/api/customers/${partnerId}/statement.pdf?lang=${lang}&as_of_date=${asOfDate}`),
   retargetBranchOptions: () => request(`/api/retarget-cases/branch-options`),
   createRetargetCase: (partner_id, reason) =>
     request(`/api/retarget-cases`, { method: "POST", body: JSON.stringify({ partner_id, reason }) }),

@@ -274,17 +274,30 @@ function SendStatementModal({ item, onClose, onDone, t, showToast, lang }) {
     .replace("{date}", asOfDate ? fmtDate(asOfDate) : "");
   const fullMessage = link ? `${message}\n\n${t("statementLinkLabel")}: ${link}` : message;
 
-  const sendAndMark = async () => {
+  const [downloading, setDownloading] = useState(false);
+
+  // Opened directly inside the click handler, before any async work - some
+  // browsers (Safari in particular) treat window.open as an untrusted popup
+  // the moment it's called from inside code that awaits anything first, even
+  // if the open() call itself comes before the first await.
+  const sendAndMark = () => {
     window.open(`${waLink(item.phone)}?text=${encodeURIComponent(fullMessage)}`, "_blank");
     setMarking(true);
+    api.setReconciliationStatementSent(item.case_id, true)
+      .then(() => { showToast(t("saved"), "success"); onDone(); })
+      .catch((e) => showToast(e.message, "error"))
+      .finally(() => setMarking(false));
+  };
+
+  const downloadStatement = async () => {
+    if (!asOfDate) return;
+    setDownloading(true);
     try {
-      await api.setReconciliationStatementSent(item.case_id, true);
-      showToast(t("saved"), "success");
-      onDone();
+      await api.reconciliationStatementPdfDownload(item.partner_id, asOfDate, lang);
     } catch (e) {
       showToast(e.message, "error");
     } finally {
-      setMarking(false);
+      setDownloading(false);
     }
   };
 
@@ -321,10 +334,15 @@ function SendStatementModal({ item, onClose, onDone, t, showToast, lang }) {
         }}>
           {fullMessage}
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ fontSize: 11, color: "var(--text-faint)", marginBottom: 10 }}>{t("whatsappAttachHint")}</div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button className="btn-primary" disabled={!item.phone || !asOfDate || marking} onClick={sendAndMark}>
             <MessageCircle size={14} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />
             {t("openWhatsApp")}
+          </button>
+          <button className="btn-secondary" disabled={!asOfDate || downloading} onClick={downloadStatement}>
+            <Download size={14} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />
+            {downloading ? t("loadingDots") : t("downloadStatementPdf")}
           </button>
           <button className="btn-secondary" onClick={onClose}>{t("cancel")}</button>
         </div>
@@ -530,6 +548,7 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
   const [confirmationFormModal, setConfirmationFormModal] = useState(null);
   const [viewerUrl, setViewerUrl] = useState(null);
   const [viewerType, setViewerType] = useState(null);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     api.cities().then(setCities).catch(() => {});
@@ -537,19 +556,23 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
     api.staffList().then(setStaffList).catch(() => {});
   }, []);
 
-  const load = useCallback(() => {
-    setError(null);
+  const filterParams = useCallback(() => {
     const params = {
-      search, city: cityFilter, collector: collectorFilter, status: statusFilter, mine: mineOnly, page, page_size: 25,
+      search, city: cityFilter, collector: collectorFilter, status: statusFilter, mine: mineOnly,
       sort_by: sortBy, sort_dir: sortDir, assigned_to: assignedToFilter,
       last_reconciliation_from: lastReconciliationFrom, last_reconciliation_to: lastReconciliationTo,
     };
     if (statementSentFilter) params.statement_sent = statementSentFilter === "sent";
-    api.reconciliations(params).then(setData).catch((e) => setError(e.message));
+    return params;
   }, [
     search, cityFilter, collectorFilter, statusFilter, mineOnly, statementSentFilter,
-    assignedToFilter, lastReconciliationFrom, lastReconciliationTo, page, sortBy, sortDir,
+    assignedToFilter, lastReconciliationFrom, lastReconciliationTo, sortBy, sortDir,
   ]);
+
+  const load = useCallback(() => {
+    setError(null);
+    api.reconciliations({ ...filterParams(), page, page_size: 25 }).then(setData).catch((e) => setError(e.message));
+  }, [filterParams, page]);
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { setPage(1); }, [
@@ -560,6 +583,17 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
   const toggleSort = (field) => {
     if (sortBy === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     else { setSortBy(field); setSortDir(field === "name" ? "asc" : "desc"); }
+  };
+
+  const exportPdf = async () => {
+    setExporting(true);
+    try {
+      await api.reconciliationsExportPdf({ ...filterParams(), lang });
+    } catch (e) {
+      showToast(e.message, "error");
+    } finally {
+      setExporting(false);
+    }
   };
   const SortIcon = ({ col }) => {
     if (sortBy !== col) return <ArrowUpDown size={11} className="sort-icon idle" />;
@@ -590,7 +624,13 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
   return (
     <div className="content-stack" style={{ maxWidth: "100%" }}>
       <div className="panel">
-        <h2><ClipboardCheck size={15} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />{t("reconciliationsTitle")}</h2>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
+          <h2><ClipboardCheck size={15} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />{t("reconciliationsTitle")}</h2>
+          <button className="btn-secondary sm" disabled={exporting} onClick={exportPdf}>
+            <Printer size={13} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />
+            {exporting ? t("loadingDots") : t("exportPdfButton")}
+          </button>
+        </div>
         <p className="panel-sub">{t("reconciliationsHint")}</p>
 
         <div className="more-filters-row" style={{ marginBottom: 14 }}>

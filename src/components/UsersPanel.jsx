@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { UserPlus, Trash2, KeyRound, Link2, ShieldCheck, Phone, Users2, ShieldHalf, UserCog, UserX, Search, Tag, Globe } from "lucide-react";
+import { UserPlus, Trash2, KeyRound, Link2, ShieldCheck, Phone, Users2, ShieldHalf, UserCog, UserX, Search, Tag, Globe, Pencil } from "lucide-react";
 import { api, getSession } from "../api";
 import { useLang } from "../i18n.jsx";
 import { useToast } from "../toast.jsx";
@@ -49,6 +49,7 @@ export default function UsersPanel({ onOpenUserProfile }) {
   const [delayReasonsTarget, setDelayReasonsTarget] = useState(null);
   const [delayReasonOptions, setDelayReasonOptions] = useState([]);
   const [phoneTarget, setPhoneTarget] = useState(null);
+  const [fullNameTarget, setFullNameTarget] = useState(null);
   const [search, setSearch] = useState("");
 
   const me = getSession()?.username;
@@ -143,6 +144,17 @@ export default function UsersPanel({ onOpenUserProfile }) {
       setPhoneTarget(null);
       load();
       showToast("Phone number updated.", "success");
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+  };
+
+  const handleFullNameUpdate = async (value) => {
+    try {
+      await api.updateUserFullName(fullNameTarget.id, (value || "").trim());
+      setFullNameTarget(null);
+      load();
+      showToast(t("saved"), "success");
     } catch (err) {
       showToast(err.message, "error");
     }
@@ -388,6 +400,9 @@ export default function UsersPanel({ onOpenUserProfile }) {
                             <Tag size={14} />
                           </button>
                         )}
+                        <button className="icon-btn" title={t("fullName")} onClick={() => setFullNameTarget(u)}>
+                          <Pencil size={14} />
+                        </button>
                         <button className="icon-btn" title={t("collectorPhoneLabel")} onClick={() => setPhoneTarget(u)}>
                           <Phone size={14} />
                         </button>
@@ -470,6 +485,16 @@ export default function UsersPanel({ onOpenUserProfile }) {
         placeholder="+9665XXXXXXXX"
         onSubmit={handlePhoneUpdate}
         onCancel={() => setPhoneTarget(null)}
+      />
+
+      <PromptModal
+        open={!!fullNameTarget}
+        title={t("fullName")}
+        type="text"
+        label={fullNameTarget ? `${t("fullName")}: ${fullNameTarget.username}` : ""}
+        initialValue={fullNameTarget?.full_name || ""}
+        onSubmit={handleFullNameUpdate}
+        onCancel={() => setFullNameTarget(null)}
       />
     </div>
   );

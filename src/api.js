@@ -278,6 +278,7 @@ export const api = {
   },
   invoiceDelayReasons: () => request("/api/reports/invoices/delay-reasons"),
   updateUserPhone: (id, phone) => request(`/api/admin/users/${id}/phone?phone=${encodeURIComponent(phone || "")}`, { method: "PATCH" }),
+  updateUserFullName: (id, full_name) => request(`/api/admin/users/${id}/full-name?full_name=${encodeURIComponent(full_name || "")}`, { method: "PATCH" }),
   myProfile: () => request("/api/me"),
   updateMyProfile: (data) => request("/api/me", { method: "PATCH", body: JSON.stringify(data) }),
   changeMyPassword: (current_password, new_password) =>

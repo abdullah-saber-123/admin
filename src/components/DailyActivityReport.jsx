@@ -65,12 +65,14 @@ export default function DailyActivityReport({ isSupervisor = false }) {
   const [pendingModalFor, setPendingModalFor] = useState(null);
   const [nudgeTarget, setNudgeTarget] = useState(null);
   const [staffList, setStaffList] = useState([]);
+  const [asOf, setAsOf] = useState("");
 
   useEffect(() => {
-    api.dailyActivityReport().then(setData).catch((e) => setError(e.message));
+    setData(null);
+    api.dailyActivityReport(asOf || null).then(setData).catch((e) => setError(e.message));
     api.staffList().then(setStaffList).catch(() => {});
     if (!isSupervisor) api.adminAttendance().then(setAttendance).catch(() => {});
-  }, [isSupervisor]);
+  }, [isSupervisor, asOf]);
 
   const attendanceByUsername = {};
   (attendance?.collectors || []).forEach((a) => { attendanceByUsername[a.username] = a; });
@@ -91,7 +93,18 @@ export default function DailyActivityReport({ isSupervisor = false }) {
       <div className="panel">
         <h2><Activity size={15} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />{t("dailyActivityTitle")}</h2>
         <p className="panel-sub">{t("dailyActivityHint")} {isSupervisor && `— ${t("supervisorDashboardHint")}`}</p>
-        {data && <p style={{ fontSize: 12.5, color: "var(--text-dim)", margin: "0 0 14px" }}>{fmtDate(data.date)}</p>}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 0 14px" }}>
+          {data && <span style={{ fontSize: 12.5, color: "var(--text-dim)" }}>{fmtDate(data.date)}</span>}
+          <input
+            type="date" className="my-day-search-input" style={{ maxWidth: 160 }}
+            value={asOf} max={new Date().toISOString().slice(0, 10)}
+            onChange={(e) => setAsOf(e.target.value)}
+            title={t("reportAsOfLabel")}
+          />
+          {asOf && (
+            <button className="btn-secondary sm" onClick={() => setAsOf("")}>{t("resetToToday")}</button>
+          )}
+        </div>
 
         {error && <div className="error-state">{error}</div>}
         {!error && !data && <div className="loading-state">{t("loadingDots")}</div>}

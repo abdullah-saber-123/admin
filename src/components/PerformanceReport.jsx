@@ -10,19 +10,20 @@ export default function PerformanceReport() {
   const { t, money } = useLang();
   const { showToast } = useToast();
   const [period, setPeriod] = useState("monthly");
+  const [asOf, setAsOf] = useState("");
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     setData(null);
-    api.performanceReport(period).then(setData).catch((e) => setError(e.message));
-  }, [period]);
+    api.performanceReport(period, asOf || null).then(setData).catch((e) => setError(e.message));
+  }, [period, asOf]);
 
   const handleExport = async () => {
     setExporting(true);
     try {
-      await api.exportPerformanceReport(period);
+      await api.exportPerformanceReport(period, asOf || null);
       showToast(t("exportReady"), "success");
     } catch (e) {
       showToast(e.message, "error");
@@ -45,12 +46,21 @@ export default function PerformanceReport() {
           </button>
         </div>
 
-        <div className="quick-toggle-row">
+        <div className="quick-toggle-row" style={{ alignItems: "center" }}>
           {["daily", "monthly", "yearly"].map((p) => (
             <button key={p} className={`quick-toggle-chip ${period === p ? "active" : ""}`} onClick={() => setPeriod(p)}>
               {t(`period_${p}`)}
             </button>
           ))}
+          <input
+            type="date" className="my-day-search-input" style={{ maxWidth: 160 }}
+            value={asOf} max={new Date().toISOString().slice(0, 10)}
+            onChange={(e) => setAsOf(e.target.value)}
+            title={t("reportAsOfLabel")}
+          />
+          {asOf && (
+            <button className="btn-secondary sm" onClick={() => setAsOf("")}>{t("resetToToday")}</button>
+          )}
         </div>
 
         {error && <div className="error-state">{error}</div>}

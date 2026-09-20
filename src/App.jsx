@@ -479,6 +479,7 @@ export default function App() {
         onViewDueToday={() => setView("dueToday")}
         onViewNeglected={() => { setBucket("neglected_contact"); setView("dashboard"); }}
         onReviewCollector={(name) => name && setProfileModal({ mode: "collector", collectorName: name })}
+        onViewReconciliations={() => setView("reconciliations")}
       />
 
       {profileModal && (

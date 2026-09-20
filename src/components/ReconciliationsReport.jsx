@@ -3,7 +3,7 @@
 // check-in date) or flag a discrepancy, which detours to a specialist and
 // comes back to the same collector once resolved.
 import { useEffect, useState, useCallback } from "react";
-import { ClipboardCheck, Check, X as XIcon, AlertTriangle, FileText, Search, ArrowUp, ArrowDown, ArrowUpDown, History, Download, MessageCircle, Printer } from "lucide-react";
+import { ClipboardCheck, Check, X as XIcon, AlertTriangle, FileText, Search, ArrowUp, ArrowDown, ArrowUpDown, History, Download, MessageCircle, Printer, Clock } from "lucide-react";
 import { api, BASE } from "../api";
 import { useLang } from "../i18n.jsx";
 import { useToast } from "../toast.jsx";
@@ -555,6 +555,7 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
   const [assignedToFilter, setAssignedToFilter] = useState("");
   const [lastReconciliationFrom, setLastReconciliationFrom] = useState("");
   const [lastReconciliationTo, setLastReconciliationTo] = useState("");
+  const [showPostponed, setShowPostponed] = useState(false);
   const [cities, setCities] = useState([]);
   const [collectors, setCollectors] = useState([]);
   const [staffList, setStaffList] = useState([]);
@@ -583,12 +584,13 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
       search, city: cityFilter, collector: collectorFilter, status: statusFilter, mine: mineOnly,
       sort_by: sortBy, sort_dir: sortDir, assigned_to: assignedToFilter,
       last_reconciliation_from: lastReconciliationFrom, last_reconciliation_to: lastReconciliationTo,
+      hide_postponed: !showPostponed,
     };
     if (statementSentFilter) params.statement_sent = statementSentFilter === "sent";
     return params;
   }, [
     search, cityFilter, collectorFilter, statusFilter, mineOnly, statementSentFilter,
-    assignedToFilter, lastReconciliationFrom, lastReconciliationTo, sortBy, sortDir,
+    assignedToFilter, lastReconciliationFrom, lastReconciliationTo, showPostponed, sortBy, sortDir,
   ]);
 
   const load = useCallback(() => {
@@ -599,7 +601,7 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
   useEffect(() => { load(); }, [load]);
   useEffect(() => { setPage(1); }, [
     search, cityFilter, collectorFilter, statusFilter, mineOnly, statementSentFilter,
-    assignedToFilter, lastReconciliationFrom, lastReconciliationTo, sortBy, sortDir,
+    assignedToFilter, lastReconciliationFrom, lastReconciliationTo, showPostponed, sortBy, sortDir,
   ]);
 
   const toggleSort = (field) => {
@@ -635,6 +637,16 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
   const toggleStatementSent = async (caseId, sent) => {
     try {
       await api.setReconciliationStatementSent(caseId, sent);
+      load();
+    } catch (e) {
+      showToast(e.message, "error");
+    }
+  };
+
+  const postpone = async (caseId) => {
+    try {
+      await api.postponeReconciliation(caseId);
+      showToast(t("postponedToast"), "success");
       load();
     } catch (e) {
       showToast(e.message, "error");
@@ -711,6 +723,9 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
           <button className={`quick-toggle-chip ${mineOnly ? "active" : ""}`} onClick={() => setMineOnly((v) => !v)}>
             {t("myVisitsFilter")}
           </button>
+          <button className={`quick-toggle-chip ${showPostponed ? "active" : ""}`} onClick={() => setShowPostponed((v) => !v)}>
+            {t("showPostponedFilter")}
+          </button>
         </div>
 
         {error && <div className="error-state">{error}</div>}
@@ -773,6 +788,11 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
                                 />
                                 {t("statementSentLabel")}
                               </label>
+                              {r.snoozed_until && new Date(r.snoozed_until) > new Date() ? (
+                                <span className="fu-tag sm faint" title={fmtDate(r.snoozed_until)}>{t("postponedBadge")}</span>
+                              ) : (
+                                <button className="icon-btn" title={t("postponeButton")} onClick={() => postpone(r.case_id)}><Clock size={13} /></button>
+                              )}
                             </>
                           )}
                           {r.case_status === "issue" && (role === "admin" || r.specialist_assigned_to === username) && (

@@ -2,7 +2,7 @@
 // own "due today" / "gone quiet" counts, an admin sees which collectors are
 // actually falling behind. Dismissing one hides it until tomorrow.
 import { useEffect, useState } from "react";
-import { CalendarClock, AlertCircle, AlertTriangle, X } from "lucide-react";
+import { CalendarClock, AlertCircle, AlertTriangle, ClipboardCheck, X } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 
@@ -72,7 +72,7 @@ function ToastCard({ variant, icon, title, text, actions, onClose }) {
   );
 }
 
-export default function AlertToasts({ role, onViewDueToday, onViewNeglected, onReviewCollector }) {
+export default function AlertToasts({ role, onViewDueToday, onViewNeglected, onReviewCollector, onViewReconciliations }) {
   const { t } = useLang();
   const [data, setData] = useState(null);
   const [dismissed, setDismissed] = useState(loadDismissed);
@@ -117,6 +117,19 @@ export default function AlertToasts({ role, onViewDueToday, onViewNeglected, onR
           text={t("alertNeglectedText").replace("{n}", data.neglected_count)}
           actions={[{ label: t("alertViewCustomers"), onClick: () => { onViewNeglected?.(); dismiss("neglected"); } }]}
           onClose={() => dismiss("neglected")}
+        />
+      );
+    }
+    if (data.reconciliation_assigned_count > 0 && !dismissed.has("reconciliation_assigned")) {
+      cards.push(
+        <ToastCard
+          key="reconciliation_assigned"
+          variant="violet"
+          icon={<ClipboardCheck size={17} />}
+          title={t("alertReconciliationAssignedTitle")}
+          text={t("alertReconciliationAssignedText").replace("{n}", data.reconciliation_assigned_count)}
+          actions={[{ label: t("alertViewList"), onClick: () => { onViewReconciliations?.(); dismiss("reconciliation_assigned"); } }]}
+          onClose={() => dismiss("reconciliation_assigned")}
         />
       );
     }

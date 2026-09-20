@@ -237,6 +237,7 @@ export const api = {
   reconciliationHistory: (partnerId) => request(`/api/reconciliations/customer/${partnerId}/history`),
   setReconciliationStatementSent: (id, sent) =>
     request(`/api/reconciliations/${id}/statement-sent`, { method: "PATCH", body: JSON.stringify({ sent }) }),
+  postponeReconciliation: (id) => request(`/api/reconciliations/${id}/postpone`, { method: "PATCH" }),
   reconciliationConfirmationPdf: (id, asOfDate, lang) =>
     requestBlob(`/api/reconciliations/${id}/confirmation-pdf?as_of_date=${asOfDate}&lang=${lang}`),
   reconciliationsExportPdf: (params = {}) => {

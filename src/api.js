@@ -169,6 +169,8 @@ export const api = {
   teamsSettings: () => request("/api/admin/teams-settings"),
   updateTeamsSettings: (data) => request("/api/admin/teams-settings", { method: "PUT", body: JSON.stringify(data) }),
   testTeamsSettings: () => request("/api/admin/teams-settings/test", { method: "POST" }),
+  updateUserTeamsWebhook: (userId, webhookUrl) => request(`/api/admin/users/${userId}/teams-webhook?${new URLSearchParams({ webhook_url: webhookUrl || "" })}`, { method: "PATCH" }),
+  testUserTeamsWebhook: (userId) => request(`/api/admin/users/${userId}/teams-webhook/test`, { method: "POST" }),
   remindersOverview: (collector = "") => request(`/api/admin/reminders-overview${collector ? `?collector=${encodeURIComponent(collector)}` : ""}`),
   exportRemindersOverviewPdf: (params = {}) => {
     const qs = buildQueryString(params);

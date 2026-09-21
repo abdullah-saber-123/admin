@@ -47,6 +47,9 @@ const CreditNominationReport = lazy(() => import("./components/CreditNominationR
 const CollectionOffers = lazy(() => import("./components/CollectionOffers.jsx"));
 const DiscountsReport = lazy(() => import("./components/DiscountsReport.jsx"));
 const CustomerComparisonReport = lazy(() => import("./components/CustomerComparisonReport.jsx"));
+const WhatsAppSettingsPanel = lazy(() => import("./components/WhatsAppSettingsPanel.jsx"));
+const ScheduledReportsPanel = lazy(() => import("./components/ScheduledReportsPanel.jsx"));
+const AuditLogReport = lazy(() => import("./components/AuditLogReport.jsx"));
 const PaymentProofsReport = lazy(() => import("./components/PaymentProofsReport.jsx"));
 const PortalManagementReport = lazy(() => import("./components/PortalManagementReport.jsx"));
 const RemindersOverview = lazy(() => import("./components/RemindersOverview.jsx"));
@@ -225,6 +228,9 @@ export default function App() {
               : view === "collectionOffers" ? t("collectionOfferTitle")
               : view === "discounts" ? t("discountsTitle")
               : view === "customerComparison" ? t("comparisonTitle")
+              : view === "whatsappSettings" ? t("whatsappIntegrationTitle")
+              : view === "scheduledReports" ? t("scheduledReportsTitle")
+              : view === "auditLog" ? t("auditLogTitle")
               : view === "loginHistory" ? t("loginHistoryTitle")
               : view === "customerShares" ? t("customerSharesTitle")
               : view === "teamsSettings" ? t("teamsIntegrationTitle")
@@ -462,6 +468,15 @@ export default function App() {
           )}
           {view === "teamsSettings" && session.role === "admin" && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><TeamsSettingsPanel /></Suspense>
+          )}
+          {view === "whatsappSettings" && session.role === "admin" && (
+            <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><WhatsAppSettingsPanel /></Suspense>
+          )}
+          {view === "scheduledReports" && session.role === "admin" && (
+            <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><ScheduledReportsPanel /></Suspense>
+          )}
+          {view === "auditLog" && session.role === "admin" && (
+            <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><AuditLogReport onSelectCustomer={setSelectedId} /></Suspense>
           )}
         </div>
       </div>

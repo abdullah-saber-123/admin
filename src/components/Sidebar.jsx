@@ -5,6 +5,7 @@ import {
   CalendarClock, ClipboardList, Menu, X, ChevronLeft, ChevronRight, ChevronDown,
   CircleDollarSign, CreditCard, Receipt, Smartphone, BellRing,
   Gauge, FileText, FileX, HeartCrack, MessageSquare, UserCircle, Moon, Sun, Wallet, History, Share2, Activity, Megaphone, MapPin, Target, ClipboardCheck, Percent, GitCompare,
+  MessageCircle, ShieldCheck,
 } from "lucide-react";
 import { useLang } from "../i18n.jsx";
 import swagLogo from "../assets/swag-mark.png";
@@ -130,6 +131,9 @@ export default function Sidebar({ view, setView, role, username, displayName, av
       items: [
         { view: "settings", icon: Settings, label: t("odooSettings"), visible: role === "admin", color: "#475577" },
         { view: "teamsSettings", icon: MessageSquare, label: t("teamsIntegrationTitle"), visible: role === "admin", color: "#5059C9" },
+        { view: "whatsappSettings", icon: MessageCircle, label: t("whatsappIntegrationTitle"), visible: role === "admin", color: "#25D366" },
+        { view: "scheduledReports", icon: CalendarClock, label: t("scheduledReportsTitle"), visible: role === "admin", color: "#0078D4" },
+        { view: "auditLog", icon: ShieldCheck, label: t("auditLogTitle"), visible: role === "admin", color: "#814968" },
       ],
     },
   ];

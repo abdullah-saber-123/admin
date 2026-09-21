@@ -171,6 +171,22 @@ export const api = {
   testTeamsSettings: () => request("/api/admin/teams-settings/test", { method: "POST" }),
   updateUserTeamsWebhook: (userId, webhookUrl) => request(`/api/admin/users/${userId}/teams-webhook?${new URLSearchParams({ webhook_url: webhookUrl || "" })}`, { method: "PATCH" }),
   testUserTeamsWebhook: (userId) => request(`/api/admin/users/${userId}/teams-webhook/test`, { method: "POST" }),
+  whatsappSettings: () => request("/api/admin/whatsapp-settings"),
+  updateWhatsappSettings: (data) => request("/api/admin/whatsapp-settings", { method: "PUT", body: JSON.stringify(data) }),
+  testWhatsappSettings: (testPhone) => request("/api/admin/whatsapp-settings/test", { method: "POST", body: JSON.stringify({ test_phone: testPhone }) }),
+  scheduledReportSettings: () => request("/api/admin/scheduled-report-settings"),
+  updateScheduledReportSettings: (data) => request("/api/admin/scheduled-report-settings", { method: "PUT", body: JSON.stringify(data) }),
+  testScheduledReports: () => request("/api/admin/scheduled-report-settings/test", { method: "POST" }),
+  auditLog: (params = {}) => {
+    const qs = new URLSearchParams();
+    if (params.dateFrom) qs.set("date_from", params.dateFrom);
+    if (params.dateTo) qs.set("date_to", params.dateTo);
+    if (params.action) qs.set("action", params.action);
+    if (params.search) qs.set("search", params.search);
+    qs.set("page", params.page || 1);
+    qs.set("page_size", params.pageSize || 50);
+    return request(`/api/admin/audit-log?${qs.toString()}`);
+  },
   remindersOverview: (collector = "") => request(`/api/admin/reminders-overview${collector ? `?collector=${encodeURIComponent(collector)}` : ""}`),
   exportRemindersOverviewPdf: (params = {}) => {
     const qs = buildQueryString(params);

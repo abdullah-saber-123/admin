@@ -13,7 +13,7 @@ function computeRowAmounts(row, vatRate) {
   return { net, pretax, discountAmount };
 }
 
-function computeSummary(rows, vatRate, currentBalance, currentBalanceDiscount, carriedDiscountAmount) {
+function computeSummary(rows, vatRate, currentBalance, currentBalanceDiscount, carriedDiscountAmount, carriedDiscountDeduct) {
   const vat = (Number(vatRate) || 0) / 100;
   let totalDiscount = 0;
   let totalExtra = 0;
@@ -22,8 +22,9 @@ function computeSummary(rows, vatRate, currentBalance, currentBalanceDiscount, c
     totalDiscount += discountAmount;
     totalExtra += Number(r.extra_discount) || 0;
   });
+  const newDiscount = totalDiscount + totalExtra;
   const carried = Number(carriedDiscountAmount) || 0;
-  const combinedDiscount = totalDiscount + totalExtra + carried;
+  const combinedDiscount = carriedDiscountDeduct ? newDiscount - carried : newDiscount;
   const tax = combinedDiscount * vat;
   const total = combinedDiscount + tax;
   const diff = total - (Number(currentBalanceDiscount) || 0);
@@ -46,10 +47,16 @@ export default function DiscountsReport() {
 
   const [rows, setRows] = useState([]);
   const [vatRate, setVatRate] = useState(15);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [balanceAsOfDate, setBalanceAsOfDate] = useState("");
+  const [balanceLoading, setBalanceLoading] = useState(false);
+  const [recalcLoading, setRecalcLoading] = useState(false);
   const [currentBalance, setCurrentBalance] = useState(0);
   const [currentBalanceDiscount, setCurrentBalanceDiscount] = useState(0);
   const [carriedDiscountAmount, setCarriedDiscountAmount] = useState(0);
   const [carriedDiscountNote, setCarriedDiscountNote] = useState("");
+  const [carriedDiscountDeduct, setCarriedDiscountDeduct] = useState(true);
   const [finalNote, setFinalNote] = useState("");
   const [preparedBy, setPreparedBy] = useState("");
   const [preparedDate, setPreparedDate] = useState("");
@@ -76,10 +83,14 @@ export default function DiscountsReport() {
       loadedPartnerId.current = selectedClient.partner_id;
       setRows(res.rows.length ? res.rows : [emptyRow()]);
       setVatRate(res.vat_rate ?? 15);
+      setDateFrom(res.date_from || "");
+      setDateTo(res.date_to || "");
+      setBalanceAsOfDate(res.balance_as_of_date || "");
       setCurrentBalance(res.current_balance ?? 0);
       setCurrentBalanceDiscount(res.current_balance_discount ?? 0);
       setCarriedDiscountAmount(res.carried_discount_amount ?? 0);
       setCarriedDiscountNote(res.carried_discount_note || "");
+      setCarriedDiscountDeduct(res.carried_discount_deduct ?? true);
       setFinalNote(res.final_note || "");
       setPreparedBy(res.prepared_by || "");
       setPreparedDate(res.prepared_date || "");
@@ -104,10 +115,14 @@ export default function DiscountsReport() {
             note: r.note || "",
           })),
           vat_rate: Number(overrides.vatRate ?? vatRate) || 0,
+          date_from: (overrides.dateFrom ?? dateFrom) || null,
+          date_to: (overrides.dateTo ?? dateTo) || null,
+          balance_as_of_date: (overrides.balanceAsOfDate ?? balanceAsOfDate) || null,
           current_balance: Number(overrides.currentBalance ?? currentBalance) || 0,
           current_balance_discount: Number(overrides.currentBalanceDiscount ?? currentBalanceDiscount) || 0,
           carried_discount_amount: Number(overrides.carriedDiscountAmount ?? carriedDiscountAmount) || 0,
           carried_discount_note: overrides.carriedDiscountNote ?? carriedDiscountNote,
+          carried_discount_deduct: overrides.carriedDiscountDeduct ?? carriedDiscountDeduct,
           final_note: overrides.finalNote ?? finalNote,
           prepared_by: overrides.preparedBy ?? preparedBy,
           prepared_date: (overrides.preparedDate ?? preparedDate) || null,
@@ -151,6 +166,45 @@ export default function DiscountsReport() {
     setRows([]);
   };
 
+  const handleRecalculate = async () => {
+    if (!selectedClient) return;
+    setRecalcLoading(true);
+    try {
+      const res = await api.getDiscountCase(selectedClient.partner_id, { dateFrom, dateTo });
+      const nextRows = res.rows.length ? res.rows : [emptyRow()];
+      setRows(nextRows);
+      setCarriedDiscountAmount(res.carried_discount_amount ?? 0);
+      setCarriedDiscountNote(res.carried_discount_note || "");
+      scheduleSave({
+        rows: nextRows, dateFrom, dateTo,
+        carriedDiscountAmount: res.carried_discount_amount ?? 0,
+        carriedDiscountNote: res.carried_discount_note || "",
+      });
+    } catch (e) {
+      showToast(e.message, "error");
+    } finally {
+      setRecalcLoading(false);
+    }
+  };
+
+  const handleBalanceAsOfChange = async (value) => {
+    setBalanceAsOfDate(value);
+    if (!selectedClient || !value) {
+      scheduleSave({ balanceAsOfDate: value });
+      return;
+    }
+    setBalanceLoading(true);
+    try {
+      const res = await api.getDiscountCaseBalanceAsOf(selectedClient.partner_id, value);
+      setCurrentBalance(res.balance);
+      scheduleSave({ balanceAsOfDate: value, currentBalance: res.balance });
+    } catch (e) {
+      showToast(e.message, "error");
+    } finally {
+      setBalanceLoading(false);
+    }
+  };
+
   const handleExportPdf = async () => {
     if (!selectedClient) return;
     setExportingPdf(true);
@@ -164,7 +218,7 @@ export default function DiscountsReport() {
     }
   };
 
-  const summary = computeSummary(rows, vatRate, currentBalance, currentBalanceDiscount, carriedDiscountAmount);
+  const summary = computeSummary(rows, vatRate, currentBalance, currentBalanceDiscount, carriedDiscountAmount, carriedDiscountDeduct);
   const totals = rows.reduce((acc, r) => {
     const { net, pretax, discountAmount } = computeRowAmounts(r, vatRate);
     acc.sales += Number(r.sales) || 0;
@@ -295,6 +349,11 @@ export default function DiscountsReport() {
                   <input className="cost-of-debt-input" value={carriedDiscountNote}
                     onChange={(e) => { setCarriedDiscountNote(e.target.value); scheduleSave({ carriedDiscountNote: e.target.value }); }} />
                 </div>
+                <label className="checkbox-inline" style={{ alignSelf: "flex-end", marginBottom: 8 }}
+                  onClick={() => { const v = !carriedDiscountDeduct; setCarriedDiscountDeduct(v); scheduleSave({ carriedDiscountDeduct: v }); }}>
+                  <input type="checkbox" checked={carriedDiscountDeduct} readOnly />
+                  {t("discountCarriedDeduct")}
+                </label>
               </div>
             </div>
 
@@ -306,7 +365,23 @@ export default function DiscountsReport() {
                   <input className="cost-of-debt-input" type="number" step="0.01" value={vatRate}
                     onChange={(e) => { setVatRate(e.target.value); scheduleSave({ vatRate: e.target.value }); }} style={{ width: 90 }} />
                 </div>
+                <div className="more-filter-field">
+                  <label>{t("discountDateFrom")}</label>
+                  <input className="cost-of-debt-input" type="date" value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)} />
+                </div>
+                <div className="more-filter-field">
+                  <label>{t("discountDateTo")}</label>
+                  <input className="cost-of-debt-input" type="date" value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)} />
+                </div>
+                <div className="more-filter-field" style={{ alignSelf: "flex-end" }}>
+                  <button className="btn-secondary sm" onClick={handleRecalculate} disabled={recalcLoading}>
+                    {recalcLoading ? t("loadingDots") : t("discountRecalculate")}
+                  </button>
+                </div>
               </div>
+              <p className="panel-sub" style={{ marginTop: 8 }}>{t("discountDateRangeHint")}</p>
             </div>
 
             <div className="insights-kpi-grid" style={{ marginBottom: 18 }}>
@@ -324,9 +399,17 @@ export default function DiscountsReport() {
               </div>
               <div className="insights-kpi-card accent-danger">
                 <div className="insights-kpi-label">{t("discountCurrentBalance")}</div>
-                <input className="cost-of-debt-input" type="number" step="0.01" value={currentBalance}
-                  onChange={(e) => { setCurrentBalance(e.target.value); scheduleSave({ currentBalance: e.target.value }); }}
-                  style={{ fontSize: 18, fontWeight: 700, width: "100%" }} />
+                {balanceAsOfDate ? (
+                  <div className="insights-kpi-value">{balanceLoading ? t("loadingDots") : money(currentBalance)}</div>
+                ) : (
+                  <input className="cost-of-debt-input" type="number" step="0.01" value={currentBalance}
+                    onChange={(e) => { setCurrentBalance(e.target.value); scheduleSave({ currentBalance: e.target.value }); }}
+                    style={{ fontSize: 18, fontWeight: 700, width: "100%" }} />
+                )}
+                <input className="cost-of-debt-input" type="date" value={balanceAsOfDate}
+                  onChange={(e) => handleBalanceAsOfChange(e.target.value)}
+                  style={{ width: "100%", marginTop: 6, fontSize: 11 }}
+                  title={t("discountBalanceAsOfHint")} />
               </div>
               <div className="insights-kpi-card accent-teal">
                 <div className="insights-kpi-label">{t("discountBalanceDiscount")}</div>

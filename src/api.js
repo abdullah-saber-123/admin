@@ -431,8 +431,15 @@ export const api = {
   },
   getCostOfDebtBucketSettings: () => request("/api/admin/cost-of-debt-bucket-settings"),
   saveCostOfDebtBucketSettings: (payload) => request("/api/admin/cost-of-debt-bucket-settings", { method: "PUT", body: JSON.stringify(payload) }),
-  getDiscountCase: (partnerId) => request(`/api/admin/discount-case/${partnerId}`),
+  getDiscountCase: (partnerId, params = {}) => {
+    const qs = new URLSearchParams();
+    if (params.dateFrom) qs.set("date_from", params.dateFrom);
+    if (params.dateTo) qs.set("date_to", params.dateTo);
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    return request(`/api/admin/discount-case/${partnerId}${suffix}`);
+  },
   saveDiscountCase: (partnerId, payload) => request(`/api/admin/discount-case/${partnerId}`, { method: "PUT", body: JSON.stringify(payload) }),
+  getDiscountCaseBalanceAsOf: (partnerId, asOfDate) => request(`/api/admin/discount-case/${partnerId}/balance-as-of?as_of_date=${asOfDate}`),
   exportDiscountCasePdf: (partnerId, lang) => requestBlob(`/api/admin/discount-case/${partnerId}/export.pdf?lang=${lang}`),
 
   // sync

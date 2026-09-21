@@ -99,7 +99,7 @@ export default function App() {
   const [profileModal, setProfileModal] = useState(null); // { mode: "self" | "user" | "collector", userId?, collectorName? }
   const [myProfile, setMyProfile] = useState(null); // own full_name/avatar_url - drives the sidebar chip
   const [hideZeroBalance, setHideZeroBalance] = useState(true);
-  const [hideNegativeBalance, setHideNegativeBalance] = useState(false);
+  const [hideNegativeBalance, setHideNegativeBalance] = useState(true);
   const [collectorsList, setCollectorsList] = useState([]);
   const push = usePushNotifications();
   const [pushBannerDismissed, setPushBannerDismissed] = useState(() => localStorage.getItem("collect_push_banner_dismissed") === "1");

@@ -236,7 +236,7 @@ export default function CustomerAnalytics({ onSelectCustomer, initialPartnerId }
                              tickFormatter={(v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : v)} />
                       <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v) => money(v)} />
                       <Legend wrapperStyle={{ fontSize: 12 }} />
-                      <Bar dataKey="sales" name={t("invoicedSales")} fill="#714b67" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="sales" name={t("invoicedSales")} fill="#5750f1" radius={[4, 4, 0, 0]} />
                       <Bar dataKey="payments" name={t("collected")} fill="#30C381" radius={[4, 4, 0, 0]} />
                       <Bar dataKey="other_credits" name={t("otherCredits")} fill="#c98a1c" radius={[4, 4, 0, 0]} />
                     </BarChart>
@@ -353,7 +353,7 @@ export default function CustomerAnalytics({ onSelectCustomer, initialPartnerId }
                          tickFormatter={(v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : v)} />
                   <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v) => money(v)} />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="sales" name={t("invoicedSales")} fill="#714b67" radius={[4, 4, 0, 0]} style={{ cursor: "pointer" }} onClick={openMonth} />
+                  <Bar dataKey="sales" name={t("invoicedSales")} fill="#5750f1" radius={[4, 4, 0, 0]} style={{ cursor: "pointer" }} onClick={openMonth} />
                   <Bar dataKey="payments" name={t("collected")} fill="#30C381" radius={[4, 4, 0, 0]} style={{ cursor: "pointer" }} onClick={openMonth} />
                   <Bar dataKey="other_credits" name={t("otherCredits")} fill="#c98a1c" radius={[4, 4, 0, 0]} style={{ cursor: "pointer" }} onClick={openMonth} />
                 </BarChart>

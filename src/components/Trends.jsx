@@ -168,7 +168,7 @@ export default function Trends() {
                     <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
                   </linearGradient>
                   <filter id="lineGlow" x="-50%" y="-50%" width="200%" height="200%">
-                    <feDropShadow dx="0" dy="2" stdDeviation="5" floodColor="#714b67" floodOpacity="0.45" />
+                    <feDropShadow dx="0" dy="2" stdDeviation="5" floodColor="#5750f1" floodOpacity="0.45" />
                   </filter>
                 </defs>
                 <XAxis dataKey="label" stroke="#6b7280" fontSize={11} tickLine={false} axisLine={false} tickMargin={10} />

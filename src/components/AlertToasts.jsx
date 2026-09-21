@@ -34,7 +34,7 @@ function saveDismissed(set) {
 
 function ToastCard({ variant, icon, title, text, actions, onClose }) {
   const tone = {
-    violet: { bar: "#714b67", iconBg: "#f3ebf1", iconColor: "#714b67", btn: "#714b67" },
+    violet: { bar: "#5750f1", iconBg: "#eeedfd", iconColor: "#5750f1", btn: "#5750f1" },
     danger: { bar: "#e5484d", iconBg: "#fcebec", iconColor: "#e5484d", btn: "#e5484d" },
     warning: { bar: "#c98a1c", iconBg: "#fbf1de", iconColor: "#c98a1c", btn: "#c98a1c" },
   }[variant];

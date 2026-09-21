@@ -281,6 +281,23 @@ export default function DiscountsReport() {
               {t("discountAddRow")}
             </button>
 
+            <div className="panel" style={{ marginBottom: 14, borderInlineStart: "4px solid var(--gold, #B9862F)" }}>
+              <h3 className="insights-chart-title" style={{ marginBottom: 4 }}>{t("discountCarriedTitle")}</h3>
+              <p className="panel-sub" style={{ marginBottom: 10 }}>{t("discountCarriedHint")}</p>
+              <div className="more-filters-row">
+                <div className="more-filter-field">
+                  <label>{t("discountCarriedAmount")}</label>
+                  <input className="cost-of-debt-input" type="number" step="0.01" value={carriedDiscountAmount}
+                    onChange={(e) => { setCarriedDiscountAmount(e.target.value); scheduleSave({ carriedDiscountAmount: e.target.value }); }} style={{ width: 120, fontWeight: 700 }} />
+                </div>
+                <div className="more-filter-field" style={{ minWidth: 260, flex: 1 }}>
+                  <label>{t("discountCarriedNote")}</label>
+                  <input className="cost-of-debt-input" value={carriedDiscountNote}
+                    onChange={(e) => { setCarriedDiscountNote(e.target.value); scheduleSave({ carriedDiscountNote: e.target.value }); }} />
+                </div>
+              </div>
+            </div>
+
             <div className="panel" style={{ marginBottom: 14 }}>
               <h3 className="insights-chart-title" style={{ marginBottom: 10 }}>{t("discountSettingsTitle")}</h3>
               <div className="more-filters-row">
@@ -288,16 +305,6 @@ export default function DiscountsReport() {
                   <label>{t("discountVatRate")}</label>
                   <input className="cost-of-debt-input" type="number" step="0.01" value={vatRate}
                     onChange={(e) => { setVatRate(e.target.value); scheduleSave({ vatRate: e.target.value }); }} style={{ width: 90 }} />
-                </div>
-                <div className="more-filter-field">
-                  <label>{t("discountCarriedAmount")}</label>
-                  <input className="cost-of-debt-input" type="number" step="0.01" value={carriedDiscountAmount}
-                    onChange={(e) => { setCarriedDiscountAmount(e.target.value); scheduleSave({ carriedDiscountAmount: e.target.value }); }} style={{ width: 120 }} />
-                </div>
-                <div className="more-filter-field" style={{ minWidth: 220 }}>
-                  <label>{t("discountCarriedNote")}</label>
-                  <input className="cost-of-debt-input" value={carriedDiscountNote}
-                    onChange={(e) => { setCarriedDiscountNote(e.target.value); scheduleSave({ carriedDiscountNote: e.target.value }); }} />
                 </div>
               </div>
             </div>

@@ -46,6 +46,7 @@ const DebtWriteOffsReport = lazy(() => import("./components/DebtWriteOffsReport.
 const CreditNominationReport = lazy(() => import("./components/CreditNominationReport.jsx"));
 const CollectionOffers = lazy(() => import("./components/CollectionOffers.jsx"));
 const DiscountsReport = lazy(() => import("./components/DiscountsReport.jsx"));
+const CustomerComparisonReport = lazy(() => import("./components/CustomerComparisonReport.jsx"));
 const PaymentProofsReport = lazy(() => import("./components/PaymentProofsReport.jsx"));
 const PortalManagementReport = lazy(() => import("./components/PortalManagementReport.jsx"));
 const RemindersOverview = lazy(() => import("./components/RemindersOverview.jsx"));
@@ -223,6 +224,7 @@ export default function App() {
               : view === "collectionsReport" ? t("collectionsReportTitle")
               : view === "collectionOffers" ? t("collectionOfferTitle")
               : view === "discounts" ? t("discountsTitle")
+              : view === "customerComparison" ? t("comparisonTitle")
               : view === "loginHistory" ? t("loginHistoryTitle")
               : view === "customerShares" ? t("customerSharesTitle")
               : view === "teamsSettings" ? t("teamsIntegrationTitle")
@@ -427,6 +429,9 @@ export default function App() {
           )}
           {view === "discounts" && (session.role === "admin" || (session.permissions || "").includes("discounts")) && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><DiscountsReport /></Suspense>
+          )}
+          {view === "customerComparison" && (session.role === "admin" || (session.permissions || "").includes("customerComparison")) && (
+            <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><CustomerComparisonReport /></Suspense>
           )}
           {false && view === "paymentProofs" && (session.role === "admin" || (session.permissions || "").includes("paymentProofs")) && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><PaymentProofsReport onSelectCustomer={setSelectedId} /></Suspense>

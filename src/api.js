@@ -441,6 +441,12 @@ export const api = {
   saveDiscountCase: (partnerId, payload) => request(`/api/admin/discount-case/${partnerId}`, { method: "PUT", body: JSON.stringify(payload) }),
   getDiscountCaseBalanceAsOf: (partnerId, asOfDate) => request(`/api/admin/discount-case/${partnerId}/balance-as-of?as_of_date=${asOfDate}`),
   exportDiscountCasePdf: (partnerId, lang) => requestBlob(`/api/admin/discount-case/${partnerId}/export.pdf?lang=${lang}`),
+  customerComparison: (partnerIds, params = {}) => {
+    const qs = new URLSearchParams({ partner_ids: partnerIds.join(",") });
+    if (params.dateFrom) qs.set("date_from", params.dateFrom);
+    if (params.dateTo) qs.set("date_to", params.dateTo);
+    return request(`/api/reports/customer-comparison?${qs.toString()}`);
+  },
 
   // sync
   syncStatus: () => request("/api/sync/status"),

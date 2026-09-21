@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, Settings, LogOut, BarChart3, TrendingUp, Languages,
   CalendarClock, ClipboardList, Menu, X, ChevronLeft, ChevronRight, ChevronDown,
   CircleDollarSign, CreditCard, Receipt, Smartphone, BellRing,
-  Gauge, FileText, FileX, HeartCrack, MessageSquare, UserCircle, Moon, Sun, Wallet, History, Share2, Activity, Megaphone, MapPin, Target, ClipboardCheck, Percent,
+  Gauge, FileText, FileX, HeartCrack, MessageSquare, UserCircle, Moon, Sun, Wallet, History, Share2, Activity, Megaphone, MapPin, Target, ClipboardCheck, Percent, GitCompare,
 } from "lucide-react";
 import { useLang } from "../i18n.jsx";
 import swagLogo from "../assets/swag-mark.png";
@@ -44,6 +44,7 @@ export default function Sidebar({ view, setView, role, username, displayName, av
   const canSeeRetargeting = role === "admin" || perms.includes("customerRetargeting");
   const canSeeReconciliations = role === "admin" || perms.includes("reconciliations");
   const canSeeDiscounts = role === "admin" || perms.includes("discounts");
+  const canSeeCustomerComparison = role === "admin" || perms.includes("customerComparison");
 
   const go = (v) => {
     setView(v);
@@ -105,6 +106,7 @@ export default function Sidebar({ view, setView, role, username, displayName, av
         { view: "portalManagement", icon: Smartphone, label: t("portalManagementTitle"), visible: canSeePortalManagement, color: "#475577" },
         { view: "customerScore", icon: Gauge, label: t("customerScoreTitle"), visible: canSeeCustomerScore, color: "#F4A460" },
         { view: "customerAnalytics", icon: BarChart3, label: t("customerAnalyticsTitle"), visible: canSeeCustomerAnalytics, color: "#5750f1" },
+        { view: "customerComparison", icon: GitCompare, label: t("comparisonTitle"), visible: canSeeCustomerComparison, color: "#2E8B8B" },
         { view: "customerShares", icon: Share2, label: t("customerSharesTitle"), visible: true, color: "#9365B8" },
         { view: "retargeting", icon: Target, label: t("retargetingTitle"), visible: canSeeRetargeting, color: "#D6145F" },
         { view: "reconciliations", icon: ClipboardCheck, label: t("reconciliationsTitle"), visible: canSeeReconciliations, color: "#2C8397" },

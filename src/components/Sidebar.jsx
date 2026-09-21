@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, Settings, LogOut, BarChart3, TrendingUp, Languages,
   CalendarClock, ClipboardList, Menu, X, ChevronLeft, ChevronRight, ChevronDown,
   CircleDollarSign, CreditCard, Receipt, Smartphone, BellRing,
-  Gauge, FileText, FileX, HeartCrack, MessageSquare, UserCircle, Moon, Sun, Wallet, History, Share2, Activity, Megaphone, MapPin, Target, ClipboardCheck,
+  Gauge, FileText, FileX, HeartCrack, MessageSquare, UserCircle, Moon, Sun, Wallet, History, Share2, Activity, Megaphone, MapPin, Target, ClipboardCheck, Percent,
 } from "lucide-react";
 import { useLang } from "../i18n.jsx";
 import swagLogo from "../assets/swag-mark.png";
@@ -43,6 +43,7 @@ export default function Sidebar({ view, setView, role, username, displayName, av
   const canSeeBrokenPromises = role === "admin" || perms.includes("brokenPromises");
   const canSeeRetargeting = role === "admin" || perms.includes("customerRetargeting");
   const canSeeReconciliations = role === "admin" || perms.includes("reconciliations");
+  const canSeeDiscounts = role === "admin" || perms.includes("discounts");
 
   const go = (v) => {
     setView(v);
@@ -94,6 +95,7 @@ export default function Sidebar({ view, setView, role, username, displayName, av
         { view: "paymentProofs", icon: Receipt, label: t("paymentProofsTitle"), visible: false, color: "#814968" },
         { view: "collectionsReport", icon: Wallet, label: t("collectionsReportTitle"), visible: true, color: "#30C381" },
         { view: "collectionOffers", icon: Megaphone, label: t("collectionOfferTitle"), visible: true, color: "#D6145F" },
+        { view: "discounts", icon: Percent, label: t("discountsTitle"), visible: canSeeDiscounts, color: "#B9862F" },
       ],
     },
     {

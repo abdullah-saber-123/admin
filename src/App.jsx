@@ -45,6 +45,7 @@ const CostOfDebtReport = lazy(() => import("./components/CostOfDebtReport.jsx"))
 const DebtWriteOffsReport = lazy(() => import("./components/DebtWriteOffsReport.jsx"));
 const CreditNominationReport = lazy(() => import("./components/CreditNominationReport.jsx"));
 const CollectionOffers = lazy(() => import("./components/CollectionOffers.jsx"));
+const DiscountsReport = lazy(() => import("./components/DiscountsReport.jsx"));
 const PaymentProofsReport = lazy(() => import("./components/PaymentProofsReport.jsx"));
 const PortalManagementReport = lazy(() => import("./components/PortalManagementReport.jsx"));
 const RemindersOverview = lazy(() => import("./components/RemindersOverview.jsx"));
@@ -221,6 +222,7 @@ export default function App() {
               : view === "brokenPromises" ? t("brokenPromisesTitle")
               : view === "collectionsReport" ? t("collectionsReportTitle")
               : view === "collectionOffers" ? t("collectionOfferTitle")
+              : view === "discounts" ? t("discountsTitle")
               : view === "loginHistory" ? t("loginHistoryTitle")
               : view === "customerShares" ? t("customerSharesTitle")
               : view === "teamsSettings" ? t("teamsIntegrationTitle")
@@ -422,6 +424,9 @@ export default function App() {
           )}
           {view === "collectionOffers" && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><CollectionOffers role={session.role} username={session.username} /></Suspense>
+          )}
+          {view === "discounts" && (session.role === "admin" || (session.permissions || "").includes("discounts")) && (
+            <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><DiscountsReport /></Suspense>
           )}
           {false && view === "paymentProofs" && (session.role === "admin" || (session.permissions || "").includes("paymentProofs")) && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><PaymentProofsReport onSelectCustomer={setSelectedId} /></Suspense>

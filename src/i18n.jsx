@@ -267,6 +267,8 @@ const en = {
   low: "Low",
   changeLabel: "Change",
   noTrendData: "No history yet — this builds up automatically, one point per day, as syncs run. Check back tomorrow.",
+  forecastLabel: "Forecast (trend line)",
+  forecastHint: "The dashed line is a simple straight-line projection of the total balance based on its recent trend — not a real predictive model, and it gets less reliable the fewer days of history are available.",
   totalBalance: "Total Balance",
   collectedThatDay: "Collected that day",
 
@@ -1375,6 +1377,8 @@ const ar = {
   low: "الأدنى",
   changeLabel: "التغيّر",
   noTrendData: "لا يوجد سجل بعد — يتراكم هذا تلقائيًا، نقطة واحدة يوميًا، مع كل مزامنة. تحقق غدًا.",
+  forecastLabel: "التوقع (خط الاتجاه)",
+  forecastHint: "الخط المتقطع تقدير بسيط لخط مستقيم لإجمالي الرصيد بناءً على اتجاهه الأخير - مو نموذج تنبؤ حقيقي، ودقته تقل كل ما كانت أيام السجل المتوفرة أقل.",
   totalBalance: "إجمالي الرصيد",
   collectedThatDay: "المحصّل في ذلك اليوم",
 

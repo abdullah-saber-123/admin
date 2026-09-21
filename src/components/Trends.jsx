@@ -7,24 +7,54 @@ import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 import { fmtDate } from "../dateUtils.js";
 
+const FORECAST_DAYS = 14;
+const MIN_POINTS_FOR_FORECAST = 7;
+
+// A simple linear-trend projection (least-squares fit over the historical
+// points) extended a fixed number of days into the future - not a real
+// predictive model, just "if the current trend keeps going in a straight
+// line". Deliberately simple and clearly labeled as such in the UI.
+function linearForecast(points, days) {
+  const n = points.length;
+  const sumX = points.reduce((a, _, i) => a + i, 0);
+  const sumY = points.reduce((a, p) => a + p, 0);
+  const sumXY = points.reduce((a, p, i) => a + i * p, 0);
+  const sumX2 = points.reduce((a, _, i) => a + i * i, 0);
+  const denom = n * sumX2 - sumX * sumX;
+  if (denom === 0) return null;
+  const slope = (n * sumXY - sumX * sumY) / denom;
+  const intercept = (sumY - slope * sumX) / n;
+  return Array.from({ length: days }, (_, i) => Math.max(0, intercept + slope * (n + i)));
+}
+
 function CustomTooltip({ active, payload, money, t }) {
   if (!active || !payload || !payload.length) return null;
   const d = payload[0].payload;
+  const isForecastOnly = d.total_balance == null && d.forecast_total_balance != null;
   return (
     <div className="trend-tooltip">
       <div className="trend-tooltip-date">{d.label}</div>
-      <div className="trend-tooltip-row">
-        <span className="trend-tooltip-dot" style={{ background: "var(--primary)" }} />
-        {t("totalBalance")}: <strong>{money(d.total_balance)}</strong>
-      </div>
-      <div className="trend-tooltip-row">
-        <span className="trend-tooltip-dot" style={{ background: "#F06050" }} />
-        {t("overdue")}: <strong>{money(d.total_overdue)}</strong>
-      </div>
-      <div className="trend-tooltip-row">
-        <span className="trend-tooltip-dot" style={{ background: "#30C381" }} />
-        {t("collectedThatDay")}: <strong>{money(d.collected_today)}</strong>
-      </div>
+      {isForecastOnly ? (
+        <div className="trend-tooltip-row">
+          <span className="trend-tooltip-dot" style={{ background: "var(--primary)" }} />
+          {t("forecastLabel")}: <strong>{money(d.forecast_total_balance)}</strong>
+        </div>
+      ) : (
+        <>
+          <div className="trend-tooltip-row">
+            <span className="trend-tooltip-dot" style={{ background: "var(--primary)" }} />
+            {t("totalBalance")}: <strong>{money(d.total_balance)}</strong>
+          </div>
+          <div className="trend-tooltip-row">
+            <span className="trend-tooltip-dot" style={{ background: "#F06050" }} />
+            {t("overdue")}: <strong>{money(d.total_overdue)}</strong>
+          </div>
+          <div className="trend-tooltip-row">
+            <span className="trend-tooltip-dot" style={{ background: "#30C381" }} />
+            {t("collectedThatDay")}: <strong>{money(d.collected_today)}</strong>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -42,6 +72,25 @@ export default function Trends() {
     ...d,
     label: fmtDate(d.date),
   }));
+
+  let forecastChartData = chartData;
+  let forecastAvailable = false;
+  if (chartData && chartData.length >= MIN_POINTS_FOR_FORECAST) {
+    const forecastValues = linearForecast(chartData.map((d) => d.total_balance), FORECAST_DAYS);
+    if (forecastValues) {
+      forecastAvailable = true;
+      const lastDate = new Date(chartData[chartData.length - 1].date);
+      const withMarker = chartData.map((d, i) => (
+        i === chartData.length - 1 ? { ...d, forecast_total_balance: d.total_balance } : d
+      ));
+      const futurePoints = forecastValues.map((v, i) => {
+        const d = new Date(lastDate);
+        d.setUTCDate(d.getUTCDate() + i + 1);
+        return { label: fmtDate(d), forecast_total_balance: Math.round(v) };
+      });
+      forecastChartData = [...withMarker, ...futurePoints];
+    }
+  }
 
   let stats = null;
   if (chartData && chartData.length > 0) {
@@ -112,7 +161,7 @@ export default function Trends() {
             </div>
 
             <ResponsiveContainer width="100%" height={340}>
-              <ComposedChart data={chartData} margin={{ top: 20, right: 10, left: 5, bottom: 5 }}>
+              <ComposedChart data={forecastChartData} margin={{ top: 20, right: 10, left: 5, bottom: 5 }}>
                 <defs>
                   <linearGradient id="balanceGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.3} />
@@ -132,8 +181,12 @@ export default function Trends() {
                 <Line type="monotone" dataKey="total_balance" name={t("totalBalance")} stroke="var(--primary)" strokeWidth={2.5} dot={renderBalanceDot} filter="url(#lineGlow)" />
                 <Line type="monotone" dataKey="total_overdue" name={t("overdue")} stroke="#F06050" strokeWidth={2} dot={false} />
                 <Line type="monotone" dataKey="collected_today" name={t("collectedThatDay")} stroke="#30C381" strokeWidth={2} dot={false} />
+                {forecastAvailable && (
+                  <Line type="monotone" dataKey="forecast_total_balance" name={t("forecastLabel")} stroke="var(--primary)" strokeWidth={2} strokeDasharray="6 4" dot={false} connectNulls />
+                )}
               </ComposedChart>
             </ResponsiveContainer>
+            {forecastAvailable && <p className="panel-sub" style={{ marginTop: 8 }}>{t("forecastHint")}</p>}
           </>
         )}
       </div>

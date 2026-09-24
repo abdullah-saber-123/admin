@@ -216,9 +216,9 @@ export const api = {
     const session = getSession();
     return `${BASE}/api/contract-cases/${caseId}/contract-template?token=${encodeURIComponent(session?.token || "")}`;
   },
-  contractCaseDocumentUrl: (caseId, field) => {
+  contractCaseDocumentUrl: (caseId, field, download = false) => {
     const session = getSession();
-    return `${BASE}/api/contract-cases/${caseId}/document/${field}/view?token=${encodeURIComponent(session?.token || "")}`;
+    return `${BASE}/api/contract-cases/${caseId}/document/${field}/view?token=${encodeURIComponent(session?.token || "")}${download ? "&download=1" : ""}`;
   },
   remindersOverview: (collector = "") => request(`/api/admin/reminders-overview${collector ? `?collector=${encodeURIComponent(collector)}` : ""}`),
   exportRemindersOverviewPdf: (params = {}) => {

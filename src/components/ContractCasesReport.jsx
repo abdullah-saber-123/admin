@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  FileSignature, Search, X, Plus, Check, Ban, Eye, Paperclip,
+  FileSignature, Search, X, Plus, Check, Ban, Eye, Paperclip, Download,
   FileText, CreditCard, CheckCircle2, Upload, User as UserIcon, IdCard, ShieldCheck,
 } from "lucide-react";
 import { api } from "../api";
@@ -232,18 +232,29 @@ function StepRow({ step, canDo, busy, onComplete }) {
 }
 
 function DocChip({ caseId, field, fileName, hasFile, missingLabel }) {
+  const { t } = useLang();
   if (!hasFile) return <span className="cc-doc-chip missing"><X size={11} />{missingLabel}</span>;
   return (
-    <a
-      href={api.contractCaseDocumentUrl(caseId, field)}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="cc-doc-chip"
-      onClick={(e) => e.stopPropagation()}
-      style={{ cursor: "pointer", textDecoration: "none" }}
-    >
-      <Eye size={11} />{fileName}
-    </a>
+    <span className="cc-doc-chip" style={{ paddingInlineEnd: 6, gap: 6 }}>
+      <a
+        href={api.contractCaseDocumentUrl(caseId, field)}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        title={t("contractCaseViewDocument")}
+        style={{ color: "inherit", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 5 }}
+      >
+        <Eye size={11} />{fileName}
+      </a>
+      <a
+        href={api.contractCaseDocumentUrl(caseId, field, true)}
+        onClick={(e) => e.stopPropagation()}
+        title={t("contractCaseDownloadDocument")}
+        style={{ color: "inherit", display: "inline-flex", alignItems: "center", opacity: 0.7 }}
+      >
+        <Download size={11} />
+      </a>
+    </span>
   );
 }
 

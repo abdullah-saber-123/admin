@@ -573,7 +573,7 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
           <div className="insights-kpi-value insights-kpi-value-sm"><RiyalAmount amount={c.credit_limit_requested} /></div>
         </div>
         {(() => {
-          const canEditLimit = session.role === "admin" && !c.credit_limit_applied && !isClosed;
+          const canEditLimit = session.role === "admin" && c.status === "pending_review";
           if (!canEditLimit && c.credit_limit_approved == null) return null;
           return (
             <div className="insights-kpi-card accent-ok">

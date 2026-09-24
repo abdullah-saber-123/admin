@@ -382,6 +382,8 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
   const [contractNumber, setContractNumber] = useState("");
   const [contractDate, setContractDate] = useState("");
   const [noteExpiryDate, setNoteExpiryDate] = useState("");
+  const [newNote, setNewNote] = useState("");
+  const [savingNote, setSavingNote] = useState(false);
 
   const load = () => {
     api.getContractCase(caseId).then((data) => {
@@ -470,6 +472,20 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
     }
   };
 
+  const handleAddNote = async () => {
+    if (!newNote.trim()) return;
+    setSavingNote(true);
+    try {
+      await api.addContractCaseNote(caseId, newNote.trim());
+      setNewNote("");
+      load();
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      setSavingNote(false);
+    }
+  };
+
   if (error) return <div className="error-state">{error}</div>;
   if (!c) return <div className="loading-state">{t("loadingDots")}</div>;
 
@@ -481,12 +497,25 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
   const totalSteps = (c.steps || []).length;
   const isClosed = ["rejected", "archived"].includes(c.status);
 
+  const firstStepDone = (track) => {
+    const steps = byTrack[track] || [];
+    if (steps.length === 0) return true;
+    const first = [...steps].sort((a, b) => a.step_order - b.step_order)[0];
+    return first.done;
+  };
+  const ageDays = (Date.now() - new Date(c.requested_at).getTime()) / 86400000;
+  const stage1Ok = !!c.reviewed_at && firstStepDone("note") && firstStepDone("contract");
+  const overdueStage2 = !isClosed && ageDays > 7;
+  const overdueStage1 = !isClosed && !overdueStage2 && ageDays > 2 && !stage1Ok;
+
   return (
     <div className="panel" style={{ marginTop: 14 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
         <div>
           <h3 className="insights-chart-title">{c.customer_name}</h3>
           <span className={`fu-tag ${STATUS_TONE[c.status]}`}>{t(`contractCaseStatus_${c.status}`)}</span>
+          {overdueStage2 && <span className="fu-tag danger" style={{ marginInlineStart: 6 }}>{t("contractCaseOverdueStage2")}</span>}
+          {overdueStage1 && <span className="fu-tag warn" style={{ marginInlineStart: 6 }}>{t("contractCaseOverdueStage1")}</span>}
           {c.last_edited_by && (
             <p className="settings-meta" style={{ margin: "4px 0 0" }}>
               {t("contractCaseLastEditedBy")}: {c.last_edited_by} - {fmtDateTime(c.last_edited_at)}
@@ -661,6 +690,29 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
         </div>
       )}
       {c.status === "rejected" && <p className="error-state">{c.rejection_note}</p>}
+
+      <div className="user-form-section">
+        <div className="user-form-section-title">{t("contractCaseNotes")} <span className="cc-track-count">({(c.notes || []).length})</span></div>
+        {(c.notes || []).length === 0 ? (
+          <p className="settings-meta">{t("contractCaseNoNotes")}</p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 10 }}>
+            {c.notes.map((n) => (
+              <div key={n.id} style={{ border: "1px solid var(--border)", borderRadius: 8, padding: "8px 10px", background: "var(--card)" }}>
+                <div className="cc-step-meta" style={{ marginBottom: 3 }}>{n.author} - {fmtDateTime(n.created_at)}</div>
+                <div style={{ fontSize: 12.5 }}>{n.note}</div>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="more-filters-row">
+          <div className="more-filter-field" style={{ flex: 1 }}>
+            <input value={newNote} onChange={(e) => setNewNote(e.target.value)} placeholder={t("contractCaseNotePlaceholder")} />
+          </div>
+          <button className="btn-secondary sm" disabled={savingNote || !newNote.trim()} onClick={handleAddNote}>{t("contractCaseAddNote")}</button>
+        </div>
+      </div>
+
       <DocPreviewModal doc={previewDoc} onClose={() => setPreviewDoc(null)} />
     </div>
   );

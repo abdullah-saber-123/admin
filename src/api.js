@@ -187,6 +187,25 @@ export const api = {
     qs.set("page_size", params.pageSize || 50);
     return request(`/api/admin/audit-log?${qs.toString()}`);
   },
+  listApprovalSteps: () => request("/api/admin/approval-steps"),
+  createApprovalStep: (data) => request("/api/admin/approval-steps", { method: "POST", body: JSON.stringify(data) }),
+  updateApprovalStep: (id, data) => request(`/api/admin/approval-steps/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  deleteApprovalStep: (id) => request(`/api/admin/approval-steps/${id}`, { method: "DELETE" }),
+  listContractCases: (params = {}) => {
+    const qs = new URLSearchParams();
+    if (params.status) qs.set("status", params.status);
+    if (params.search) qs.set("search", params.search);
+    if (params.partnerId) qs.set("partner_id", params.partnerId);
+    return request(`/api/contract-cases?${qs.toString()}`);
+  },
+  getContractCase: (id) => request(`/api/contract-cases/${id}`),
+  getContractCaseDocument: (id, field) => request(`/api/contract-cases/${id}/document/${field}`),
+  createContractCase: (data) => request("/api/contract-cases", { method: "POST", body: JSON.stringify(data) }),
+  completeApprovalStep: (caseId, stepId, note) => request(`/api/contract-cases/${caseId}/steps/${stepId}/complete`, { method: "PATCH", body: JSON.stringify({ note }) }),
+  rejectContractCase: (caseId, note) => request(`/api/contract-cases/${caseId}/reject`, { method: "PATCH", body: JSON.stringify({ note }) }),
+  markContractCaseSent: (caseId, data) => request(`/api/contract-cases/${caseId}/mark-sent`, { method: "PATCH", body: JSON.stringify(data) }),
+  archiveSignedDocuments: (caseId, data) => request(`/api/contract-cases/${caseId}/archive-signed`, { method: "POST", body: JSON.stringify(data) }),
+  getContractCaseSummary: (partnerId) => request(`/api/contract-cases/customer/${partnerId}/summary`),
   remindersOverview: (collector = "") => request(`/api/admin/reminders-overview${collector ? `?collector=${encodeURIComponent(collector)}` : ""}`),
   exportRemindersOverviewPdf: (params = {}) => {
     const qs = buildQueryString(params);

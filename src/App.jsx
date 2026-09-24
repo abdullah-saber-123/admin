@@ -50,6 +50,8 @@ const CustomerComparisonReport = lazy(() => import("./components/CustomerCompari
 const WhatsAppSettingsPanel = lazy(() => import("./components/WhatsAppSettingsPanel.jsx"));
 const ScheduledReportsPanel = lazy(() => import("./components/ScheduledReportsPanel.jsx"));
 const AuditLogReport = lazy(() => import("./components/AuditLogReport.jsx"));
+const ApprovalStepsSettings = lazy(() => import("./components/ApprovalStepsSettings.jsx"));
+const ContractCasesReport = lazy(() => import("./components/ContractCasesReport.jsx"));
 const PaymentProofsReport = lazy(() => import("./components/PaymentProofsReport.jsx"));
 const PortalManagementReport = lazy(() => import("./components/PortalManagementReport.jsx"));
 const RemindersOverview = lazy(() => import("./components/RemindersOverview.jsx"));
@@ -231,6 +233,8 @@ export default function App() {
               : view === "whatsappSettings" ? t("whatsappIntegrationTitle")
               : view === "scheduledReports" ? t("scheduledReportsTitle")
               : view === "auditLog" ? t("auditLogTitle")
+              : view === "approvalStepsSettings" ? t("approvalStepsTitle")
+              : view === "contractCases" ? t("contractCasesTitle")
               : view === "loginHistory" ? t("loginHistoryTitle")
               : view === "customerShares" ? t("customerSharesTitle")
               : view === "teamsSettings" ? t("teamsIntegrationTitle")
@@ -477,6 +481,12 @@ export default function App() {
           )}
           {view === "auditLog" && session.role === "admin" && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><AuditLogReport onSelectCustomer={setSelectedId} /></Suspense>
+          )}
+          {view === "approvalStepsSettings" && session.role === "admin" && (
+            <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><ApprovalStepsSettings /></Suspense>
+          )}
+          {view === "contractCases" && (session.role === "admin" || (session.permissions || "").includes("contractCases")) && (
+            <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><ContractCasesReport session={session} /></Suspense>
           )}
         </div>
       </div>

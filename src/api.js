@@ -201,11 +201,10 @@ export const api = {
   getContractCase: (id) => request(`/api/contract-cases/${id}`),
   getContractCaseDocument: (id, field) => request(`/api/contract-cases/${id}/document/${field}`),
   createContractCase: (data) => request("/api/contract-cases", { method: "POST", body: JSON.stringify(data) }),
-  completeApprovalStep: (caseId, stepId, note) => request(`/api/contract-cases/${caseId}/steps/${stepId}/complete`, { method: "PATCH", body: JSON.stringify({ note }) }),
+  approveContractCaseReview: (caseId) => request(`/api/contract-cases/${caseId}/approve-review`, { method: "PATCH" }),
+  completeApprovalStep: (caseId, stepId, note, attachment = null) => request(`/api/contract-cases/${caseId}/steps/${stepId}/complete`, { method: "PATCH", body: JSON.stringify({ note, attachment }) }),
   rejectContractCase: (caseId, note) => request(`/api/contract-cases/${caseId}/reject`, { method: "PATCH", body: JSON.stringify({ note }) }),
-  updateContractCaseCreditLimit: (caseId, creditLimitApproved) => request(`/api/contract-cases/${caseId}/credit-limit`, { method: "PATCH", body: JSON.stringify({ credit_limit_approved: creditLimitApproved }) }),
-  markContractCaseSent: (caseId, data) => request(`/api/contract-cases/${caseId}/mark-sent`, { method: "PATCH", body: JSON.stringify(data) }),
-  archiveSignedDocuments: (caseId, data) => request(`/api/contract-cases/${caseId}/archive-signed`, { method: "POST", body: JSON.stringify(data) }),
+  updateContractCaseDetails: (caseId, data) => request(`/api/contract-cases/${caseId}/details`, { method: "PATCH", body: JSON.stringify(data) }),
   getContractCaseSummary: (partnerId) => request(`/api/contract-cases/customer/${partnerId}/summary`),
   openContractCaseTemplate: async (caseId) => {
     const session = getSession();
@@ -217,6 +216,23 @@ export const api = {
     const blob = new Blob([html], { type: "text/html" });
     const url = window.URL.createObjectURL(blob);
     window.open(url, "_blank");
+  },
+  viewContractCaseDocument: async (caseId, field) => {
+    const { file_name, file_data } = await request(`/api/contract-cases/${caseId}/document/${field}`);
+    const ext = (file_name || "").split(".").pop().toLowerCase();
+    const mime = { pdf: "application/pdf", png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp" }[ext] || "application/octet-stream";
+    const byteChars = atob(file_data);
+    const bytes = new Uint8Array(byteChars.length);
+    for (let i = 0; i < byteChars.length; i++) bytes[i] = byteChars.charCodeAt(i);
+    const blob = new Blob([bytes], { type: mime });
+    const url = window.URL.createObjectURL(blob);
+    if (mime === "application/octet-stream") {
+      const a = document.createElement("a");
+      a.href = url; a.download = file_name || "document";
+      document.body.appendChild(a); a.click(); a.remove();
+    } else {
+      window.open(url, "_blank");
+    }
   },
   remindersOverview: (collector = "") => request(`/api/admin/reminders-overview${collector ? `?collector=${encodeURIComponent(collector)}` : ""}`),
   exportRemindersOverviewPdf: (params = {}) => {

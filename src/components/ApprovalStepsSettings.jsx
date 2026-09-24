@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ListChecks, Plus, Trash2, FileText, FileSignature, CreditCard, CheckCircle2 } from "lucide-react";
+import { ListChecks, Plus, Trash2, FileText, FileSignature, CreditCard, CheckCircle2, Paperclip } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 import { useToast } from "../toast.jsx";
@@ -8,7 +8,7 @@ const TRACKS = ["note", "contract", "credit_limit", "final"];
 const TRACK_ICON = { note: FileText, contract: FileSignature, credit_limit: CreditCard, final: CheckCircle2 };
 
 function emptyStep() {
-  return { name: "", track: "contract", step_order: 0, assigned_username: "", active: true };
+  return { name: "", track: "contract", step_order: 0, assigned_username: "", active: true, requires_attachment: false };
 }
 
 export default function ApprovalStepsSettings() {
@@ -89,6 +89,7 @@ export default function ApprovalStepsSettings() {
                     <th>{t("approvalStepTrack")}</th>
                     <th>{t("approvalStepAssignee")}</th>
                     <th style={{ width: 70 }}>{t("approvalStepActive")}</th>
+                    <th style={{ width: 70 }}>{t("approvalStepRequiresAttachment")}</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -117,6 +118,10 @@ export default function ApprovalStepsSettings() {
                         </td>
                         <td style={{ textAlign: "center" }}>
                           <input type="checkbox" checked={s.active} onChange={(e) => updateStep(s, { active: e.target.checked })} />
+                        </td>
+                        <td style={{ textAlign: "center" }}>
+                          <input type="checkbox" checked={!!s.requires_attachment} title={t("contractCaseRequiresAttachment")}
+                            onChange={(e) => updateStep(s, { requires_attachment: e.target.checked })} />
                         </td>
                         <td><button className="icon-btn danger" onClick={() => handleDelete(s.id)}><Trash2 size={13} /></button></td>
                       </tr>
@@ -153,6 +158,10 @@ export default function ApprovalStepsSettings() {
                 {users.map((u) => <option key={u.id} value={u.username}>{u.full_name || u.username}</option>)}
               </select>
             </div>
+            <label className="checkbox-inline" style={{ marginBottom: 8 }} onClick={() => setNewStep((s) => ({ ...s, requires_attachment: !s.requires_attachment }))}>
+              <input type="checkbox" checked={newStep.requires_attachment} readOnly />
+              <Paperclip size={12} style={{ verticalAlign: -1, marginInlineEnd: 3 }} />{t("contractCaseRequiresAttachment")}
+            </label>
             <div className="more-filter-field">
               <button className="btn-primary" type="submit" disabled={saving}>
                 <Plus size={13} style={{ verticalAlign: -2, marginInlineEnd: 4 }} />

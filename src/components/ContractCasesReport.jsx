@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
-  FileSignature, Search, X, Plus, Check, Ban, Send, Archive,
-  FileText, CreditCard, CheckCircle2, Upload, User as UserIcon, IdCard,
+  FileSignature, Search, X, Plus, Check, Ban, Eye, Paperclip,
+  FileText, CreditCard, CheckCircle2, Upload, User as UserIcon, IdCard, ShieldCheck,
 } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
@@ -9,9 +9,9 @@ import { useToast } from "../toast.jsx";
 import { fmtDate, fmtDateTime } from "../dateUtils.js";
 import RiyalAmount from "./RiyalAmount.jsx";
 
-const STATUS_TONE = { in_progress: "warn", ready_to_send: "teal", sent: "violet", archived: "ok", rejected: "danger" };
-const STATUS_ACCENT = { in_progress: "amber", ready_to_send: "teal", sent: "violet", archived: "ok", rejected: "danger" };
-const STATUS_LIST = ["in_progress", "ready_to_send", "sent", "archived", "rejected"];
+const STATUS_TONE = { pending_review: "warn", in_progress: "teal", archived: "ok", rejected: "danger" };
+const STATUS_ACCENT = { pending_review: "amber", in_progress: "teal", archived: "ok", rejected: "danger" };
+const STATUS_LIST = ["pending_review", "in_progress", "archived", "rejected"];
 const TRACK_ICON = { note: FileText, contract: FileSignature, credit_limit: CreditCard, final: CheckCircle2 };
 const DOC_LABEL_KEYS = {
   commercial_registration: "contractCaseDocCR",
@@ -187,6 +187,68 @@ function CreateCaseForm({ onCreated, onCancel }) {
   );
 }
 
+function StepRow({ step, canDo, busy, onComplete }) {
+  const { t } = useLang();
+  const [attachment, setAttachment] = useState(null);
+  const [showAttach, setShowAttach] = useState(false);
+
+  const handleFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const dataUrl = await fileToBase64(file);
+    setAttachment({ file_name: file.name, file_type: file.type, file_data: dataUrl });
+  };
+
+  const handleClick = () => {
+    if (step.requires_attachment && !showAttach) { setShowAttach(true); return; }
+    onComplete(step.id, attachment);
+  };
+
+  return (
+    <div className="cc-step-row" style={{ flexWrap: "wrap" }}>
+      <span className={`cc-step-dot${step.done ? " done" : ""}`}>{step.done ? <Check size={12} /> : ""}</span>
+      <div className="cc-step-row-body">
+        <div className="cc-step-name">{step.name}{step.requires_attachment && <Paperclip size={11} style={{ verticalAlign: -1, marginInlineStart: 4, color: "var(--text-dim)" }} />}</div>
+        {step.assigned_username && <div className="cc-step-meta">{step.assigned_username}</div>}
+        {step.done && <div className="cc-step-meta">{step.done_by} - {fmtDateTime(step.done_at)}</div>}
+        {!step.done && step.requires_attachment && <div className="cc-step-meta">{t("contractCaseRequiresAttachment")}</div>}
+      </div>
+      {!step.done && (
+        canDo ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {showAttach && (
+              <input type="file" style={{ fontSize: 11, maxWidth: 160 }} onChange={handleFile} />
+            )}
+            <button className="btn-secondary sm" disabled={busy || (showAttach && !attachment)} onClick={handleClick}>
+              {showAttach ? t("contractCaseAttachFinalFile") : t("contractCaseMarkDone")}
+            </button>
+          </div>
+        ) : (
+          <span className="fu-tag faint">{t("contractCasePending")}</span>
+        )
+      )}
+    </div>
+  );
+}
+
+function DocChip({ caseId, field, fileName, hasFile, missingLabel }) {
+  const { showToast } = useToast();
+  const handleView = async (e) => {
+    e.stopPropagation();
+    try {
+      await api.viewContractCaseDocument(caseId, field);
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+  };
+  if (!hasFile) return <span className="cc-doc-chip missing"><X size={11} />{missingLabel}</span>;
+  return (
+    <button type="button" className="cc-doc-chip" onClick={handleView} style={{ cursor: "pointer", border: "none" }}>
+      <Eye size={11} />{fileName}
+    </button>
+  );
+}
+
 function CaseDetail({ caseId, onClose, onChanged, session }) {
   const { t } = useLang();
   const { showToast } = useToast();
@@ -194,17 +256,21 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
   const [error, setError] = useState(null);
   const [rejectNote, setRejectNote] = useState("");
   const [showReject, setShowReject] = useState(false);
-  const [contractNumber, setContractNumber] = useState("");
-  const [contractDate, setContractDate] = useState("");
-  const [noteExpiryDate, setNoteExpiryDate] = useState("");
-  const [signedContract, setSignedContract] = useState(null);
-  const [signedNote, setSignedNote] = useState(null);
   const [busy, setBusy] = useState(false);
   const [editingLimit, setEditingLimit] = useState(false);
   const [limitValue, setLimitValue] = useState("");
+  const [editingDetails, setEditingDetails] = useState(false);
+  const [contractNumber, setContractNumber] = useState("");
+  const [contractDate, setContractDate] = useState("");
+  const [noteExpiryDate, setNoteExpiryDate] = useState("");
 
   const load = () => {
-    api.getContractCase(caseId).then(setC).catch((e) => setError(e.message));
+    api.getContractCase(caseId).then((data) => {
+      setC(data);
+      setContractNumber(data.contract_number || "");
+      setContractDate(data.contract_date || "");
+      setNoteExpiryDate(data.note_expiry_date || "");
+    }).catch((e) => setError(e.message));
   };
   useEffect(load, [caseId]);
 
@@ -212,7 +278,7 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
     if (limitValue === "" || Number.isNaN(Number(limitValue))) return;
     setBusy(true);
     try {
-      await api.updateContractCaseCreditLimit(caseId, Number(limitValue));
+      await api.updateContractCaseDetails(caseId, { credit_limit_approved: Number(limitValue) });
       load();
       onChanged?.();
       setEditingLimit(false);
@@ -224,14 +290,45 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
     }
   };
 
-  const canDoStep = (step) => !step.done && (session.role === "admin" || step.assigned_username === session.username);
-
-  const handleCompleteStep = async (stepId) => {
+  const handleSaveDetails = async () => {
     setBusy(true);
     try {
-      await api.completeApprovalStep(caseId, stepId, "");
+      await api.updateContractCaseDetails(caseId, {
+        contract_number: contractNumber || null, contract_date: contractDate || null, note_expiry_date: noteExpiryDate || null,
+      });
       load();
       onChanged?.();
+      setEditingDetails(false);
+      showToast(t("contractCaseDetailsUpdated"), "success");
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const canDoStep = (step) => !step.done && (session.role === "admin" || step.assigned_username === session.username);
+
+  const handleCompleteStep = async (stepId, attachment) => {
+    setBusy(true);
+    try {
+      await api.completeApprovalStep(caseId, stepId, "", attachment);
+      load();
+      onChanged?.();
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleApproveReview = async () => {
+    setBusy(true);
+    try {
+      await api.approveContractCaseReview(caseId);
+      load();
+      onChanged?.();
+      showToast(t("contractCaseReviewApproved"), "success");
     } catch (err) {
       showToast(err.message, "error");
     } finally {
@@ -247,36 +344,6 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
       load();
       onChanged?.();
       setShowReject(false);
-    } catch (err) {
-      showToast(err.message, "error");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleMarkSent = async () => {
-    setBusy(true);
-    try {
-      await api.markContractCaseSent(caseId, {
-        contract_number: contractNumber || null, contract_date: contractDate || null, note_expiry_date: noteExpiryDate || null,
-      });
-      load();
-      onChanged?.();
-      showToast(t("contractCaseMarkedSent"), "success");
-    } catch (err) {
-      showToast(err.message, "error");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleArchive = async () => {
-    setBusy(true);
-    try {
-      await api.archiveSignedDocuments(caseId, { signed_contract: signedContract, signed_note: signedNote });
-      load();
-      onChanged?.();
-      showToast(t("contractCaseArchived"), "success");
     } catch (err) {
       showToast(err.message, "error");
     } finally {
@@ -301,6 +368,7 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
   const docEntries = Object.entries(c.documents || {});
   const doneSteps = (c.steps || []).filter((s) => s.done).length;
   const totalSteps = (c.steps || []).length;
+  const isClosed = ["rejected", "archived"].includes(c.status);
 
   return (
     <div className="panel" style={{ marginTop: 14 }}>
@@ -317,6 +385,25 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
         </div>
       </div>
 
+      {c.status === "pending_review" && session.role === "admin" && (
+        <div className="cc-track" style={{ borderColor: "var(--warn)", marginTop: 12 }}>
+          <div className="cc-track-title"><ShieldCheck size={14} style={{ color: "var(--warn)" }} />{t("contractCasePendingReviewHint")}</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button className="btn-primary sm" disabled={busy} onClick={handleApproveReview}>
+              <Check size={12} style={{ verticalAlign: -2, marginInlineEnd: 4 }} />{t("contractCaseApproveReview")}
+            </button>
+            {!showReject ? (
+              <button className="btn-secondary sm danger" onClick={() => setShowReject(true)}><Ban size={12} style={{ verticalAlign: -2, marginInlineEnd: 4 }} />{t("contractCaseReject")}</button>
+            ) : (
+              <div className="more-filters-row" style={{ margin: 0 }}>
+                <div className="more-filter-field" style={{ flex: 1 }}><input value={rejectNote} onChange={(e) => setRejectNote(e.target.value)} placeholder={t("contractCaseRejectReason")} /></div>
+                <button className="btn-secondary sm danger" disabled={busy} onClick={handleReject}>{t("contractCaseReject")}</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="insights-kpi-grid" style={{ marginTop: 12 }}>
         <div className="insights-kpi-card accent-amber">
           <div className="insights-kpi-top">
@@ -326,7 +413,7 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
           <div className="insights-kpi-value insights-kpi-value-sm"><RiyalAmount amount={c.credit_limit_requested} /></div>
         </div>
         {(() => {
-          const canEditLimit = session.role === "admin" && !c.credit_limit_applied && !["rejected", "archived"].includes(c.status);
+          const canEditLimit = session.role === "admin" && !c.credit_limit_applied && !isClosed;
           if (!canEditLimit && c.credit_limit_approved == null) return null;
           return (
             <div className="insights-kpi-card accent-ok">
@@ -384,21 +471,7 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
               <span className="cc-track-count">({byTrack[track].filter((s) => s.done).length}/{byTrack[track].length})</span>
             </div>
             {byTrack[track].map((s) => (
-              <div key={s.id} className="cc-step-row">
-                <span className={`cc-step-dot${s.done ? " done" : ""}`}>{s.done ? <Check size={12} /> : ""}</span>
-                <div className="cc-step-row-body">
-                  <div className="cc-step-name">{s.name}</div>
-                  {s.assigned_username && <div className="cc-step-meta">{s.assigned_username}</div>}
-                  {s.done && <div className="cc-step-meta">{s.done_by} - {fmtDateTime(s.done_at)}</div>}
-                </div>
-                {!s.done && (
-                  canDoStep(s) ? (
-                    <button className="btn-secondary sm" disabled={busy} onClick={() => handleCompleteStep(s.id)}>{t("contractCaseMarkDone")}</button>
-                  ) : (
-                    <span className="fu-tag faint">{t("contractCasePending")}</span>
-                  )
-                )}
-              </div>
+              <StepRow key={s.id} step={s} canDo={canDoStep(s)} busy={busy} onComplete={handleCompleteStep} />
             ))}
           </div>
         )
@@ -408,43 +481,38 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
         <div className="user-form-section-title">{t("contractCaseDocuments")}</div>
         <div className="cc-doc-grid">
           {docEntries.map(([k, v]) => (
-            <span key={k} className={`cc-doc-chip${v.has_file ? "" : " missing"}`}>
-              {v.has_file ? <Check size={11} /> : <X size={11} />}
-              {v.has_file ? v.file_name : t(DOC_LABEL_KEYS[k] || k)}
-            </span>
+            <DocChip key={k} caseId={caseId} field={k} fileName={v.file_name} hasFile={v.has_file} missingLabel={t(DOC_LABEL_KEYS[k] || k)} />
           ))}
         </div>
       </div>
 
-      {c.status === "ready_to_send" && session.role === "admin" && (
-        <div className="user-form-section">
-          <div className="user-form-section-title">{t("contractCaseMarkSentTitle")}</div>
-          <div className="more-filters-row">
-            <div className="more-filter-field"><label>{t("contractCaseContractNumber")}</label><input value={contractNumber} onChange={(e) => setContractNumber(e.target.value)} /></div>
-            <div className="more-filter-field"><label>{t("contractCaseContractDate")}</label><input type="date" value={contractDate} onChange={(e) => setContractDate(e.target.value)} /></div>
-            {!c.note_exempt && <div className="more-filter-field"><label>{t("contractCaseNoteExpiryDate")}</label><input type="date" value={noteExpiryDate} onChange={(e) => setNoteExpiryDate(e.target.value)} /></div>}
+      <div className="user-form-section">
+        <div className="user-form-section-title">{t("contractCaseFinalDocs")}</div>
+        {c.signed_contract_file_name || c.signed_note_file_name ? (
+          <div className="cc-doc-grid">
+            {c.signed_contract_file_name && <DocChip caseId={caseId} field="signed_contract" fileName={c.signed_contract_file_name} hasFile />}
+            {!c.note_exempt && c.signed_note_file_name && <DocChip caseId={caseId} field="signed_note" fileName={c.signed_note_file_name} hasFile />}
           </div>
-          <button className="btn-primary sm" style={{ marginTop: 8 }} disabled={busy} onClick={handleMarkSent}>
-            <Send size={12} style={{ verticalAlign: -2, marginInlineEnd: 4 }} />{t("contractCaseMarkSent")}
-          </button>
-        </div>
-      )}
+        ) : (
+          <p className="settings-meta">{t("contractCaseNoFinalDocsYet")}</p>
+        )}
+      </div>
 
-      {(c.status === "sent" || c.status === "archived") && (
+      {session.role === "admin" && !isClosed && c.status !== "pending_review" && (
         <div className="user-form-section">
-          <div className="user-form-section-title">{t("contractCaseArchiveTitle")}</div>
-          {c.status !== "archived" ? (
+          <div className="user-form-section-title" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            {t("contractCaseEditDetails")}
+            {!editingDetails && <button className="btn-secondary sm" onClick={() => setEditingDetails(true)}>{t("contractCaseEditDetails")}</button>}
+          </div>
+          {editingDetails && (
             <>
               <div className="more-filters-row">
-                <FileField label={t("contractCaseSignedContract")} value={signedContract} onChange={setSignedContract} />
-                {!c.note_exempt && <FileField label={t("contractCaseSignedNote")} value={signedNote} onChange={setSignedNote} />}
+                <div className="more-filter-field"><label>{t("contractCaseContractNumber")}</label><input value={contractNumber} onChange={(e) => setContractNumber(e.target.value)} /></div>
+                <div className="more-filter-field"><label>{t("contractCaseContractDate")}</label><input type="date" value={contractDate} onChange={(e) => setContractDate(e.target.value)} /></div>
+                {!c.note_exempt && <div className="more-filter-field"><label>{t("contractCaseNoteExpiryDate")}</label><input type="date" value={noteExpiryDate} onChange={(e) => setNoteExpiryDate(e.target.value)} /></div>}
               </div>
-              <button className="btn-primary sm" style={{ marginTop: 8 }} disabled={busy} onClick={handleArchive}>
-                <Archive size={12} style={{ verticalAlign: -2, marginInlineEnd: 4 }} />{t("contractCaseArchiveSave")}
-              </button>
+              <button className="btn-primary sm" style={{ marginTop: 8 }} disabled={busy} onClick={handleSaveDetails}>{t("contractCaseSaveDetails")}</button>
             </>
-          ) : (
-            <p className="settings-meta"><Check size={12} style={{ verticalAlign: -1, marginInlineEnd: 3 }} />{t("contractCaseFullyArchived")}</p>
           )}
         </div>
       )}

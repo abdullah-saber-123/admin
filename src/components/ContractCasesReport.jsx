@@ -235,8 +235,9 @@ function DocChip({ caseId, field, fileName, hasFile, missingLabel }) {
   const { showToast } = useToast();
   const handleView = async (e) => {
     e.stopPropagation();
+    const win = window.open("", "_blank");
     try {
-      await api.viewContractCaseDocument(caseId, field);
+      await api.viewContractCaseDocument(caseId, field, win);
     } catch (err) {
       showToast(err.message, "error");
     }
@@ -435,8 +436,9 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
   };
 
   const handleOpenTemplate = async () => {
+    const win = window.open("", "_blank");
     try {
-      await api.openContractCaseTemplate(caseId);
+      await api.openContractCaseTemplate(caseId, win);
     } catch (err) {
       showToast(err.message, "error");
     }

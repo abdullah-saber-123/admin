@@ -238,6 +238,14 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
     }
   };
 
+  const handleOpenTemplate = async () => {
+    try {
+      await api.openContractCaseTemplate(caseId);
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+  };
+
   if (error) return <div className="error-state">{error}</div>;
   if (!c) return <div className="loading-state">{t("loadingDots")}</div>;
 
@@ -251,7 +259,12 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
           <h3 className="insights-chart-title">{c.customer_name}</h3>
           <span className={`fu-tag ${STATUS_TONE[c.status]}`}>{t(`contractCaseStatus_${c.status}`)}</span>
         </div>
-        <button className="icon-btn" onClick={onClose}><X size={16} /></button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button className="btn-secondary sm" onClick={handleOpenTemplate}>
+            <FileSignature size={13} style={{ verticalAlign: -2, marginInlineEnd: 4 }} />{t("contractCaseOpenTemplate")}
+          </button>
+          <button className="icon-btn" onClick={onClose}><X size={16} /></button>
+        </div>
       </div>
 
       <div className="more-filters-row" style={{ marginTop: 10 }}>

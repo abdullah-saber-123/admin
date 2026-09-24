@@ -206,6 +206,17 @@ export const api = {
   markContractCaseSent: (caseId, data) => request(`/api/contract-cases/${caseId}/mark-sent`, { method: "PATCH", body: JSON.stringify(data) }),
   archiveSignedDocuments: (caseId, data) => request(`/api/contract-cases/${caseId}/archive-signed`, { method: "POST", body: JSON.stringify(data) }),
   getContractCaseSummary: (partnerId) => request(`/api/contract-cases/customer/${partnerId}/summary`),
+  openContractCaseTemplate: async (caseId) => {
+    const session = getSession();
+    const headers = {};
+    if (session?.token) headers["Authorization"] = `Bearer ${session.token}`;
+    const res = await fetch(`${BASE}/api/contract-cases/${caseId}/contract-template`, { headers });
+    if (!res.ok) throw new Error((await res.text().catch(() => "")) || `Failed (${res.status})`);
+    const html = await res.text();
+    const blob = new Blob([html], { type: "text/html" });
+    const url = window.URL.createObjectURL(blob);
+    window.open(url, "_blank");
+  },
   remindersOverview: (collector = "") => request(`/api/admin/reminders-overview${collector ? `?collector=${encodeURIComponent(collector)}` : ""}`),
   exportRemindersOverviewPdf: (params = {}) => {
     const qs = buildQueryString(params);

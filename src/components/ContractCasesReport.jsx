@@ -232,15 +232,18 @@ function StepRow({ step, canDo, busy, onComplete }) {
 }
 
 function DocChip({ caseId, field, fileName, hasFile, missingLabel }) {
-  const handleView = (e) => {
-    e.stopPropagation();
-    window.open(api.contractCaseDocumentUrl(caseId, field), "_blank");
-  };
   if (!hasFile) return <span className="cc-doc-chip missing"><X size={11} />{missingLabel}</span>;
   return (
-    <button type="button" className="cc-doc-chip" onClick={handleView} style={{ cursor: "pointer", border: "none" }}>
+    <a
+      href={api.contractCaseDocumentUrl(caseId, field)}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="cc-doc-chip"
+      onClick={(e) => e.stopPropagation()}
+      style={{ cursor: "pointer", textDecoration: "none" }}
+    >
       <Eye size={11} />{fileName}
-    </button>
+    </a>
   );
 }
 
@@ -429,10 +432,6 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
     }
   };
 
-  const handleOpenTemplate = () => {
-    window.open(api.contractCaseTemplateUrl(caseId), "_blank");
-  };
-
   if (error) return <div className="error-state">{error}</div>;
   if (!c) return <div className="loading-state">{t("loadingDots")}</div>;
 
@@ -457,9 +456,9 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
           )}
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button className="btn-secondary sm" onClick={handleOpenTemplate}>
+          <a href={api.contractCaseTemplateUrl(caseId)} target="_blank" rel="noopener noreferrer" className="btn-secondary sm" style={{ textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
             <FileSignature size={13} style={{ verticalAlign: -2, marginInlineEnd: 4 }} />{t("contractCaseOpenTemplate")}
-          </button>
+          </a>
           <button className="icon-btn" onClick={onClose}><X size={16} /></button>
         </div>
       </div>

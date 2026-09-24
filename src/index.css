@@ -2126,6 +2126,9 @@ input, select, textarea { font-family: inherit; }
 .insights-kpi-card.accent-danger { background: #e0294b0f; }
 .insights-kpi-card.accent-teal { background: #0ea5e912; }
 .insights-kpi-card.accent-amber { background: #f0c16814; }
+.insights-kpi-card.accent-ok { background: var(--ok-soft); }
+.insights-kpi-card.clickable { cursor: pointer; }
+.insights-kpi-card.kpi-active { border-color: var(--primary); box-shadow: 0 0 0 2px #5750f122; }
 .kpi-pulse {
   position: absolute;
   inset-inline-end: -14px;
@@ -2159,6 +2162,7 @@ input, select, textarea { font-family: inherit; }
 .accent-danger .insights-kpi-icon { color: var(--danger); }
 .accent-teal .insights-kpi-icon { color: #0ea5e9; }
 .accent-amber .insights-kpi-icon { color: #b8860b; }
+.accent-ok .insights-kpi-icon { color: var(--ok); }
 .insights-kpi-value {
   font-size: 16px;
   font-weight: 800;
@@ -2173,6 +2177,7 @@ input, select, textarea { font-family: inherit; }
 .accent-danger .insights-kpi-value { color: var(--danger); }
 .accent-teal .insights-kpi-value { color: #0369a1; }
 .accent-amber .insights-kpi-value { color: #92650c; }
+.accent-ok .insights-kpi-value { color: var(--ok); }
 .insights-kpi-value-sm { font-size: 12.5px; white-space: normal; }
 .insights-kpi-label { font-size: 10.5px; color: var(--text-dim); font-weight: 600; }
 .insights-kpi-bar {
@@ -3591,6 +3596,79 @@ input, select, textarea { font-family: inherit; }
 .fu-tag.warn { background: var(--warn-soft); color: var(--warn); }
 .fu-tag.danger { background: var(--danger-soft); color: var(--danger); }
 .fu-tag.faint { background: var(--card); color: var(--text-faint); border: 1px solid var(--border); }
+.fu-tag.teal { background: #0ea5e91a; color: #0369a1; }
+.fu-tag.violet { background: #5750f11a; color: var(--primary-dark); }
+
+/* Contract Cases module */
+.cc-track {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  background: var(--panel);
+}
+.cc-track-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.cc-track-count { font-size: 10.5px; font-weight: 600; color: var(--text-dim); }
+.cc-step-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-top: 1px dashed var(--border);
+}
+.cc-step-row:first-of-type { border-top: none; }
+.cc-step-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text-faint);
+}
+.cc-step-dot.done { background: var(--ok-soft); border-color: transparent; color: var(--ok); }
+.cc-step-row-body { flex: 1; min-width: 0; }
+.cc-step-name { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.cc-step-meta { font-size: 10.5px; color: var(--text-dim); margin-top: 1px; }
+.cc-doc-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 6px;
+}
+.cc-doc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  background: var(--ok-soft);
+  color: var(--ok);
+  font-size: 11px;
+  font-weight: 600;
+}
+.cc-doc-chip.missing { background: var(--card); color: var(--text-faint); border: 1px solid var(--border); }
+.cc-file-field {
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  min-width: 210px;
+  background: var(--card);
+}
+.cc-file-field.required { border-color: #5750f155; }
+.cc-file-field label { display: flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600; margin-bottom: 5px; }
+.cc-file-field .req-star { color: var(--danger); }
 
 .status-config-list {
   display: flex;

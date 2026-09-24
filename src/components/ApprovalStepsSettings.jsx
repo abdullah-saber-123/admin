@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { ListChecks, Plus, Trash2 } from "lucide-react";
+import { ListChecks, Plus, Trash2, FileText, FileSignature, CreditCard, CheckCircle2 } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 import { useToast } from "../toast.jsx";
 
 const TRACKS = ["note", "contract", "credit_limit", "final"];
+const TRACK_ICON = { note: FileText, contract: FileSignature, credit_limit: CreditCard, final: CheckCircle2 };
 
 function emptyStep() {
   return { name: "", track: "contract", step_order: 0, assigned_username: "", active: true };
@@ -66,81 +67,100 @@ export default function ApprovalStepsSettings() {
   if (!steps) return <div className="content-stack"><div className="panel"><div className="loading-state">{t("loadingDots")}</div></div></div>;
 
   return (
-    <div className="content-stack" style={{ maxWidth: 800 }}>
+    <div className="content-stack" style={{ maxWidth: 900 }}>
       <div className="panel">
         <h2><ListChecks size={15} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />{t("approvalStepsTitle")}</h2>
         <p className="panel-sub">{t("approvalStepsHint")}</p>
 
-        <div className="table-wrap" style={{ marginTop: 14, marginBottom: 18 }}>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>{t("approvalStepOrder")}</th>
-                <th>{t("approvalStepName")}</th>
-                <th>{t("approvalStepTrack")}</th>
-                <th>{t("approvalStepAssignee")}</th>
-                <th>{t("approvalStepActive")}</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {steps.map((s) => (
-                <tr key={s.id}>
-                  <td><input type="number" className="cost-of-debt-input" value={s.step_order} style={{ width: 60 }}
-                    onChange={(e) => updateStep(s, { step_order: Number(e.target.value) || 0 })} /></td>
-                  <td><input className="cost-of-debt-input" value={s.name} style={{ width: 180 }}
-                    onChange={(e) => updateStep(s, { name: e.target.value })} /></td>
-                  <td>
-                    <select value={s.track} onChange={(e) => updateStep(s, { track: e.target.value })}>
-                      {TRACKS.map((tr) => <option key={tr} value={tr}>{t(`approvalTrack_${tr}`)}</option>)}
-                    </select>
-                  </td>
-                  <td>
-                    <select value={s.assigned_username || ""} onChange={(e) => updateStep(s, { assigned_username: e.target.value || null })}>
-                      <option value="">{t("approvalStepAnyAdmin")}</option>
-                      {users.map((u) => <option key={u.id} value={u.username}>{u.full_name || u.username}</option>)}
-                    </select>
-                  </td>
-                  <td>
-                    <input type="checkbox" checked={s.active} onChange={(e) => updateStep(s, { active: e.target.checked })} />
-                  </td>
-                  <td><button className="icon-btn danger" onClick={() => handleDelete(s.id)}><Trash2 size={13} /></button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="user-form-section" style={{ marginTop: 14 }}>
+          <div className="user-form-section-title">
+            {t("approvalStepsTitle")} <span className="cc-track-count">({steps.length})</span>
+          </div>
+
+          {steps.length === 0 ? (
+            <div className="empty-state">{t("approvalStepsNoSteps")}</div>
+          ) : (
+            <div className="table-wrap">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: 60 }}>{t("approvalStepOrder")}</th>
+                    <th>{t("approvalStepName")}</th>
+                    <th>{t("approvalStepTrack")}</th>
+                    <th>{t("approvalStepAssignee")}</th>
+                    <th style={{ width: 70 }}>{t("approvalStepActive")}</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {steps.map((s) => {
+                    const Icon = TRACK_ICON[s.track];
+                    return (
+                      <tr key={s.id} style={{ opacity: s.active ? 1 : 0.55 }}>
+                        <td><input type="number" className="cost-of-debt-input" value={s.step_order} style={{ width: 55 }}
+                          onChange={(e) => updateStep(s, { step_order: Number(e.target.value) || 0 })} /></td>
+                        <td><input className="cost-of-debt-input" value={s.name} style={{ width: 180 }}
+                          onChange={(e) => updateStep(s, { name: e.target.value })} /></td>
+                        <td>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <Icon size={13} style={{ color: "var(--primary)", flexShrink: 0 }} />
+                            <select value={s.track} onChange={(e) => updateStep(s, { track: e.target.value })}>
+                              {TRACKS.map((tr) => <option key={tr} value={tr}>{t(`approvalTrack_${tr}`)}</option>)}
+                            </select>
+                          </div>
+                        </td>
+                        <td>
+                          <select value={s.assigned_username || ""} onChange={(e) => updateStep(s, { assigned_username: e.target.value || null })}>
+                            <option value="">{t("approvalStepAnyAdmin")}</option>
+                            {users.map((u) => <option key={u.id} value={u.username}>{u.full_name || u.username}</option>)}
+                          </select>
+                        </td>
+                        <td style={{ textAlign: "center" }}>
+                          <input type="checkbox" checked={s.active} onChange={(e) => updateStep(s, { active: e.target.checked })} />
+                        </td>
+                        <td><button className="icon-btn danger" onClick={() => handleDelete(s.id)}><Trash2 size={13} /></button></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
-        <form onSubmit={handleAdd} className="more-filters-row" style={{ alignItems: "flex-end" }}>
-          <div className="more-filter-field">
-            <label>{t("approvalStepOrder")}</label>
-            <input type="number" value={newStep.step_order} style={{ width: 70 }}
-              onChange={(e) => setNewStep((s) => ({ ...s, step_order: e.target.value }))} />
-          </div>
-          <div className="more-filter-field" style={{ minWidth: 180 }}>
-            <label>{t("approvalStepName")}</label>
-            <input value={newStep.name} onChange={(e) => setNewStep((s) => ({ ...s, name: e.target.value }))} />
-          </div>
-          <div className="more-filter-field">
-            <label>{t("approvalStepTrack")}</label>
-            <select value={newStep.track} onChange={(e) => setNewStep((s) => ({ ...s, track: e.target.value }))}>
-              {TRACKS.map((tr) => <option key={tr} value={tr}>{t(`approvalTrack_${tr}`)}</option>)}
-            </select>
-          </div>
-          <div className="more-filter-field">
-            <label>{t("approvalStepAssignee")}</label>
-            <select value={newStep.assigned_username} onChange={(e) => setNewStep((s) => ({ ...s, assigned_username: e.target.value }))}>
-              <option value="">{t("approvalStepAnyAdmin")}</option>
-              {users.map((u) => <option key={u.id} value={u.username}>{u.full_name || u.username}</option>)}
-            </select>
-          </div>
-          <div className="more-filter-field">
-            <button className="btn-primary" type="submit" disabled={saving}>
-              <Plus size={13} style={{ verticalAlign: -2, marginInlineEnd: 4 }} />
-              {t("approvalStepAdd")}
-            </button>
-          </div>
-        </form>
+        <div className="user-form-section">
+          <div className="user-form-section-title"><Plus size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />{t("approvalStepAddNew")}</div>
+          <form onSubmit={handleAdd} className="more-filters-row" style={{ alignItems: "flex-end" }}>
+            <div className="more-filter-field">
+              <label>{t("approvalStepOrder")}</label>
+              <input type="number" value={newStep.step_order} style={{ width: 70 }}
+                onChange={(e) => setNewStep((s) => ({ ...s, step_order: e.target.value }))} />
+            </div>
+            <div className="more-filter-field" style={{ minWidth: 180 }}>
+              <label>{t("approvalStepName")}</label>
+              <input value={newStep.name} onChange={(e) => setNewStep((s) => ({ ...s, name: e.target.value }))} />
+            </div>
+            <div className="more-filter-field">
+              <label>{t("approvalStepTrack")}</label>
+              <select value={newStep.track} onChange={(e) => setNewStep((s) => ({ ...s, track: e.target.value }))}>
+                {TRACKS.map((tr) => <option key={tr} value={tr}>{t(`approvalTrack_${tr}`)}</option>)}
+              </select>
+            </div>
+            <div className="more-filter-field">
+              <label>{t("approvalStepAssignee")}</label>
+              <select value={newStep.assigned_username} onChange={(e) => setNewStep((s) => ({ ...s, assigned_username: e.target.value }))}>
+                <option value="">{t("approvalStepAnyAdmin")}</option>
+                {users.map((u) => <option key={u.id} value={u.username}>{u.full_name || u.username}</option>)}
+              </select>
+            </div>
+            <div className="more-filter-field">
+              <button className="btn-primary" type="submit" disabled={saving}>
+                <Plus size={13} style={{ verticalAlign: -2, marginInlineEnd: 4 }} />
+                {t("approvalStepAdd")}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

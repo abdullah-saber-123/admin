@@ -200,11 +200,29 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
   const [signedContract, setSignedContract] = useState(null);
   const [signedNote, setSignedNote] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [editingLimit, setEditingLimit] = useState(false);
+  const [limitValue, setLimitValue] = useState("");
 
   const load = () => {
     api.getContractCase(caseId).then(setC).catch((e) => setError(e.message));
   };
   useEffect(load, [caseId]);
+
+  const handleSaveLimit = async () => {
+    if (limitValue === "" || Number.isNaN(Number(limitValue))) return;
+    setBusy(true);
+    try {
+      await api.updateContractCaseCreditLimit(caseId, Number(limitValue));
+      load();
+      onChanged?.();
+      setEditingLimit(false);
+      showToast(t("contractCaseCreditLimitUpdated"), "success");
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const canDoStep = (step) => !step.done && (session.role === "admin" || step.assigned_username === session.username);
 
@@ -307,15 +325,40 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
           </div>
           <div className="insights-kpi-value insights-kpi-value-sm"><RiyalAmount amount={c.credit_limit_requested} /></div>
         </div>
-        {c.credit_limit_approved != null && (
-          <div className="insights-kpi-card accent-ok">
-            <div className="insights-kpi-top">
-              <span className="insights-kpi-label">{t("contractCaseCreditLimitApproved")}</span>
-              <span className="insights-kpi-icon"><CheckCircle2 size={14} /></span>
+        {(() => {
+          const canEditLimit = session.role === "admin" && !c.credit_limit_applied && !["rejected", "archived"].includes(c.status);
+          if (!canEditLimit && c.credit_limit_approved == null) return null;
+          return (
+            <div className="insights-kpi-card accent-ok">
+              <div className="insights-kpi-top">
+                <span className="insights-kpi-label">{t("contractCaseCreditLimitApproved")}</span>
+                <span className="insights-kpi-icon"><CheckCircle2 size={14} /></span>
+              </div>
+              {editingLimit ? (
+                <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 6 }}>
+                  <input type="number" step="0.01" className="cost-of-debt-input" style={{ width: 110 }} autoFocus
+                    value={limitValue} onChange={(e) => setLimitValue(e.target.value)} />
+                  <button className="icon-btn" disabled={busy} onClick={handleSaveLimit}><Check size={13} /></button>
+                  <button className="icon-btn" disabled={busy} onClick={() => setEditingLimit(false)}><X size={13} /></button>
+                </div>
+              ) : (
+                <div className="insights-kpi-value insights-kpi-value-sm" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <RiyalAmount amount={c.credit_limit_approved ?? c.credit_limit_requested} />
+                  {canEditLimit && (
+                    <button
+                      type="button"
+                      className="btn-secondary sm"
+                      style={{ fontSize: 10, padding: "2px 7px" }}
+                      onClick={() => { setLimitValue(String(c.credit_limit_approved ?? c.credit_limit_requested ?? "")); setEditingLimit(true); }}
+                    >
+                      {t("contractCaseEditCreditLimit")}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
-            <div className="insights-kpi-value insights-kpi-value-sm"><RiyalAmount amount={c.credit_limit_approved} /></div>
-          </div>
-        )}
+          );
+        })()}
         <div className="insights-kpi-card accent-teal">
           <div className="insights-kpi-top">
             <span className="insights-kpi-label">{t("contractCaseProgress")}</span>

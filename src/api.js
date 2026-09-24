@@ -203,6 +203,7 @@ export const api = {
   createContractCase: (data) => request("/api/contract-cases", { method: "POST", body: JSON.stringify(data) }),
   completeApprovalStep: (caseId, stepId, note) => request(`/api/contract-cases/${caseId}/steps/${stepId}/complete`, { method: "PATCH", body: JSON.stringify({ note }) }),
   rejectContractCase: (caseId, note) => request(`/api/contract-cases/${caseId}/reject`, { method: "PATCH", body: JSON.stringify({ note }) }),
+  updateContractCaseCreditLimit: (caseId, creditLimitApproved) => request(`/api/contract-cases/${caseId}/credit-limit`, { method: "PATCH", body: JSON.stringify({ credit_limit_approved: creditLimitApproved }) }),
   markContractCaseSent: (caseId, data) => request(`/api/contract-cases/${caseId}/mark-sent`, { method: "PATCH", body: JSON.stringify(data) }),
   archiveSignedDocuments: (caseId, data) => request(`/api/contract-cases/${caseId}/archive-signed`, { method: "POST", body: JSON.stringify(data) }),
   getContractCaseSummary: (partnerId) => request(`/api/contract-cases/customer/${partnerId}/summary`),

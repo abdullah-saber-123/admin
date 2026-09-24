@@ -201,6 +201,7 @@ export const api = {
   getContractCase: (id) => request(`/api/contract-cases/${id}`),
   getContractCaseDocument: (id, field) => request(`/api/contract-cases/${id}/document/${field}`),
   createContractCase: (data) => request("/api/contract-cases", { method: "POST", body: JSON.stringify(data) }),
+  editContractCaseRequest: (caseId, data) => request(`/api/contract-cases/${caseId}/edit-request`, { method: "PATCH", body: JSON.stringify(data) }),
   approveContractCaseReview: (caseId) => request(`/api/contract-cases/${caseId}/approve-review`, { method: "PATCH" }),
   completeApprovalStep: (caseId, stepId, note, attachment = null) => request(`/api/contract-cases/${caseId}/steps/${stepId}/complete`, { method: "PATCH", body: JSON.stringify({ note, attachment }) }),
   rejectContractCase: (caseId, note) => request(`/api/contract-cases/${caseId}/reject`, { method: "PATCH", body: JSON.stringify({ note }) }),

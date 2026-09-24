@@ -249,6 +249,88 @@ function DocChip({ caseId, field, fileName, hasFile, missingLabel }) {
   );
 }
 
+function EditRequestForm({ c, caseId, onSaved, onCancel }) {
+  const { t } = useLang();
+  const { showToast } = useToast();
+  const [creditLimit, setCreditLimit] = useState(c.credit_limit_requested ?? "");
+  const [noteExempt, setNoteExempt] = useState(!!c.note_exempt);
+  const [ownerName, setOwnerName] = useState(c.owner_name || "");
+  const [ownerIdNumber, setOwnerIdNumber] = useState(c.owner_id_number || "");
+  const [authorizedName, setAuthorizedName] = useState(c.authorized_person_name || "");
+  const [authorizedIdNumber, setAuthorizedIdNumber] = useState(c.authorized_person_id_number || "");
+  const [crNumber, setCrNumber] = useState(c.commercial_registration_number || "");
+  const [taxNumber, setTaxNumber] = useState(c.tax_number || "");
+  const [docs, setDocs] = useState({});
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await api.editContractCaseRequest(caseId, {
+        credit_limit_requested: creditLimit === "" ? null : Number(creditLimit),
+        note_exempt: noteExempt,
+        owner_name: ownerName || null, owner_id_number: ownerIdNumber || null,
+        authorized_person_name: authorizedName || null, authorized_person_id_number: authorizedIdNumber || null,
+        commercial_registration_number: crNumber || null, tax_number: taxNumber || null,
+        commercial_registration: docs.commercial_registration || null, tax_certificate: docs.tax_certificate || null,
+        national_address: docs.national_address || null, owner_id: docs.owner_id || null,
+        authorized_person_id: docs.authorized_person_id || null, other: docs.other || null,
+      });
+      showToast(t("contractCaseRequestUpdated"), "success");
+      onSaved();
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="cc-track" style={{ marginTop: 12 }}>
+      <div className="cc-track-title"><IdCard size={14} style={{ color: "var(--primary)" }} />{t("contractCaseEditRequest")}</div>
+      <p className="user-form-section-hint">{t("contractCaseEditRequestHint")}</p>
+      <div className="more-filters-row">
+        <div className="more-filter-field">
+          <label>{t("contractCaseCreditLimitRequested")}</label>
+          <input type="number" step="0.01" className="cost-of-debt-input" value={creditLimit} onChange={(e) => setCreditLimit(e.target.value)} style={{ width: 160 }} />
+        </div>
+        <label className="checkbox-inline" style={{ alignSelf: "flex-end", marginBottom: 8 }} onClick={() => setNoteExempt((v) => !v)}>
+          <input type="checkbox" checked={noteExempt} readOnly />
+          {t("contractCaseNoteExempt")}
+        </label>
+      </div>
+      <div className="more-filters-row">
+        <div className="more-filter-field"><label>{t("contractCaseOwnerName")}</label><input value={ownerName} onChange={(e) => setOwnerName(e.target.value)} /></div>
+        <div className="more-filter-field"><label>{t("contractCaseOwnerIdNumber")}</label><input value={ownerIdNumber} onChange={(e) => setOwnerIdNumber(e.target.value)} /></div>
+      </div>
+      <div className="more-filters-row">
+        <div className="more-filter-field"><label>{t("contractCaseAuthorizedName")}</label><input value={authorizedName} onChange={(e) => setAuthorizedName(e.target.value)} /></div>
+        <div className="more-filter-field"><label>{t("contractCaseAuthorizedIdNumber")}</label><input value={authorizedIdNumber} onChange={(e) => setAuthorizedIdNumber(e.target.value)} /></div>
+      </div>
+      <div className="more-filters-row">
+        <div className="more-filter-field"><label>{t("contractCaseCrNumber")}</label><input value={crNumber} onChange={(e) => setCrNumber(e.target.value)} /></div>
+        <div className="more-filter-field"><label>{t("contractCaseTaxNumber")}</label><input value={taxNumber} onChange={(e) => setTaxNumber(e.target.value)} /></div>
+      </div>
+      <p className="user-form-section-hint" style={{ marginTop: 10 }}>{t("contractCaseReplaceFile")}</p>
+      <div className="more-filters-row">
+        <FileField label={t("contractCaseDocCR")} value={docs.commercial_registration} onChange={(v) => setDocs((d) => ({ ...d, commercial_registration: v }))} />
+        <FileField label={t("contractCaseDocTax")} value={docs.tax_certificate} onChange={(v) => setDocs((d) => ({ ...d, tax_certificate: v }))} />
+        <FileField label={t("contractCaseDocAddress")} value={docs.national_address} onChange={(v) => setDocs((d) => ({ ...d, national_address: v }))} />
+      </div>
+      <div className="more-filters-row" style={{ marginTop: 8 }}>
+        <FileField label={t("contractCaseDocOwnerId")} value={docs.owner_id} onChange={(v) => setDocs((d) => ({ ...d, owner_id: v }))} />
+        <FileField label={t("contractCaseDocAuthorizedId")} value={docs.authorized_person_id} onChange={(v) => setDocs((d) => ({ ...d, authorized_person_id: v }))} />
+        <FileField label={t("contractCaseDocOther")} value={docs.other} onChange={(v) => setDocs((d) => ({ ...d, other: v }))} />
+      </div>
+      <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+        <button className="btn-primary sm" type="submit" disabled={saving}>{saving ? t("saving") : t("save")}</button>
+        <button className="btn-secondary sm" type="button" onClick={onCancel}>{t("cancel")}</button>
+      </div>
+    </form>
+  );
+}
+
 function CaseDetail({ caseId, onClose, onChanged, session }) {
   const { t } = useLang();
   const { showToast } = useToast();
@@ -256,6 +338,7 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
   const [error, setError] = useState(null);
   const [rejectNote, setRejectNote] = useState("");
   const [showReject, setShowReject] = useState(false);
+  const [showEditRequest, setShowEditRequest] = useState(false);
   const [busy, setBusy] = useState(false);
   const [editingLimit, setEditingLimit] = useState(false);
   const [limitValue, setLimitValue] = useState("");
@@ -376,6 +459,11 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
         <div>
           <h3 className="insights-chart-title">{c.customer_name}</h3>
           <span className={`fu-tag ${STATUS_TONE[c.status]}`}>{t(`contractCaseStatus_${c.status}`)}</span>
+          {c.last_edited_by && (
+            <p className="settings-meta" style={{ margin: "4px 0 0" }}>
+              {t("contractCaseLastEditedBy")}: {c.last_edited_by} - {fmtDateTime(c.last_edited_at)}
+            </p>
+          )}
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button className="btn-secondary sm" onClick={handleOpenTemplate}>
@@ -385,23 +473,38 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
         </div>
       </div>
 
-      {c.status === "pending_review" && session.role === "admin" && (
+      {c.status === "pending_review" && (session.role === "admin" || session.username === c.requested_by) && (
         <div className="cc-track" style={{ borderColor: "var(--warn)", marginTop: 12 }}>
           <div className="cc-track-title"><ShieldCheck size={14} style={{ color: "var(--warn)" }} />{t("contractCasePendingReviewHint")}</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button className="btn-primary sm" disabled={busy} onClick={handleApproveReview}>
-              <Check size={12} style={{ verticalAlign: -2, marginInlineEnd: 4 }} />{t("contractCaseApproveReview")}
+            {session.role === "admin" && (
+              <button className="btn-primary sm" disabled={busy} onClick={handleApproveReview}>
+                <Check size={12} style={{ verticalAlign: -2, marginInlineEnd: 4 }} />{t("contractCaseApproveReview")}
+              </button>
+            )}
+            <button className="btn-secondary sm" onClick={() => setShowEditRequest((v) => !v)}>
+              <IdCard size={12} style={{ verticalAlign: -2, marginInlineEnd: 4 }} />{t("contractCaseEditRequest")}
             </button>
-            {!showReject ? (
-              <button className="btn-secondary sm danger" onClick={() => setShowReject(true)}><Ban size={12} style={{ verticalAlign: -2, marginInlineEnd: 4 }} />{t("contractCaseReject")}</button>
-            ) : (
-              <div className="more-filters-row" style={{ margin: 0 }}>
-                <div className="more-filter-field" style={{ flex: 1 }}><input value={rejectNote} onChange={(e) => setRejectNote(e.target.value)} placeholder={t("contractCaseRejectReason")} /></div>
-                <button className="btn-secondary sm danger" disabled={busy} onClick={handleReject}>{t("contractCaseReject")}</button>
-              </div>
+            {session.role === "admin" && (
+              !showReject ? (
+                <button className="btn-secondary sm danger" onClick={() => setShowReject(true)}><Ban size={12} style={{ verticalAlign: -2, marginInlineEnd: 4 }} />{t("contractCaseReject")}</button>
+              ) : (
+                <div className="more-filters-row" style={{ margin: 0 }}>
+                  <div className="more-filter-field" style={{ flex: 1 }}><input value={rejectNote} onChange={(e) => setRejectNote(e.target.value)} placeholder={t("contractCaseRejectReason")} /></div>
+                  <button className="btn-secondary sm danger" disabled={busy} onClick={handleReject}>{t("contractCaseReject")}</button>
+                </div>
+              )
             )}
           </div>
         </div>
+      )}
+
+      {showEditRequest && (
+        <EditRequestForm
+          c={c} caseId={caseId}
+          onSaved={() => { setShowEditRequest(false); load(); onChanged?.(); }}
+          onCancel={() => setShowEditRequest(false)}
+        />
       )}
 
       <div className="insights-kpi-grid" style={{ marginTop: 12 }}>

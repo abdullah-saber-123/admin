@@ -207,51 +207,18 @@ export const api = {
   rejectContractCase: (caseId, note) => request(`/api/contract-cases/${caseId}/reject`, { method: "PATCH", body: JSON.stringify({ note }) }),
   updateContractCaseDetails: (caseId, data) => request(`/api/contract-cases/${caseId}/details`, { method: "PATCH", body: JSON.stringify(data) }),
   getContractCaseSummary: (partnerId) => request(`/api/contract-cases/customer/${partnerId}/summary`),
-  openContractCaseTemplate: async (caseId, win = null) => {
-    // window.open() must fire synchronously inside the click handler or
-    // browsers silently block it as a popup - the caller opens a blank tab
-    // first (before any await) and passes it in here to be navigated once
-    // the template is ready. Falls back to opening a new tab now if not.
-    try {
-      const session = getSession();
-      const headers = {};
-      if (session?.token) headers["Authorization"] = `Bearer ${session.token}`;
-      const res = await fetch(`${BASE}/api/contract-cases/${caseId}/contract-template`, { headers });
-      if (!res.ok) throw new Error((await res.text().catch(() => "")) || `Failed (${res.status})`);
-      const html = await res.text();
-      const blob = new Blob([html], { type: "text/html" });
-      const url = window.URL.createObjectURL(blob);
-      if (win && !win.closed) win.location.href = url;
-      else window.open(url, "_blank");
-    } catch (err) {
-      win?.close();
-      throw err;
-    }
+  // Both of these are plain, direct GET URLs (auth via ?token=, same pattern
+  // as the shared statement-PDF links) so the caller can window.open() them
+  // synchronously, right inside the click handler - no fetch/await first.
+  // Opening a window only after an await is what browsers' popup blockers
+  // silently swallow, since it no longer counts as a direct user gesture.
+  contractCaseTemplateUrl: (caseId) => {
+    const session = getSession();
+    return `${BASE}/api/contract-cases/${caseId}/contract-template?token=${encodeURIComponent(session?.token || "")}`;
   },
-  viewContractCaseDocument: async (caseId, field, win = null) => {
-    try {
-      const { file_name, file_data } = await request(`/api/contract-cases/${caseId}/document/${field}`);
-      const ext = (file_name || "").split(".").pop().toLowerCase();
-      const mime = { pdf: "application/pdf", png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp" }[ext] || "application/octet-stream";
-      const byteChars = atob(file_data);
-      const bytes = new Uint8Array(byteChars.length);
-      for (let i = 0; i < byteChars.length; i++) bytes[i] = byteChars.charCodeAt(i);
-      const blob = new Blob([bytes], { type: mime });
-      const url = window.URL.createObjectURL(blob);
-      if (mime === "application/octet-stream") {
-        win?.close();
-        const a = document.createElement("a");
-        a.href = url; a.download = file_name || "document";
-        document.body.appendChild(a); a.click(); a.remove();
-      } else if (win && !win.closed) {
-        win.location.href = url;
-      } else {
-        window.open(url, "_blank");
-      }
-    } catch (err) {
-      win?.close();
-      throw err;
-    }
+  contractCaseDocumentUrl: (caseId, field) => {
+    const session = getSession();
+    return `${BASE}/api/contract-cases/${caseId}/document/${field}/view?token=${encodeURIComponent(session?.token || "")}`;
   },
   remindersOverview: (collector = "") => request(`/api/admin/reminders-overview${collector ? `?collector=${encodeURIComponent(collector)}` : ""}`),
   exportRemindersOverviewPdf: (params = {}) => {

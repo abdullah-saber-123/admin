@@ -232,15 +232,9 @@ function StepRow({ step, canDo, busy, onComplete }) {
 }
 
 function DocChip({ caseId, field, fileName, hasFile, missingLabel }) {
-  const { showToast } = useToast();
-  const handleView = async (e) => {
+  const handleView = (e) => {
     e.stopPropagation();
-    const win = window.open("", "_blank");
-    try {
-      await api.viewContractCaseDocument(caseId, field, win);
-    } catch (err) {
-      showToast(err.message, "error");
-    }
+    window.open(api.contractCaseDocumentUrl(caseId, field), "_blank");
   };
   if (!hasFile) return <span className="cc-doc-chip missing"><X size={11} />{missingLabel}</span>;
   return (
@@ -435,13 +429,8 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
     }
   };
 
-  const handleOpenTemplate = async () => {
-    const win = window.open("", "_blank");
-    try {
-      await api.openContractCaseTemplate(caseId, win);
-    } catch (err) {
-      showToast(err.message, "error");
-    }
+  const handleOpenTemplate = () => {
+    window.open(api.contractCaseTemplateUrl(caseId), "_blank");
   };
 
   if (error) return <div className="error-state">{error}</div>;

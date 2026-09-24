@@ -203,6 +203,14 @@ export const api = {
   createContractCase: (data) => request("/api/contract-cases", { method: "POST", body: JSON.stringify(data) }),
   editContractCaseRequest: (caseId, data) => request(`/api/contract-cases/${caseId}/edit-request`, { method: "PATCH", body: JSON.stringify(data) }),
   addContractCaseNote: (caseId, note) => request(`/api/contract-cases/${caseId}/notes`, { method: "POST", body: JSON.stringify({ note }) }),
+  contractCasesExportPdf: (params = {}) => {
+    const qs = buildQueryString(params);
+    return requestBlob(`/api/contract-cases/export.pdf${qs ? `?${qs}` : ""}`);
+  },
+  contractCasesExportExcel: (params = {}) => {
+    const qs = buildQueryString(params);
+    return requestBlob(`/api/contract-cases/export.xlsx${qs ? `?${qs}` : ""}`);
+  },
   approveContractCaseReview: (caseId) => request(`/api/contract-cases/${caseId}/approve-review`, { method: "PATCH" }),
   completeApprovalStep: (caseId, stepId, note, attachment = null) => request(`/api/contract-cases/${caseId}/steps/${stepId}/complete`, { method: "PATCH", body: JSON.stringify({ note, attachment }) }),
   rejectContractCase: (caseId, note) => request(`/api/contract-cases/${caseId}/reject`, { method: "PATCH", body: JSON.stringify({ note }) }),

@@ -719,7 +719,7 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
 }
 
 export default function ContractCasesReport({ session }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const [statusFilter, setStatusFilter] = useState("");
   const [search, setSearch] = useState("");
   const [cases, setCases] = useState(null);
@@ -727,6 +727,8 @@ export default function ContractCasesReport({ session }) {
   const [error, setError] = useState(null);
   const [mode, setMode] = useState("list"); // "list" | "create"
   const [selectedCaseId, setSelectedCaseId] = useState(null);
+  const [exporting, setExporting] = useState(false);
+  const { showToast } = useToast();
 
   const load = () => {
     api.listContractCases({ status: statusFilter, search }).then(setCases).catch((e) => setError(e.message));
@@ -747,6 +749,28 @@ export default function ContractCasesReport({ session }) {
   const counts = {};
   STATUS_LIST.forEach((s) => { counts[s] = (allCases || []).filter((c) => c.status === s).length; });
 
+  const handleExportPdf = async () => {
+    setExporting(true);
+    try {
+      await api.contractCasesExportPdf({ status: statusFilter, search, lang });
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportExcel = async () => {
+    setExporting(true);
+    try {
+      await api.contractCasesExportExcel({ status: statusFilter, search });
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className="content-stack" style={{ maxWidth: "100%" }}>
       <div className="panel">
@@ -756,9 +780,17 @@ export default function ContractCasesReport({ session }) {
             <p className="panel-sub">{t("contractCasesHint")}</p>
           </div>
           {mode === "list" && (
-            <button className="btn-primary sm" onClick={() => setMode("create")}>
-              <Plus size={13} style={{ verticalAlign: -2, marginInlineEnd: 4 }} />{t("contractCaseNewRequest")}
-            </button>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button className="btn-secondary sm" disabled={exporting} onClick={handleExportPdf}>
+                <FileSignature size={13} style={{ verticalAlign: -2, marginInlineEnd: 4 }} />{t("exportPdfButton")}
+              </button>
+              <button className="btn-secondary sm" disabled={exporting} onClick={handleExportExcel}>
+                <Download size={13} style={{ verticalAlign: -2, marginInlineEnd: 4 }} />{t("exportExcelButton")}
+              </button>
+              <button className="btn-primary sm" onClick={() => setMode("create")}>
+                <Plus size={13} style={{ verticalAlign: -2, marginInlineEnd: 4 }} />{t("contractCaseNewRequest")}
+              </button>
+            </div>
           )}
         </div>
 

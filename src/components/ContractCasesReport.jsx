@@ -231,21 +231,20 @@ function StepRow({ step, canDo, busy, onComplete }) {
   );
 }
 
-function DocChip({ caseId, field, fileName, hasFile, missingLabel }) {
+function DocChip({ caseId, field, fileName, hasFile, missingLabel, onView }) {
   const { t } = useLang();
   if (!hasFile) return <span className="cc-doc-chip missing"><X size={11} />{missingLabel}</span>;
+  const ext = (fileName || "").split(".").pop().toLowerCase();
   return (
     <span className="cc-doc-chip" style={{ paddingInlineEnd: 6, gap: 6 }}>
-      <a
-        href={api.contractCaseDocumentUrl(caseId, field)}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={(e) => e.stopPropagation()}
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onView({ url: api.contractCaseDocumentUrl(caseId, field), label: fileName, ext }); }}
         title={t("contractCaseViewDocument")}
-        style={{ color: "inherit", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 5 }}
+        style={{ color: "inherit", background: "none", border: "none", padding: 0, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5, font: "inherit" }}
       >
         <Eye size={11} />{fileName}
-      </a>
+      </button>
       <a
         href={api.contractCaseDocumentUrl(caseId, field, true)}
         onClick={(e) => e.stopPropagation()}
@@ -255,6 +254,33 @@ function DocChip({ caseId, field, fileName, hasFile, missingLabel }) {
         <Download size={11} />
       </a>
     </span>
+  );
+}
+
+function DocPreviewModal({ doc, onClose }) {
+  if (!doc) return null;
+  const imgExt = ["png", "jpg", "jpeg", "gif", "webp"];
+  return (
+    <div className="overlay modal-overlay" onClick={onClose}>
+      <div className="doc-preview-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="doc-preview-header">
+          <strong>{doc.label}</strong>
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <a href={doc.url} target="_blank" rel="noopener noreferrer" className="btn-secondary sm" style={{ textDecoration: "none" }}>
+              <Eye size={12} style={{ verticalAlign: -2, marginInlineEnd: 4 }} />
+            </a>
+            <button className="icon-btn" onClick={onClose}><X size={16} /></button>
+          </div>
+        </div>
+        <div className="doc-preview-body">
+          {imgExt.includes(doc.ext) ? (
+            <img src={doc.url} alt={doc.label} />
+          ) : (
+            <embed src={doc.url} type={doc.ext === "pdf" ? "application/pdf" : undefined} />
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -348,6 +374,7 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
   const [rejectNote, setRejectNote] = useState("");
   const [showReject, setShowReject] = useState(false);
   const [showEditRequest, setShowEditRequest] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState(null);
   const [busy, setBusy] = useState(false);
   const [editingLimit, setEditingLimit] = useState(false);
   const [limitValue, setLimitValue] = useState("");
@@ -585,7 +612,7 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
         <div className="user-form-section-title">{t("contractCaseDocuments")}</div>
         <div className="cc-doc-grid">
           {docEntries.map(([k, v]) => (
-            <DocChip key={k} caseId={caseId} field={k} fileName={v.file_name} hasFile={v.has_file} missingLabel={t(DOC_LABEL_KEYS[k] || k)} />
+            <DocChip key={k} caseId={caseId} field={k} fileName={v.file_name} hasFile={v.has_file} missingLabel={t(DOC_LABEL_KEYS[k] || k)} onView={setPreviewDoc} />
           ))}
         </div>
       </div>
@@ -594,8 +621,8 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
         <div className="user-form-section-title">{t("contractCaseFinalDocs")}</div>
         {c.signed_contract_file_name || c.signed_note_file_name ? (
           <div className="cc-doc-grid">
-            {c.signed_contract_file_name && <DocChip caseId={caseId} field="signed_contract" fileName={c.signed_contract_file_name} hasFile />}
-            {!c.note_exempt && c.signed_note_file_name && <DocChip caseId={caseId} field="signed_note" fileName={c.signed_note_file_name} hasFile />}
+            {c.signed_contract_file_name && <DocChip caseId={caseId} field="signed_contract" fileName={c.signed_contract_file_name} hasFile onView={setPreviewDoc} />}
+            {!c.note_exempt && c.signed_note_file_name && <DocChip caseId={caseId} field="signed_note" fileName={c.signed_note_file_name} hasFile onView={setPreviewDoc} />}
           </div>
         ) : (
           <p className="settings-meta">{t("contractCaseNoFinalDocsYet")}</p>
@@ -634,6 +661,7 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
         </div>
       )}
       {c.status === "rejected" && <p className="error-state">{c.rejection_note}</p>}
+      <DocPreviewModal doc={previewDoc} onClose={() => setPreviewDoc(null)} />
     </div>
   );
 }

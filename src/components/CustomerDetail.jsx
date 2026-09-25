@@ -40,6 +40,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
   const permsList = (permissions || "").split(",").map((p) => p.trim());
   const canSeeAnalytics = role === "admin" || permsList.includes("customerAnalytics") || permsList.includes("customerOwnAnalysis");
   const canSeeReconciliations = role === "admin" || permsList.includes("reconciliations");
+  const canEditPaymentType = role === "admin" || permsList.includes("creditNomination");
   const customerAnalysisUrl = `${window.location.pathname}?view=customerAnalytics&customer=${partnerId}`;
   useBodyScrollLock(true);
   const [detail, setDetail] = useState(null);
@@ -51,6 +52,8 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
   const [activeVisitRequest, setActiveVisitRequest] = useState(null);
   const [staffList, setStaffList] = useState(null);
   const [contractCaseSummary, setContractCaseSummary] = useState(null);
+  const [paymentTypeOptions, setPaymentTypeOptions] = useState([]);
+  const [savingPaymentType, setSavingPaymentType] = useState(false);
   const [showVisitHistoryModal, setShowVisitHistoryModal] = useState(false);
   const [visitHistory, setVisitHistory] = useState(null);
   const [reconciliationHistory, setReconciliationHistory] = useState(null);
@@ -140,6 +143,36 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
     }).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [partnerId]);
+
+  useEffect(() => {
+    api.fieldOptions("payment_type").then(setPaymentTypeOptions).catch(() => {});
+  }, []);
+
+  const ADD_NEW_PAYMENT_TYPE = "__add_new__";
+  const handlePaymentTypeChange = async (value) => {
+    if (value === ADD_NEW_PAYMENT_TYPE) {
+      const newValue = window.prompt(t("newOptionPrompt"));
+      if (!newValue || !newValue.trim()) return;
+      try {
+        const opt = await api.addFieldOption("payment_type", newValue.trim());
+        setPaymentTypeOptions((prev) => (prev.some((o) => o.value === opt.value) ? prev : [...prev, opt].sort((a, b) => a.value.localeCompare(b.value))));
+        value = opt.value;
+      } catch (e) {
+        showToast(e.message, "error");
+        return;
+      }
+    }
+    setSavingPaymentType(true);
+    try {
+      await api.updatePaymentType(partnerId, value || null);
+      setDetail((prev) => ({ ...prev, summary: { ...prev.summary, payment_type: value || null } }));
+      showToast(t("saved"), "success");
+    } catch (e) {
+      showToast(e.message, "error");
+    } finally {
+      setSavingPaymentType(false);
+    }
+  };
 
   const loadActiveVisitRequest = () => {
     api.visitRequests({ partner_id: partnerId }).then((rows) => {
@@ -496,6 +529,19 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
                     {t("creditLimitLabel")}: <RiyalAmount amount={detail.summary.credit_limit} />
                   </span>
                 ) : null}
+                <span className="fu-tag faint" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <Banknote size={11} />
+                  <select
+                    value={detail.summary.payment_type || ""}
+                    disabled={!canEditPaymentType || savingPaymentType}
+                    onChange={(e) => handlePaymentTypeChange(e.target.value)}
+                    style={{ background: "transparent", border: "none", font: "inherit", color: "inherit", padding: 0 }}
+                  >
+                    <option value="">{t("paymentTypeLabel")}: —</option>
+                    {paymentTypeOptions.map((o) => <option key={o.id} value={o.value}>{o.value}</option>)}
+                    {canEditPaymentType && <option value={ADD_NEW_PAYMENT_TYPE}>{t("addNewOption")}</option>}
+                  </select>
+                </span>
                 {detail.summary.nominated_for_offer && (
                   <span className="fu-tag ok">
                     <Gift size={11} style={{ verticalAlign: -1, marginInlineEnd: 3 }} />

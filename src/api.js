@@ -409,6 +409,9 @@ export const api = {
     request(`/api/customers/${id}/region?region=${region === null ? "" : encodeURIComponent(region)}`, { method: "PATCH" }),
   updateNoteExempt: (id, note_exempt) =>
     request(`/api/customers/${id}/note-exempt?note_exempt=${note_exempt ? "true" : "false"}`, { method: "PATCH" }),
+  updateLegalHold: (id, legal_hold, reason) =>
+    request(`/api/customers/${id}/legal-hold`, { method: "PATCH", body: JSON.stringify({ legal_hold, reason }) }),
+  legalHoldCustomers: () => request("/api/admin/legal-hold-customers"),
   fieldOptions: (field) => request(`/api/customer-field-options?field=${encodeURIComponent(field)}`),
   addFieldOption: (field, value) =>
     request(`/api/customer-field-options`, { method: "POST", body: JSON.stringify({ field, value }) }),

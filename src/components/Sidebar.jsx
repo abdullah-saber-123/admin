@@ -5,7 +5,7 @@ import {
   CalendarClock, ClipboardList, Menu, X, ChevronLeft, ChevronRight, ChevronDown,
   CircleDollarSign, CreditCard, Receipt, Smartphone, BellRing,
   Gauge, FileText, FileX, HeartCrack, MessageSquare, UserCircle, Moon, Sun, Wallet, History, Share2, Activity, Megaphone, MapPin, Target, ClipboardCheck, Percent, GitCompare,
-  MessageCircle, ShieldCheck, FileSignature, ListChecks,
+  MessageCircle, ShieldCheck, FileSignature, ListChecks, Scale,
 } from "lucide-react";
 import { useLang } from "../i18n.jsx";
 import swagLogo from "../assets/swag-mark.png";
@@ -47,6 +47,7 @@ export default function Sidebar({ view, setView, role, username, displayName, av
   const canSeeContractCases = role === "admin" || perms.includes("contractCases");
   const canSeeDiscounts = role === "admin" || perms.includes("discounts");
   const canSeeCustomerComparison = role === "admin" || perms.includes("customerComparison");
+  const canSeeLegalHold = role === "admin" || perms.includes("reports");
 
   const go = (v) => {
     setView(v);
@@ -113,6 +114,7 @@ export default function Sidebar({ view, setView, role, username, displayName, av
         { view: "retargeting", icon: Target, label: t("retargetingTitle"), visible: canSeeRetargeting, color: "#D6145F" },
         { view: "reconciliations", icon: ClipboardCheck, label: t("reconciliationsTitle"), visible: canSeeReconciliations, color: "#2C8397" },
         { view: "contractCases", icon: FileSignature, label: t("contractCasesTitle"), visible: canSeeContractCases, color: "#B9862F" },
+        { view: "legalHold", icon: Scale, label: t("legalHoldTitle"), visible: canSeeLegalHold, color: "#e5484d" },
       ],
     },
     {

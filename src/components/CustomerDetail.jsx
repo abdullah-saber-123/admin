@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { X, Phone, MapPin, Receipt, Wallet, ChevronLeft, ChevronRight, ClipboardList, Download, Search, AlertTriangle, Mail, UserCheck, Flame, MessageCircle, CalendarClock, Banknote, TrendingUp, CalendarCheck, CircleDollarSign, Gift, Zap, CreditCard, Send, Megaphone, BarChart3, History, MapPinned, FileText, FileSignature } from "lucide-react";
+import { X, Phone, MapPin, Receipt, Wallet, ChevronLeft, ChevronRight, ClipboardList, Download, Search, AlertTriangle, Mail, UserCheck, Flame, MessageCircle, CalendarClock, Banknote, TrendingUp, CalendarCheck, CircleDollarSign, Gift, Zap, CreditCard, Send, Megaphone, BarChart3, History, MapPinned, FileText, FileSignature, Scale } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 import { useToast } from "../toast.jsx";
@@ -41,6 +41,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
   const canSeeAnalytics = role === "admin" || permsList.includes("customerAnalytics") || permsList.includes("customerOwnAnalysis");
   const canSeeReconciliations = role === "admin" || permsList.includes("reconciliations");
   const canEditPaymentType = role === "admin" || permsList.includes("creditNomination");
+  const canEditLegalHold = role === "admin" || permsList.includes("creditNomination");
   const customerAnalysisUrl = `${window.location.pathname}?view=customerAnalytics&customer=${partnerId}`;
   useBodyScrollLock(true);
   const [detail, setDetail] = useState(null);
@@ -208,6 +209,22 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
     try {
       await api.updateNoteExempt(partnerId, next);
       setDetail((prev) => ({ ...prev, summary: { ...prev.summary, promissory_note_exempt: next } }));
+      showToast(t("saved"), "success");
+    } catch (e) {
+      showToast(e.message, "error");
+    }
+  };
+
+  const handleToggleLegalHold = async () => {
+    const next = !detail.summary.legal_hold;
+    let reason = "";
+    if (next) {
+      reason = window.prompt(t("legalHoldReasonPrompt")) || "";
+      if (reason === null) return;
+    }
+    try {
+      const res = await api.updateLegalHold(partnerId, next, reason.trim());
+      setDetail((prev) => ({ ...prev, summary: { ...prev.summary, legal_hold: res.legal_hold, legal_hold_reason: res.legal_hold_reason, legal_hold_by: res.legal_hold_by, legal_hold_at: res.legal_hold_at } }));
       showToast(t("saved"), "success");
     } catch (e) {
       showToast(e.message, "error");
@@ -575,6 +592,28 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
                   >
                     <FileText size={11} style={{ verticalAlign: -1, marginInlineEnd: 3 }} />
                     {detail.summary.promissory_note_exempt ? t("noteExemptOn") : t("noteExemptOff")}
+                  </span>
+                )}
+                {detail.summary.legal_hold && (
+                  <span
+                    className={`fu-tag danger${canEditLegalHold ? " clickable" : ""}`}
+                    style={canEditLegalHold ? { cursor: "pointer" } : undefined}
+                    title={`${detail.summary.legal_hold_reason || ""}${detail.summary.legal_hold_by ? ` - ${detail.summary.legal_hold_by}` : ""}${detail.summary.legal_hold_at ? ` - ${fmtDateTime(detail.summary.legal_hold_at)}` : ""}`}
+                    onClick={canEditLegalHold ? handleToggleLegalHold : undefined}
+                  >
+                    <Scale size={11} style={{ verticalAlign: -1, marginInlineEnd: 3 }} />
+                    {t("legalHoldBadge")}
+                  </span>
+                )}
+                {!detail.summary.legal_hold && canEditLegalHold && (
+                  <span
+                    className="fu-tag faint clickable"
+                    style={{ cursor: "pointer" }}
+                    title={t("legalHoldHint")}
+                    onClick={handleToggleLegalHold}
+                  >
+                    <Scale size={11} style={{ verticalAlign: -1, marginInlineEnd: 3 }} />
+                    {t("legalHoldMarkAction")}
                   </span>
                 )}
 

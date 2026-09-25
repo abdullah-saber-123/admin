@@ -58,6 +58,7 @@ const RemindersOverview = lazy(() => import("./components/RemindersOverview.jsx"
 const CustomerScoreReport = lazy(() => import("./components/CustomerScoreReport.jsx"));
 const CustomerAnalytics = lazy(() => import("./components/CustomerAnalytics.jsx"));
 const BrokenPromisesReport = lazy(() => import("./components/BrokenPromisesReport.jsx"));
+const LegalHoldReport = lazy(() => import("./components/LegalHoldReport.jsx"));
 const StaffChat = lazy(() => import("./components/StaffChat.jsx"));
 const InvoicesReport = lazy(() => import("./components/InvoicesReport.jsx"));
 const ChartsRow = lazy(() => import("./components/ChartsRow.jsx"));
@@ -226,6 +227,7 @@ export default function App() {
               : view === "customerScore" ? t("customerScoreTitle")
               : view === "customerAnalytics" ? t("customerAnalyticsTitle")
               : view === "brokenPromises" ? t("brokenPromisesTitle")
+              : view === "legalHold" ? t("legalHoldTitle")
               : view === "collectionsReport" ? t("collectionsReportTitle")
               : view === "collectionOffers" ? t("collectionOfferTitle")
               : view === "discounts" ? t("discountsTitle")
@@ -464,6 +466,9 @@ export default function App() {
           )}
           {view === "brokenPromises" && (session.role === "admin" || (session.permissions || "").includes("brokenPromises")) && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><BrokenPromisesReport onSelectCustomer={setSelectedId} /></Suspense>
+          )}
+          {view === "legalHold" && (session.role === "admin" || (session.permissions || "").includes("reports")) && (
+            <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><LegalHoldReport onSelectCustomer={setSelectedId} /></Suspense>
           )}
           {view === "settings" && session.role === "admin" && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}>

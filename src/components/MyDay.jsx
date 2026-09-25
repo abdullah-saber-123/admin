@@ -854,7 +854,7 @@ function SnoozeMenu({ partnerId, onSnooze }) {
   );
 }
 
-function CustomerRow({ c, t, statusLabel, onQuickCheckin, onUndo, onOpenHistory, onSelectCustomer, onSnooze, quickStatuses, onQuickOutcome, nowMs, onOpenSettlement }) {
+function CustomerRow({ c, t, statusLabel, onQuickCheckin, onUndo, onOpenHistory, onSelectCustomer, onSnooze, quickStatuses, onQuickOutcome, nowMs, onOpenSettlement, sortMode }) {
   return (
     <tr className={c.done_today ? "my-day-row-done" : ""}>
       <td data-label="">
@@ -870,6 +870,15 @@ function CustomerRow({ c, t, statusLabel, onQuickCheckin, onUndo, onOpenHistory,
         <span className="cust-name">{c.name}</span> <RiskBadge level={c.risk_level} />
         {c.city && <div className="my-day-city">{c.city}</div>}
         {c.done_today && <span className="my-day-done-badge">✓ {t("doneTodayLabel")}</span>}
+        {sortMode === "priority" && c.priority_reasons?.length > 0 && (
+          <div className="my-day-priority-reasons">
+            {c.priority_reasons.map((r) => (
+              <span key={r} className={`fu-tag sm ${r === "promiseDueToday" ? "ok" : r === "brokenPromiseHistory" || r === "unresponsiveLastTime" ? "warn" : "faint"}`}>
+                {t(`priorityReason_${r}`)}
+              </span>
+            ))}
+          </div>
+        )}
       </td>
       <td data-label={t("phone")}>{c.phone || "—"}</td>
       <td data-label={t("dueLabel")}>
@@ -932,7 +941,7 @@ function CustomerRow({ c, t, statusLabel, onQuickCheckin, onUndo, onOpenHistory,
   );
 }
 
-function QueueTable({ items, t, statusLabel, onQuickCheckin, onUndo, onOpenHistory, onSelectCustomer, onSnooze, quickStatuses, onQuickOutcome, nowMs, onOpenSettlement }) {
+function QueueTable({ items, t, statusLabel, onQuickCheckin, onUndo, onOpenHistory, onSelectCustomer, onSnooze, quickStatuses, onQuickOutcome, nowMs, onOpenSettlement, sortMode }) {
   return (
     <div className="table-wrap">
       <table className="data-table">
@@ -955,7 +964,7 @@ function QueueTable({ items, t, statusLabel, onQuickCheckin, onUndo, onOpenHisto
             <CustomerRow
               key={c.partner_id} c={c} t={t} statusLabel={statusLabel}
               onQuickCheckin={onQuickCheckin} onUndo={onUndo} onOpenHistory={onOpenHistory} onSelectCustomer={onSelectCustomer} onSnooze={onSnooze}
-              quickStatuses={quickStatuses} onQuickOutcome={onQuickOutcome} nowMs={nowMs} onOpenSettlement={onOpenSettlement}
+              quickStatuses={quickStatuses} onQuickOutcome={onQuickOutcome} nowMs={nowMs} onOpenSettlement={onOpenSettlement} sortMode={sortMode}
             />
           ))}
         </tbody>
@@ -1185,6 +1194,7 @@ export default function MyDay({ onSelectCustomer }) {
     const copy = [...arr];
     if (sortMode === "balance") copy.sort((a, b) => (b.current_due || 0) - (a.current_due || 0));
     else if (sortMode === "overdue_days") copy.sort((a, b) => b.days_overdue - a.days_overdue);
+    else if (sortMode === "priority") copy.sort((a, b) => (b.priority_score ?? -Infinity) - (a.priority_score ?? -Infinity));
     return copy;
   };
 
@@ -1493,7 +1503,7 @@ export default function MyDay({ onSelectCustomer }) {
                       <QueueTable
                         items={cityItems} t={t} statusLabel={statusLabel}
                         onQuickCheckin={handleQuickCheckin} onUndo={handleUndo} onOpenHistory={setHistoryCustomer} onSelectCustomer={onSelectCustomer} onSnooze={handleSnooze}
-                        quickStatuses={quickStatuses} onQuickOutcome={requestQuickOutcome} nowMs={nowMs} onOpenSettlement={setSettlementCustomer}
+                        quickStatuses={quickStatuses} onQuickOutcome={requestQuickOutcome} nowMs={nowMs} onOpenSettlement={setSettlementCustomer} sortMode={sortMode}
                       />
                     </div>
                   ))
@@ -1501,7 +1511,7 @@ export default function MyDay({ onSelectCustomer }) {
                   <QueueTable
                     items={carriedForward} t={t} statusLabel={statusLabel}
                     onQuickCheckin={handleQuickCheckin} onUndo={handleUndo} onOpenHistory={setHistoryCustomer} onSelectCustomer={onSelectCustomer} onSnooze={handleSnooze}
-                    quickStatuses={quickStatuses} onQuickOutcome={requestQuickOutcome} nowMs={nowMs} onOpenSettlement={setSettlementCustomer}
+                    quickStatuses={quickStatuses} onQuickOutcome={requestQuickOutcome} nowMs={nowMs} onOpenSettlement={setSettlementCustomer} sortMode={sortMode}
                   />
                 )}
               </>
@@ -1517,6 +1527,7 @@ export default function MyDay({ onSelectCustomer }) {
                     <button className={sortMode === "default" ? "active" : ""} onClick={() => setSortMode("default")}>{t("sortDefault")}</button>
                     <button className={sortMode === "balance" ? "active" : ""} onClick={() => setSortMode("balance")}>{t("sortByBalance")}</button>
                     <button className={sortMode === "overdue_days" ? "active" : ""} onClick={() => setSortMode("overdue_days")}>{t("sortByDaysOverdue")}</button>
+                    <button className={sortMode === "priority" ? "active" : ""} onClick={() => setSortMode("priority")}>{t("sortByPriority")}</button>
                   </div>
                 </div>
                 {groupByCity ? (
@@ -1526,7 +1537,7 @@ export default function MyDay({ onSelectCustomer }) {
                       <QueueTable
                         items={cityItems} t={t} statusLabel={statusLabel}
                         onQuickCheckin={handleQuickCheckin} onUndo={handleUndo} onOpenHistory={setHistoryCustomer} onSelectCustomer={onSelectCustomer} onSnooze={handleSnooze}
-                        quickStatuses={quickStatuses} onQuickOutcome={requestQuickOutcome} nowMs={nowMs} onOpenSettlement={setSettlementCustomer}
+                        quickStatuses={quickStatuses} onQuickOutcome={requestQuickOutcome} nowMs={nowMs} onOpenSettlement={setSettlementCustomer} sortMode={sortMode}
                       />
                     </div>
                   ))
@@ -1534,7 +1545,7 @@ export default function MyDay({ onSelectCustomer }) {
                   <QueueTable
                     items={todaysQueue} t={t} statusLabel={statusLabel}
                     onQuickCheckin={handleQuickCheckin} onUndo={handleUndo} onOpenHistory={setHistoryCustomer} onSelectCustomer={onSelectCustomer} onSnooze={handleSnooze}
-                    quickStatuses={quickStatuses} onQuickOutcome={requestQuickOutcome} nowMs={nowMs} onOpenSettlement={setSettlementCustomer}
+                    quickStatuses={quickStatuses} onQuickOutcome={requestQuickOutcome} nowMs={nowMs} onOpenSettlement={setSettlementCustomer} sortMode={sortMode}
                   />
                 )}
               </>
@@ -1556,7 +1567,7 @@ export default function MyDay({ onSelectCustomer }) {
                         <QueueTable
                           items={cityItems} t={t} statusLabel={statusLabel}
                           onQuickCheckin={handleQuickCheckin} onUndo={handleUndo} onOpenHistory={setHistoryCustomer} onSelectCustomer={onSelectCustomer} onSnooze={handleSnooze}
-                          quickStatuses={quickStatuses} onQuickOutcome={requestQuickOutcome} nowMs={nowMs} onOpenSettlement={setSettlementCustomer}
+                          quickStatuses={quickStatuses} onQuickOutcome={requestQuickOutcome} nowMs={nowMs} onOpenSettlement={setSettlementCustomer} sortMode={sortMode}
                         />
                       </div>
                     ))
@@ -1564,7 +1575,7 @@ export default function MyDay({ onSelectCustomer }) {
                     <QueueTable
                       items={notDueYet} t={t} statusLabel={statusLabel}
                       onQuickCheckin={handleQuickCheckin} onUndo={handleUndo} onOpenHistory={setHistoryCustomer} onSelectCustomer={onSelectCustomer} onSnooze={handleSnooze}
-                      quickStatuses={quickStatuses} onQuickOutcome={requestQuickOutcome} nowMs={nowMs} onOpenSettlement={setSettlementCustomer}
+                      quickStatuses={quickStatuses} onQuickOutcome={requestQuickOutcome} nowMs={nowMs} onOpenSettlement={setSettlementCustomer} sortMode={sortMode}
                     />
                   )
                 )}

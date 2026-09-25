@@ -3814,6 +3814,7 @@ input, select, textarea { font-family: inherit; }
 }
 .my-day-last-activity-meta { color: var(--text-faint); }
 .my-day-city { font-size: 11px; color: var(--text-faint); margin-top: 2px; }
+.my-day-priority-reasons { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
 .my-day-activity-cell { font-size: 12px; max-width: 240px; }
 .my-day-view-history-link { color: var(--primary); text-decoration: underline; }
 

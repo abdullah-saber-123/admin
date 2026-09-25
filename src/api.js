@@ -153,6 +153,7 @@ export const api = {
     const qs = buildQueryString(params);
     return request(`/api/customers/${id}${qs ? `?${qs}` : ""}`);
   },
+  customerSalespersonComparison: (id) => request(`/api/customers/${id}/salesperson-comparison`),
   updateNotes: (id, notes) =>
     request(`/api/customers/${id}/notes?notes=${encodeURIComponent(notes)}`, { method: "PATCH" }),
   updateAdminNotes: (id, notes) =>

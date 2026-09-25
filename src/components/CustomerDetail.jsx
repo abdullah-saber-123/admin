@@ -53,6 +53,8 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
   const [activeVisitRequest, setActiveVisitRequest] = useState(null);
   const [staffList, setStaffList] = useState(null);
   const [contractCaseSummary, setContractCaseSummary] = useState(null);
+  const [salespersonComparison, setSalespersonComparison] = useState(null);
+  const [showSalespersonComparison, setShowSalespersonComparison] = useState(false);
   const [paymentTypeOptions, setPaymentTypeOptions] = useState([]);
   const [savingPaymentType, setSavingPaymentType] = useState(false);
   const [showVisitHistoryModal, setShowVisitHistoryModal] = useState(false);
@@ -130,10 +132,13 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
     setReconciliationHistory(null);
     setNominableOffers([]);
     setContractCaseSummary(null);
+    setSalespersonComparison(null);
+    setShowSalespersonComparison(false);
     load(1, 1);
     api.followupStatuses().then(setStatuses).catch(() => {});
     loadActiveVisitRequest();
     api.getContractCaseSummary(partnerId).then(setContractCaseSummary).catch(() => {});
+    api.customerSalespersonComparison(partnerId).then(setSalespersonComparison).catch(() => {});
     if (canSeeReconciliations) {
       api.reconciliationHistory(partnerId).then(setReconciliationHistory).catch(() => {});
     }
@@ -966,6 +971,48 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
                 </div>
               )}
             </div>
+
+            {salespersonComparison && salespersonComparison.stints.length > 1 && (
+              <div className="history-section">
+                <div className="history-section-head" style={{ cursor: "pointer" }} onClick={() => setShowSalespersonComparison((v) => !v)}>
+                  <h3><UserCheck size={13} style={{ verticalAlign: -2, marginInlineEnd: 4 }} />{t("salespersonComparisonTitle")}</h3>
+                  <span className="activity-toggle">{showSalespersonComparison ? "−" : "+"}</span>
+                </div>
+                {showSalespersonComparison && (
+                  <div className="table-wrap">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>{t("collectorField")}</th>
+                          <th>{t("salespersonComparisonPeriod")}</th>
+                          <th>{t("salespersonComparisonCollected")}</th>
+                          <th>{t("salespersonComparisonInvoiced")}</th>
+                          <th>{t("salespersonComparisonContacts")}</th>
+                          <th>{t("salespersonComparisonBrokenPromises")}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {salespersonComparison.stints.map((s, i) => (
+                          <tr key={i}>
+                            <td data-label={t("collectorField")}>
+                              {s.salesperson || "—"}
+                              {s.is_current && <span className="fu-tag ok sm" style={{ marginInlineStart: 6 }}>{t("salespersonComparisonCurrent")}</span>}
+                            </td>
+                            <td data-label={t("salespersonComparisonPeriod")}>
+                              {s.start_date ? fmtDate(s.start_date) : t("salespersonComparisonSince")} - {s.end_date ? fmtDate(s.end_date) : t("salespersonComparisonNow")}
+                            </td>
+                            <td data-label={t("salespersonComparisonCollected")}><RiyalAmount amount={s.collected_total} /> <span className="settings-meta">({s.payments_count})</span></td>
+                            <td data-label={t("salespersonComparisonInvoiced")}><RiyalAmount amount={s.invoiced_total} /> <span className="settings-meta">({s.invoices_count})</span></td>
+                            <td data-label={t("salespersonComparisonContacts")}>{s.contacts_count}</td>
+                            <td data-label={t("salespersonComparisonBrokenPromises")}>{s.broken_promises_count}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="history-section">
               <div className="history-section-head" style={{ cursor: "pointer" }} onClick={() => { setShowPaymentPlans((v) => !v); if (!paymentPlans) loadPaymentPlans(); }}>

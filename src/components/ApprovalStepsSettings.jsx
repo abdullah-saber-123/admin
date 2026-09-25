@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { ListChecks, Plus, Trash2, FileText, FileSignature, CreditCard, CheckCircle2, Paperclip } from "lucide-react";
+import { ListChecks, Plus, Trash2, FileText, FileSignature, CreditCard, CheckCircle2, Paperclip, ShieldCheck } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 import { useToast } from "../toast.jsx";
 
-const TRACKS = ["note", "contract", "credit_limit", "final"];
-const TRACK_ICON = { note: FileText, contract: FileSignature, credit_limit: CreditCard, final: CheckCircle2 };
+const TRACKS = ["note", "contract", "credit_limit", "final", "post_archive"];
+const TRACK_ICON = { note: FileText, contract: FileSignature, credit_limit: CreditCard, final: CheckCircle2, post_archive: ShieldCheck };
 
 function emptyStep() {
   return { name: "", track: "contract", step_order: 0, assigned_username: "", active: true, requires_attachment: false };

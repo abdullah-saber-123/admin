@@ -12,7 +12,7 @@ import RiyalAmount from "./RiyalAmount.jsx";
 const STATUS_TONE = { pending_review: "warn", in_progress: "teal", archived: "ok", rejected: "danger" };
 const STATUS_ACCENT = { pending_review: "amber", in_progress: "teal", archived: "ok", rejected: "danger" };
 const STATUS_LIST = ["pending_review", "in_progress", "archived", "rejected"];
-const TRACK_ICON = { note: FileText, contract: FileSignature, credit_limit: CreditCard, final: CheckCircle2 };
+const TRACK_ICON = { note: FileText, contract: FileSignature, credit_limit: CreditCard, final: CheckCircle2, post_archive: ShieldCheck };
 const DOC_LABEL_KEYS = {
   commercial_registration: "contractCaseDocCR",
   tax_certificate: "contractCaseDocTax",
@@ -187,7 +187,7 @@ function CreateCaseForm({ onCreated, onCancel }) {
   );
 }
 
-function StepRow({ step, canDo, busy, onComplete }) {
+function StepRow({ step, canDo, busy, onComplete, isPostArchive, caseArchived, onTogglePostArchive }) {
   const { t } = useLang();
   const [attachment, setAttachment] = useState(null);
   const [showAttach, setShowAttach] = useState(false);
@@ -212,19 +212,30 @@ function StepRow({ step, canDo, busy, onComplete }) {
         {step.assigned_username && <div className="cc-step-meta">{step.assigned_username}</div>}
         {step.done && <div className="cc-step-meta">{step.done_by} - {fmtDateTime(step.done_at)}</div>}
         {!step.done && step.requires_attachment && <div className="cc-step-meta">{t("contractCaseRequiresAttachment")}</div>}
+        {isPostArchive && !caseArchived && <div className="cc-step-meta">{t("contractCasePostArchiveLocked")}</div>}
       </div>
-      {!step.done && (
-        canDo ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            {showAttach && (
-              <input type="file" style={{ fontSize: 11, maxWidth: 160 }} onChange={handleFile} />
-            )}
-            <button className="btn-secondary sm" disabled={busy || (showAttach && !attachment)} onClick={handleClick}>
-              {showAttach ? t("contractCaseAttachFinalFile") : t("contractCaseMarkDone")}
-            </button>
-          </div>
+      {isPostArchive ? (
+        canDo && caseArchived ? (
+          <label className="checkbox-inline" style={{ margin: 0 }} onClick={() => !busy && onTogglePostArchive(step.id)}>
+            <input type="checkbox" checked={step.done} readOnly disabled={busy} />
+          </label>
         ) : (
-          <span className="fu-tag faint">{t("contractCasePending")}</span>
+          !step.done && <span className="fu-tag faint">{t("contractCasePending")}</span>
+        )
+      ) : (
+        !step.done && (
+          canDo ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              {showAttach && (
+                <input type="file" style={{ fontSize: 11, maxWidth: 160 }} onChange={handleFile} />
+              )}
+              <button className="btn-secondary sm" disabled={busy || (showAttach && !attachment)} onClick={handleClick}>
+                {showAttach ? t("contractCaseAttachFinalFile") : t("contractCaseMarkDone")}
+              </button>
+            </div>
+          ) : (
+            <span className="fu-tag faint">{t("contractCasePending")}</span>
+          )
         )
       )}
     </div>
@@ -429,6 +440,7 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
   };
 
   const canDoStep = (step) => !step.done && (session.role === "admin" || step.assigned_username === session.username);
+  const canTogglePostArchive = (step) => session.role === "admin" || step.assigned_username === session.username;
 
   const handleCompleteStep = async (stepId, attachment) => {
     setBusy(true);
@@ -436,6 +448,18 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
       await api.completeApprovalStep(caseId, stepId, "", attachment);
       load();
       onChanged?.();
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleTogglePostArchive = async (stepId) => {
+    setBusy(true);
+    try {
+      await api.toggleContractCasePostArchiveStep(caseId, stepId);
+      load();
     } catch (err) {
       showToast(err.message, "error");
     } finally {
@@ -489,7 +513,7 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
   if (error) return <div className="error-state">{error}</div>;
   if (!c) return <div className="loading-state">{t("loadingDots")}</div>;
 
-  const byTrack = { note: [], contract: [], credit_limit: [], final: [] };
+  const byTrack = { note: [], contract: [], credit_limit: [], final: [], post_archive: [] };
   (c.steps || []).forEach((s) => byTrack[s.track]?.push(s));
 
   const docEntries = Object.entries(c.documents || {});
@@ -622,7 +646,7 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
         </div>
       </div>
 
-      {["note", "contract", "credit_limit", "final"].map((track) => (
+      {["note", "contract", "credit_limit", "final", "post_archive"].map((track) => (
         byTrack[track].length > 0 && (
           <div key={track} className="cc-track">
             <div className="cc-track-title">
@@ -631,7 +655,11 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
               <span className="cc-track-count">({byTrack[track].filter((s) => s.done).length}/{byTrack[track].length})</span>
             </div>
             {byTrack[track].map((s) => (
-              <StepRow key={s.id} step={s} canDo={canDoStep(s)} busy={busy} onComplete={handleCompleteStep} />
+              <StepRow
+                key={s.id} step={s} canDo={track === "post_archive" ? canTogglePostArchive(s) : canDoStep(s)} busy={busy} onComplete={handleCompleteStep}
+                isPostArchive={track === "post_archive"} caseArchived={c.status === "archived"}
+                onTogglePostArchive={handleTogglePostArchive}
+              />
             ))}
           </div>
         )

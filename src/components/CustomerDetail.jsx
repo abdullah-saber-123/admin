@@ -170,6 +170,17 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
     }
   };
 
+  const handleToggleNoteExempt = async () => {
+    const next = !detail.summary.promissory_note_exempt;
+    try {
+      await api.updateNoteExempt(partnerId, next);
+      setDetail((prev) => ({ ...prev, summary: { ...prev.summary, promissory_note_exempt: next } }));
+      showToast(t("saved"), "success");
+    } catch (e) {
+      showToast(e.message, "error");
+    }
+  };
+
   const loadActivity = () => {
     api.customerActivity(partnerId, { page_size: 40 }).then(setActivity).catch((e) => setError(e.message));
   };
@@ -507,6 +518,17 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
                   <span className="fu-tag ok">
                     <FileSignature size={11} style={{ verticalAlign: -1, marginInlineEnd: 3 }} />
                     {t("customerHasContract")}
+                  </span>
+                )}
+                {role === "admin" && (
+                  <span
+                    className={`fu-tag ${detail.summary.promissory_note_exempt ? "warn" : "faint"} clickable`}
+                    style={{ cursor: "pointer" }}
+                    title={t("noteExemptHint")}
+                    onClick={handleToggleNoteExempt}
+                  >
+                    <FileText size={11} style={{ verticalAlign: -1, marginInlineEnd: 3 }} />
+                    {detail.summary.promissory_note_exempt ? t("noteExemptOn") : t("noteExemptOff")}
                   </span>
                 )}
 

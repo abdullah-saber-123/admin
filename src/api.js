@@ -217,6 +217,11 @@ export const api = {
   rejectContractCase: (caseId, note) => request(`/api/contract-cases/${caseId}/reject`, { method: "PATCH", body: JSON.stringify({ note }) }),
   updateContractCaseDetails: (caseId, data) => request(`/api/contract-cases/${caseId}/details`, { method: "PATCH", body: JSON.stringify(data) }),
   getContractCaseSummary: (partnerId) => request(`/api/contract-cases/customer/${partnerId}/summary`),
+  createHistoricalContractCase: (data) => request("/api/contract-cases/historical", { method: "POST", body: JSON.stringify(data) }),
+  cancelContractCaseContract: (caseId, reason) => request(`/api/contract-cases/${caseId}/cancel-contract`, { method: "PATCH", body: JSON.stringify({ reason }) }),
+  restoreContractCaseContract: (caseId) => request(`/api/contract-cases/${caseId}/restore-contract`, { method: "PATCH" }),
+  cancelContractCaseNote: (caseId, reason) => request(`/api/contract-cases/${caseId}/cancel-note`, { method: "PATCH", body: JSON.stringify({ reason }) }),
+  restoreContractCaseNote: (caseId) => request(`/api/contract-cases/${caseId}/restore-note`, { method: "PATCH" }),
   // Both of these are plain, direct GET URLs (auth via ?token=, same pattern
   // as the shared statement-PDF links) so the caller can window.open() them
   // synchronously, right inside the click handler - no fetch/await first.
@@ -402,6 +407,8 @@ export const api = {
     request(`/api/customers/${id}/payment-type?payment_type=${payment_type === null ? "" : encodeURIComponent(payment_type)}`, { method: "PATCH" }),
   updateRegion: (id, region) =>
     request(`/api/customers/${id}/region?region=${region === null ? "" : encodeURIComponent(region)}`, { method: "PATCH" }),
+  updateNoteExempt: (id, note_exempt) =>
+    request(`/api/customers/${id}/note-exempt?note_exempt=${note_exempt ? "true" : "false"}`, { method: "PATCH" }),
   fieldOptions: (field) => request(`/api/customer-field-options?field=${encodeURIComponent(field)}`),
   addFieldOption: (field, value) =>
     request(`/api/customer-field-options`, { method: "POST", body: JSON.stringify({ field, value }) }),

@@ -187,6 +187,132 @@ function CreateCaseForm({ onCreated, onCancel }) {
   );
 }
 
+function HistoricalCaseForm({ onCreated, onCancel }) {
+  const { t } = useLang();
+  const { showToast } = useToast();
+  const [clientSearch, setClientSearch] = useState("");
+  const [clientOptions, setClientOptions] = useState([]);
+  const [selectedClient, setSelectedClient] = useState(null);
+  const [creditLimit, setCreditLimit] = useState("");
+  const [noteExempt, setNoteExempt] = useState(false);
+  const [contractNumber, setContractNumber] = useState("");
+  const [contractDate, setContractDate] = useState("");
+  const [noteExpiryDate, setNoteExpiryDate] = useState("");
+  const [ownerName, setOwnerName] = useState("");
+  const [ownerIdNumber, setOwnerIdNumber] = useState("");
+  const [authorizedName, setAuthorizedName] = useState("");
+  const [authorizedIdNumber, setAuthorizedIdNumber] = useState("");
+  const [crNumber, setCrNumber] = useState("");
+  const [taxNumber, setTaxNumber] = useState("");
+  const [signedContract, setSignedContract] = useState(null);
+  const [signedNote, setSignedNote] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!clientSearch.trim()) { setClientOptions([]); return; }
+    const timer = setTimeout(() => {
+      api.customers({ search: clientSearch, page_size: 8 }).then((res) => setClientOptions(res.results || [])).catch(() => {});
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [clientSearch]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedClient) return;
+    setSaving(true);
+    try {
+      await api.createHistoricalContractCase({
+        partner_id: selectedClient.partner_id,
+        contract_number: contractNumber || null, contract_date: contractDate || null,
+        note_exempt: noteExempt, note_expiry_date: noteExpiryDate || null,
+        credit_limit_approved: creditLimit ? Number(creditLimit) : null,
+        owner_name: ownerName || null, owner_id_number: ownerIdNumber || null,
+        authorized_person_name: authorizedName || null, authorized_person_id_number: authorizedIdNumber || null,
+        commercial_registration_number: crNumber || null, tax_number: taxNumber || null,
+        signed_contract: signedContract || null, signed_note: noteExempt ? null : (signedNote || null),
+      });
+      showToast(t("contractCaseCreated"), "success");
+      onCreated();
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="admin-form" style={{ maxWidth: "none" }}>
+      <p className="user-form-section-hint">{t("contractCaseHistoricalHint")}</p>
+      <div className="user-form-section">
+        <div className="user-form-section-title"><UserIcon size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />{t("contractCaseCustomerStep")}</div>
+        <div className="more-filters-row">
+          <div className="more-filter-field" style={{ position: "relative", minWidth: 280 }}>
+            <label>{t("customer")}</label>
+            <div className="input-icon compact">
+              <Search size={13} />
+              <input
+                value={clientSearch}
+                onChange={(e) => { setClientSearch(e.target.value); if (selectedClient) setSelectedClient(null); }}
+                placeholder={t("searchPlaceholder")}
+              />
+              {selectedClient && <button className="icon-btn" type="button" onClick={() => { setSelectedClient(null); setClientSearch(""); }}><X size={13} /></button>}
+            </div>
+            {clientOptions.length > 0 && !selectedClient && (
+              <div className="client-search-dropdown">
+                {clientOptions.map((c) => (
+                  <button key={c.partner_id} type="button" onClick={() => { setSelectedClient(c); setClientSearch(c.name); setClientOptions([]); }}>{c.name}</button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="more-filter-field">
+            <label>{t("contractCaseCreditLimitApproved")}</label>
+            <input type="number" step="0.01" className="cost-of-debt-input" value={creditLimit} onChange={(e) => setCreditLimit(e.target.value)} style={{ width: 160 }} />
+          </div>
+          <label className="checkbox-inline" style={{ alignSelf: "flex-end", marginBottom: 8 }} onClick={() => setNoteExempt((v) => !v)}>
+            <input type="checkbox" checked={noteExempt} readOnly />
+            {t("contractCaseNoteExempt")}
+          </label>
+        </div>
+        <div className="more-filters-row">
+          <div className="more-filter-field"><label>{t("contractCaseContractNumber")}</label><input value={contractNumber} onChange={(e) => setContractNumber(e.target.value)} /></div>
+          <div className="more-filter-field"><label>{t("contractCaseContractDate")}</label><input type="date" value={contractDate} onChange={(e) => setContractDate(e.target.value)} /></div>
+          {!noteExempt && <div className="more-filter-field"><label>{t("contractCaseNoteExpiryDate")}</label><input type="date" value={noteExpiryDate} onChange={(e) => setNoteExpiryDate(e.target.value)} /></div>}
+        </div>
+      </div>
+
+      <div className="user-form-section">
+        <div className="user-form-section-title"><IdCard size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />{t("contractCaseIdentityStep")}</div>
+        <div className="more-filters-row">
+          <div className="more-filter-field"><label>{t("contractCaseOwnerName")}</label><input value={ownerName} onChange={(e) => setOwnerName(e.target.value)} /></div>
+          <div className="more-filter-field"><label>{t("contractCaseOwnerIdNumber")}</label><input value={ownerIdNumber} onChange={(e) => setOwnerIdNumber(e.target.value)} /></div>
+        </div>
+        <div className="more-filters-row">
+          <div className="more-filter-field"><label>{t("contractCaseAuthorizedName")}</label><input value={authorizedName} onChange={(e) => setAuthorizedName(e.target.value)} /></div>
+          <div className="more-filter-field"><label>{t("contractCaseAuthorizedIdNumber")}</label><input value={authorizedIdNumber} onChange={(e) => setAuthorizedIdNumber(e.target.value)} /></div>
+        </div>
+        <div className="more-filters-row">
+          <div className="more-filter-field"><label>{t("contractCaseCrNumber")}</label><input value={crNumber} onChange={(e) => setCrNumber(e.target.value)} /></div>
+          <div className="more-filter-field"><label>{t("contractCaseTaxNumber")}</label><input value={taxNumber} onChange={(e) => setTaxNumber(e.target.value)} /></div>
+        </div>
+      </div>
+
+      <div className="user-form-section">
+        <div className="user-form-section-title"><FileText size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />{t("contractCaseFinalDocs")}</div>
+        <div className="more-filters-row">
+          <FileField label={t("contractCaseDocSignedContract")} value={signedContract} onChange={setSignedContract} />
+          {!noteExempt && <FileField label={t("contractCaseDocSignedNote")} value={signedNote} onChange={setSignedNote} />}
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+        <button className="btn-primary" type="submit" disabled={saving || !selectedClient}>{saving ? t("saving") : t("contractCaseSubmitHistorical")}</button>
+        <button className="btn-secondary" type="button" onClick={onCancel}>{t("cancel")}</button>
+      </div>
+    </form>
+  );
+}
+
 function StepRow({ step, canDo, busy, onComplete, isPostArchive, caseArchived, onTogglePostArchive }) {
   const { t } = useLang();
   const [attachment, setAttachment] = useState(null);
@@ -510,6 +636,60 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
     }
   };
 
+  const handleCancelContract = async () => {
+    const reason = window.prompt(t("contractCaseCancelReasonPrompt")) || "";
+    setBusy(true);
+    try {
+      await api.cancelContractCaseContract(caseId, reason.trim());
+      load();
+      onChanged?.();
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleRestoreContract = async () => {
+    setBusy(true);
+    try {
+      await api.restoreContractCaseContract(caseId);
+      load();
+      onChanged?.();
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleCancelNote = async () => {
+    const reason = window.prompt(t("contractCaseCancelReasonPrompt")) || "";
+    setBusy(true);
+    try {
+      await api.cancelContractCaseNote(caseId, reason.trim());
+      load();
+      onChanged?.();
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleRestoreNote = async () => {
+    setBusy(true);
+    try {
+      await api.restoreContractCaseNote(caseId);
+      load();
+      onChanged?.();
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (error) return <div className="error-state">{error}</div>;
   if (!c) return <div className="loading-state">{t("loadingDots")}</div>;
 
@@ -538,6 +718,7 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
         <div>
           <h3 className="insights-chart-title">{c.customer_name}</h3>
           <span className={`fu-tag ${STATUS_TONE[c.status]}`}>{t(`contractCaseStatus_${c.status}`)}</span>
+          {c.is_historical && <span className="fu-tag faint" style={{ marginInlineStart: 6 }}>{t("contractCaseHistoricalBadge")}</span>}
           {overdueStage2 && <span className="fu-tag danger" style={{ marginInlineStart: 6 }}>{t("contractCaseOverdueStage2")}</span>}
           {overdueStage1 && <span className="fu-tag warn" style={{ marginInlineStart: 6 }}>{t("contractCaseOverdueStage1")}</span>}
           {c.last_edited_by && (
@@ -684,6 +865,26 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
         ) : (
           <p className="settings-meta">{t("contractCaseNoFinalDocsYet")}</p>
         )}
+        {c.status === "archived" && session.role === "admin" && (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+            {c.contract_cancelled_at ? (
+              <span className="fu-tag danger" title={`${c.contract_cancelled_by} - ${fmtDateTime(c.contract_cancelled_at)}${c.contract_cancelled_reason ? ` - ${c.contract_cancelled_reason}` : ""}`}>
+                {t("contractCancelledBadge")}
+                <button className="icon-btn" style={{ marginInlineStart: 6 }} disabled={busy} onClick={handleRestoreContract}>{t("contractCaseRestore")}</button>
+              </span>
+            ) : (
+              <button className="btn-secondary sm danger" disabled={busy} onClick={handleCancelContract}>{t("contractCaseCancelContract")}</button>
+            )}
+            {!c.note_exempt && (c.note_cancelled_at ? (
+              <span className="fu-tag danger" title={`${c.note_cancelled_by} - ${fmtDateTime(c.note_cancelled_at)}${c.note_cancelled_reason ? ` - ${c.note_cancelled_reason}` : ""}`}>
+                {t("noteCancelledBadge")}
+                <button className="icon-btn" style={{ marginInlineStart: 6 }} disabled={busy} onClick={handleRestoreNote}>{t("contractCaseRestore")}</button>
+              </span>
+            ) : (
+              <button className="btn-secondary sm danger" disabled={busy} onClick={handleCancelNote}>{t("contractCaseCancelNote")}</button>
+            ))}
+          </div>
+        )}
       </div>
 
       {session.role === "admin" && !isClosed && c.status !== "pending_review" && (
@@ -815,6 +1016,11 @@ export default function ContractCasesReport({ session }) {
               <button className="btn-secondary sm" disabled={exporting} onClick={handleExportExcel}>
                 <Download size={13} style={{ verticalAlign: -2, marginInlineEnd: 4 }} />{t("exportExcelButton")}
               </button>
+              {session.role === "admin" && (
+                <button className="btn-secondary sm" onClick={() => setMode("historical")}>
+                  <FileSignature size={13} style={{ verticalAlign: -2, marginInlineEnd: 4 }} />{t("contractCaseRegisterHistorical")}
+                </button>
+              )}
               <button className="btn-primary sm" onClick={() => setMode("create")}>
                 <Plus size={13} style={{ verticalAlign: -2, marginInlineEnd: 4 }} />{t("contractCaseNewRequest")}
               </button>
@@ -825,6 +1031,12 @@ export default function ContractCasesReport({ session }) {
         {mode === "create" && (
           <div style={{ marginTop: 14 }}>
             <CreateCaseForm onCreated={() => { setMode("list"); handleChanged(); }} onCancel={() => setMode("list")} />
+          </div>
+        )}
+
+        {mode === "historical" && (
+          <div style={{ marginTop: 14 }}>
+            <HistoricalCaseForm onCreated={() => { setMode("list"); handleChanged(); }} onCancel={() => setMode("list")} />
           </div>
         )}
 

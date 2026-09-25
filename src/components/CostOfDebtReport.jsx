@@ -26,8 +26,10 @@ export default function CostOfDebtReport({ role }) {
   const { showToast } = useToast();
   const isAdmin = role === "admin";
   const [cities, setCities] = useState([]);
+  const [regions, setRegions] = useState([]);
   const [collectors, setCollectors] = useState([]);
   const [cityFilter, setCityFilter] = useState("");
+  const [regionFilter, setRegionFilter] = useState("");
   const [collectorFilter, setCollectorFilter] = useState("");
   const [clientSearch, setClientSearch] = useState("");
   const [clientOptions, setClientOptions] = useState([]);
@@ -40,6 +42,7 @@ export default function CostOfDebtReport({ role }) {
 
   useEffect(() => {
     api.cities().then(setCities).catch(() => {});
+    api.fieldOptions("region").then((opts) => setRegions(opts.map((o) => o.value))).catch(() => {});
     api.collectors().then(setCollectors).catch(() => {});
   }, []);
 
@@ -47,6 +50,7 @@ export default function CostOfDebtReport({ role }) {
     setError(null);
     api.costOfDebtReport({
       city: cityFilter || "",
+      region: regionFilter || "",
       collector: collectorFilter || "",
       partner_id: selectedClient?.partner_id || "",
     }).then((res) => {
@@ -57,7 +61,7 @@ export default function CostOfDebtReport({ role }) {
         grace_period_days: b.grace_period_days,
       }])));
     }).catch((e) => setError(e.message));
-  }, [cityFilter, collectorFilter, selectedClient]);
+  }, [cityFilter, regionFilter, collectorFilter, selectedClient]);
 
   useEffect(load, [load]);
 
@@ -89,6 +93,7 @@ export default function CostOfDebtReport({ role }) {
     try {
       await api.exportCostOfDebtPdf({
         city: cityFilter || "",
+        region: regionFilter || "",
         collector: collectorFilter || "",
         partner_id: selectedClient?.partner_id || "",
         lang,
@@ -172,6 +177,15 @@ export default function CostOfDebtReport({ role }) {
               <option value="">{t("allStatus")}</option>
               {cities.map((c) => (
                 <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+          <div className="more-filter-field">
+            <label>{t("regionLabel")}</label>
+            <select value={regionFilter} onChange={(e) => { setRegionFilter(e.target.value); clearClient(); }}>
+              <option value="">{t("allStatus")}</option>
+              {regions.map((r) => (
+                <option key={r} value={r}>{r}</option>
               ))}
             </select>
           </div>

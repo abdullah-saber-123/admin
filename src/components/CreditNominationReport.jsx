@@ -14,6 +14,7 @@ export default function CreditNominationReport({ onSelectCustomer, role }) {
   const [search, setSearch] = useState("");
   const [cities, setCities] = useState([]);
   const [cityFilter, setCityFilter] = useState("");
+  const [regionFilter, setRegionFilter] = useState("");
   const [collectors, setCollectors] = useState([]);
   const [collectorFilter, setCollectorFilter] = useState("");
   const [overLimitOnly, setOverLimitOnly] = useState(false);
@@ -54,19 +55,19 @@ export default function CreditNominationReport({ onSelectCustomer, role }) {
   const load = useCallback(() => {
     setError(null);
     api.customers({
-      search, city: cityFilter, collector: collectorFilter, page, page_size: 25,
+      search, city: cityFilter, region: regionFilter, collector: collectorFilter, page, page_size: 25,
       over_limit_only: overLimitOnly, nominated_offer_only: offerOnly, nominated_collection_only: collectionOnly,
       last_invoice_date_from: lastInvoiceDateFrom || "", last_invoice_date_to: lastInvoiceDateTo || "",
       sort_by: sortBy, sort_dir: sortDir,
     }).then(setData).catch((e) => setError(e.message));
-  }, [search, cityFilter, collectorFilter, page, overLimitOnly, offerOnly, collectionOnly, lastInvoiceDateFrom, lastInvoiceDateTo, sortBy, sortDir]);
+  }, [search, cityFilter, regionFilter, collectorFilter, page, overLimitOnly, offerOnly, collectionOnly, lastInvoiceDateFrom, lastInvoiceDateTo, sortBy, sortDir]);
 
   useEffect(() => {
     const timer = setTimeout(load, 250);
     return () => clearTimeout(timer);
   }, [load]);
 
-  useEffect(() => { setPage(1); }, [search, cityFilter, collectorFilter, overLimitOnly, offerOnly, collectionOnly, lastInvoiceDateFrom, lastInvoiceDateTo]);
+  useEffect(() => { setPage(1); }, [search, cityFilter, regionFilter, collectorFilter, overLimitOnly, offerOnly, collectionOnly, lastInvoiceDateFrom, lastInvoiceDateTo]);
 
   const toggleSort = (field) => {
     if (sortBy === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -110,7 +111,7 @@ export default function CreditNominationReport({ onSelectCustomer, role }) {
     setExporting(true);
     try {
       await api.exportCustomers({
-        search, city: cityFilter, collector: collectorFilter, over_limit_only: overLimitOnly,
+        search, city: cityFilter, region: regionFilter, collector: collectorFilter, over_limit_only: overLimitOnly,
         nominated_offer_only: offerOnly, nominated_collection_only: collectionOnly,
         last_invoice_date_from: lastInvoiceDateFrom || "", last_invoice_date_to: lastInvoiceDateTo || "",
       });
@@ -265,6 +266,15 @@ export default function CreditNominationReport({ onSelectCustomer, role }) {
               <option value="">{t("allStatus")}</option>
               {cities.map((c) => (
                 <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+          <div className="more-filter-field">
+            <label>{t("regionLabel")}</label>
+            <select value={regionFilter} onChange={(e) => setRegionFilter(e.target.value)}>
+              <option value="">{t("allStatus")}</option>
+              {regionOptions.map((o) => (
+                <option key={o.id} value={o.value}>{o.value}</option>
               ))}
             </select>
           </div>

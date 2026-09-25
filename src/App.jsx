@@ -101,6 +101,7 @@ export default function App() {
   const callOverlayRef = useRef(null);
   const [followupLogDateFilter, setFollowupLogDateFilter] = useState(null);
   const [cityFilter, setCityFilter] = useState(null);
+  const [regionFilter, setRegionFilter] = useState(null);
   const [collectorFilter, setCollectorFilter] = useState(null);
   const [ageBucketFilter, setAgeBucketFilter] = useState(null);
   const [followupStatusFilter, setFollowupStatusFilter] = useState(null);
@@ -127,11 +128,12 @@ export default function App() {
   const loadKpis = useCallback(() => {
     const params = {};
     if (cityFilter) params.city = cityFilter;
+    if (regionFilter) params.region = regionFilter;
     if (collectorFilter) params.collector = collectorFilter;
     if (hideZeroBalance) params.hide_zero_balance = true;
     if (hideNegativeBalance) params.hide_negative_balance = true;
     api.kpis(params).then(setKpis).catch(() => {});
-  }, [cityFilter, collectorFilter, hideZeroBalance, hideNegativeBalance]);
+  }, [cityFilter, regionFilter, collectorFilter, hideZeroBalance, hideNegativeBalance]);
   const loadSyncStatus = useCallback(() => {
     api.syncStatus().then(setSyncStatus).catch(() => {});
   }, []);
@@ -345,6 +347,9 @@ export default function App() {
                 city={cityFilter}
                 onClearCity={() => setCityFilter(null)}
                 onCityChange={setCityFilter}
+                region={regionFilter}
+                onClearRegion={() => setRegionFilter(null)}
+                onRegionChange={setRegionFilter}
                 ageBucket={ageBucketFilter}
                 onClearAgeBucket={() => setAgeBucketFilter(null)}
                 followupStatus={followupStatusFilter}

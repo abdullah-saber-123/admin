@@ -273,9 +273,11 @@ export default function RetargetingReport({ onSelectCustomer, role, username }) 
   const [nominatingId, setNominatingId] = useState(null);
   const [search, setSearch] = useState("");
   const [cityFilter, setCityFilter] = useState("");
+  const [regionFilter, setRegionFilter] = useState("");
   const [paymentTypeFilter, setPaymentTypeFilter] = useState("");
   const [branchFilter, setBranchFilter] = useState("");
   const [cities, setCities] = useState([]);
+  const [regions, setRegions] = useState([]);
   const [branchOptions, setBranchOptions] = useState([]);
   const [sortBy, setSortBy] = useState("created_at");
   const [sortDir, setSortDir] = useState("desc");
@@ -284,16 +286,17 @@ export default function RetargetingReport({ onSelectCustomer, role, username }) 
     setError(null);
     api.retargetCases({
       stage, status: statusFilter, mine: mineOnly, search,
-      city: cityFilter, payment_type: paymentTypeFilter, branch: branchFilter,
+      city: cityFilter, region: regionFilter, payment_type: paymentTypeFilter, branch: branchFilter,
       sort_by: sortBy, sort_dir: sortDir,
     }).then(setRows).catch((e) => setError(e.message));
     api.retargetCasesSummary().then(setSummary).catch(() => {});
-  }, [stage, statusFilter, mineOnly, search, cityFilter, paymentTypeFilter, branchFilter, sortBy, sortDir]);
+  }, [stage, statusFilter, mineOnly, search, cityFilter, regionFilter, paymentTypeFilter, branchFilter, sortBy, sortDir]);
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { if (role === "admin") api.staffList().then(setStaffList).catch(() => {}); }, [role]);
   useEffect(() => { api.fieldOptions("payment_type").then(setPaymentTypeOptions).catch(() => {}); }, []);
   useEffect(() => { api.cities().then(setCities).catch(() => {}); }, []);
+  useEffect(() => { api.fieldOptions("region").then((opts) => setRegions(opts.map((o) => o.value))).catch(() => {}); }, []);
   useEffect(() => { api.retargetBranchOptions().then(setBranchOptions).catch(() => {}); }, []);
 
   const toggleSort = (field) => {
@@ -383,6 +386,13 @@ export default function RetargetingReport({ onSelectCustomer, role, username }) 
             <select value={cityFilter} onChange={(e) => setCityFilter(e.target.value)}>
               <option value="">{t("allStatus")}</option>
               {cities.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div className="more-filter-field">
+            <label>{t("regionLabel")}</label>
+            <select value={regionFilter} onChange={(e) => setRegionFilter(e.target.value)}>
+              <option value="">{t("allStatus")}</option>
+              {regions.map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
           </div>
           <div className="more-filter-field">

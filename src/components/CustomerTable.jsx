@@ -26,7 +26,7 @@ function waLink(phone) {
 
 const DEFAULT_COLUMNS = { city: true, collector: true, lastPayment: true, lastInvoice: false, overdueAmount: true, upcomingDue: true, status: false };
 
-export default function CustomerTable({ onSelect, bucket, onClearBucket, city, onClearCity, onCityChange, ageBucket, onClearAgeBucket, followupStatus, onClearFollowupStatus, collector, onClearCollector, onCollectorChange, hideZeroBalance, onToggleHideZeroBalance, hideNegativeBalance, onToggleHideNegativeBalance, refreshSignal, role, permissions, onOpenCollectorProfile }) {
+export default function CustomerTable({ onSelect, bucket, onClearBucket, city, onClearCity, onCityChange, region, onClearRegion, onRegionChange, ageBucket, onClearAgeBucket, followupStatus, onClearFollowupStatus, collector, onClearCollector, onCollectorChange, hideZeroBalance, onToggleHideZeroBalance, hideNegativeBalance, onToggleHideNegativeBalance, refreshSignal, role, permissions, onOpenCollectorProfile }) {
   const { t, money, statusLabel } = useLang();
   const { showToast } = useToast();
   const canRetarget = role === "admin" || (permissions || "").split(",").map((p) => p.trim()).includes("customerRetargeting");
@@ -81,6 +81,9 @@ export default function CustomerTable({ onSelect, bucket, onClearBucket, city, o
   const [lastInvoiceDateTo, setLastInvoiceDateTo] = useState("");
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [cities, setCities] = useState([]);
+  const [regions, setRegions] = useState([]);
+  const [regionSelectOpen, setRegionSelectOpen] = useState(false);
+  const [regionSearch, setRegionSearch] = useState("");
   const [followupStatuses, setFollowupStatuses] = useState([]);
   const [collectors, setCollectorsList] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
@@ -115,6 +118,7 @@ export default function CustomerTable({ onSelect, bucket, onClearBucket, city, o
 
   useEffect(() => {
     api.cities().then(setCities).catch(() => {});
+    api.fieldOptions("region").then((opts) => setRegions(opts.map((o) => o.value))).catch(() => {});
     api.followupStatuses().then(setFollowupStatuses).catch(() => {});
     api.collectors().then(setCollectorsList).catch(() => {});
   }, []);
@@ -183,7 +187,7 @@ export default function CustomerTable({ onSelect, bucket, onClearBucket, city, o
   };
 
   const filterParams = () => ({
-    search, status, bucket: bucket || "", city: city || "",
+    search, status, bucket: bucket || "", city: city || "", region: region || "",
     hide_zero_balance: hideZeroBalance,
     hide_negative_balance: hideNegativeBalance,
     followup_status: followupFilter || "",
@@ -213,14 +217,14 @@ export default function CustomerTable({ onSelect, bucket, onClearBucket, city, o
         scrollLoadLockRef.current = false;
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, status, bucket, city, hideZeroBalance, hideNegativeBalance, followupFilter, minBalance, maxBalance, collectorFilter, ageBucketFilter, lastInvoiceDateFrom, lastInvoiceDateTo, sortBy, sortDir, page]);
+  }, [search, status, bucket, city, region, hideZeroBalance, hideNegativeBalance, followupFilter, minBalance, maxBalance, collectorFilter, ageBucketFilter, lastInvoiceDateFrom, lastInvoiceDateTo, sortBy, sortDir, page]);
 
   useEffect(() => {
     const timer = setTimeout(load, 250);
     return () => clearTimeout(timer);
   }, [load]);
 
-  useEffect(() => { setPage(1); setAllRows([]); scrollLoadLockRef.current = false; }, [search, status, bucket, city, hideZeroBalance, hideNegativeBalance, followupFilter, minBalance, maxBalance, collectorFilter, ageBucketFilter, lastInvoiceDateFrom, lastInvoiceDateTo, sortBy, sortDir]);
+  useEffect(() => { setPage(1); setAllRows([]); scrollLoadLockRef.current = false; }, [search, status, bucket, city, region, hideZeroBalance, hideNegativeBalance, followupFilter, minBalance, maxBalance, collectorFilter, ageBucketFilter, lastInvoiceDateFrom, lastInvoiceDateTo, sortBy, sortDir]);
 
   // "Next" does the same thing scrolling to the bottom does - loads the next
   // page and appends it. "Go to page" is a deliberate jump instead: clear
@@ -350,7 +354,7 @@ export default function CustomerTable({ onSelect, bucket, onClearBucket, city, o
   }, [refreshSignal]);
 
   const activeFilterCount = [
-    bucket, city, status, search, hideZeroBalance || null, hideNegativeBalance || null, followupFilter,
+    bucket, city, region, status, search, hideZeroBalance || null, hideNegativeBalance || null, followupFilter,
     minBalance !== "" ? minBalance : null, maxBalance !== "" ? maxBalance : null, collectorFilter, ageBucketFilter,
     lastInvoiceDateFrom || null, lastInvoiceDateTo || null,
   ].filter((v) => v !== null && v !== undefined && v !== "").length;
@@ -425,6 +429,7 @@ export default function CustomerTable({ onSelect, bucket, onClearBucket, city, o
     onToggleHideZeroBalance?.(false);
     onClearBucket?.();
     onClearCity?.();
+    onClearRegion?.();
     onClearAgeBucket?.();
     onClearFollowupStatus?.();
     onClearCollector?.();
@@ -600,6 +605,46 @@ export default function CustomerTable({ onSelect, bucket, onClearBucket, city, o
               </>
             )}
           </div>
+          <div className="more-filter-field" style={{ position: "relative" }}>
+            <label>{t("regionLabel")}</label>
+            <button type="button" className="multi-select-trigger" onClick={() => setRegionSelectOpen((v) => !v)}>
+              {region ? `${region.split(",").filter(Boolean).length} ${t("selected")}` : t("allStatus")}
+            </button>
+            {regionSelectOpen && (
+              <>
+                <div className="columns-menu-backdrop" onClick={() => { setRegionSelectOpen(false); setRegionSearch(""); }} />
+                <div className="columns-menu">
+                  <div className="multiselect-search">
+                    <Search size={12} />
+                    <input
+                      autoFocus
+                      value={regionSearch}
+                      onChange={(e) => setRegionSearch(e.target.value)}
+                      placeholder={t("searchPlaceholder")}
+                    />
+                  </div>
+                  <div className="multiselect-scroll">
+                    {regions.filter((r) => r.toLowerCase().includes(regionSearch.toLowerCase())).map((r) => {
+                      const selected = (region || "").split(",").filter(Boolean);
+                      return (
+                        <label key={r} className="multiselect-item">
+                          <input
+                            type="checkbox"
+                            checked={selected.includes(r)}
+                            onChange={() => {
+                              const next = selected.includes(r) ? selected.filter((x) => x !== r) : [...selected, r];
+                              onRegionChange?.(next.join(",") || null);
+                            }}
+                          />
+                          {r}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
           {collectors.length > 1 && (
             <div className="more-filter-field" style={{ position: "relative" }}>
               <label>{t("collectorField")}</label>
@@ -694,6 +739,12 @@ export default function CustomerTable({ onSelect, bucket, onClearBucket, city, o
             <span className="filter-chip">
               {city.split(",").filter(Boolean).join(", ")}
               <button onClick={onClearCity}><X size={11} /></button>
+            </span>
+          )}
+          {region && (
+            <span className="filter-chip">
+              {region.split(",").filter(Boolean).join(", ")}
+              <button onClick={onClearRegion}><X size={11} /></button>
             </span>
           )}
           {ageBucketFilter && (

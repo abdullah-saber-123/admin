@@ -548,6 +548,7 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
   const [cityFilter, setCityFilter] = useState("");
+  const [regionFilter, setRegionFilter] = useState("");
   const [collectorFilter, setCollectorFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [mineOnly, setMineOnly] = useState(false);
@@ -557,6 +558,7 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
   const [lastReconciliationTo, setLastReconciliationTo] = useState("");
   const [showPostponed, setShowPostponed] = useState(false);
   const [cities, setCities] = useState([]);
+  const [regions, setRegions] = useState([]);
   const [collectors, setCollectors] = useState([]);
   const [staffList, setStaffList] = useState([]);
   const [page, setPage] = useState(1);
@@ -575,13 +577,14 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
 
   useEffect(() => {
     api.cities().then(setCities).catch(() => {});
+    api.fieldOptions("region").then((opts) => setRegions(opts.map((o) => o.value))).catch(() => {});
     api.collectors().then(setCollectors).catch(() => {});
     api.staffList().then(setStaffList).catch(() => {});
   }, []);
 
   const filterParams = useCallback(() => {
     const params = {
-      search, city: cityFilter, collector: collectorFilter, status: statusFilter, mine: mineOnly,
+      search, city: cityFilter, region: regionFilter, collector: collectorFilter, status: statusFilter, mine: mineOnly,
       sort_by: sortBy, sort_dir: sortDir, assigned_to: assignedToFilter,
       last_reconciliation_from: lastReconciliationFrom, last_reconciliation_to: lastReconciliationTo,
       hide_postponed: !showPostponed,
@@ -589,7 +592,7 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
     if (statementSentFilter) params.statement_sent = statementSentFilter === "sent";
     return params;
   }, [
-    search, cityFilter, collectorFilter, statusFilter, mineOnly, statementSentFilter,
+    search, cityFilter, regionFilter, collectorFilter, statusFilter, mineOnly, statementSentFilter,
     assignedToFilter, lastReconciliationFrom, lastReconciliationTo, showPostponed, sortBy, sortDir,
   ]);
 
@@ -600,7 +603,7 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { setPage(1); }, [
-    search, cityFilter, collectorFilter, statusFilter, mineOnly, statementSentFilter,
+    search, cityFilter, regionFilter, collectorFilter, statusFilter, mineOnly, statementSentFilter,
     assignedToFilter, lastReconciliationFrom, lastReconciliationTo, showPostponed, sortBy, sortDir,
   ]);
 
@@ -679,6 +682,13 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
             <select value={cityFilter} onChange={(e) => setCityFilter(e.target.value)}>
               <option value="">{t("allStatus")}</option>
               {cities.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div className="more-filter-field">
+            <label>{t("regionLabel")}</label>
+            <select value={regionFilter} onChange={(e) => setRegionFilter(e.target.value)}>
+              <option value="">{t("allStatus")}</option>
+              {regions.map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
           </div>
           <div className="more-filter-field">

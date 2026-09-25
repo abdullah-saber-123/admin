@@ -80,6 +80,8 @@ function NominateCustomerPicker({ offerId, nominatedPartnerIds, onNominated }) {
   const [search, setSearch] = useState("");
   const [cities, setCities] = useState([]);
   const [cityFilter, setCityFilter] = useState("");
+  const [regions, setRegions] = useState([]);
+  const [regionFilter, setRegionFilter] = useState("");
   const [collectors, setCollectors] = useState([]);
   const [collectorFilter, setCollectorFilter] = useState("");
   const [collectorSelectOpen, setCollectorSelectOpen] = useState(false);
@@ -96,6 +98,7 @@ function NominateCustomerPicker({ offerId, nominatedPartnerIds, onNominated }) {
 
   useEffect(() => {
     api.cities().then(setCities).catch(() => {});
+    api.fieldOptions("region").then((opts) => setRegions(opts.map((o) => o.value))).catch(() => {});
     api.collectors().then(setCollectors).catch(() => {});
   }, []);
 
@@ -103,7 +106,7 @@ function NominateCustomerPicker({ offerId, nominatedPartnerIds, onNominated }) {
     setError(null);
     if (page > 1) setLoadingMore(true);
     api.collectionOfferCustomers(offerId, {
-      search, city: cityFilter, collector: collectorFilter,
+      search, city: cityFilter, region: regionFilter, collector: collectorFilter,
       min_balance: minBalance !== "" ? minBalance : "", max_balance: maxBalance !== "" ? maxBalance : "",
       page, page_size: 25, sort_by: sortBy, sort_dir: sortDir,
     })
@@ -116,7 +119,7 @@ function NominateCustomerPicker({ offerId, nominatedPartnerIds, onNominated }) {
         setLoadingMore(false);
         scrollLoadLockRef.current = false;
       });
-  }, [offerId, search, cityFilter, collectorFilter, minBalance, maxBalance, page, sortBy, sortDir]);
+  }, [offerId, search, cityFilter, regionFilter, collectorFilter, minBalance, maxBalance, page, sortBy, sortDir]);
 
   useEffect(() => {
     const timer = setTimeout(load, 250);
@@ -125,7 +128,7 @@ function NominateCustomerPicker({ offerId, nominatedPartnerIds, onNominated }) {
 
   useEffect(() => {
     setPage(1); setAllRows([]); scrollLoadLockRef.current = false;
-  }, [search, cityFilter, collectorFilter, minBalance, maxBalance, sortBy, sortDir]);
+  }, [search, cityFilter, regionFilter, collectorFilter, minBalance, maxBalance, sortBy, sortDir]);
 
   useEffect(() => {
     const el = tableWrapRef.current;
@@ -179,6 +182,13 @@ function NominateCustomerPicker({ offerId, nominatedPartnerIds, onNominated }) {
           <select value={cityFilter} onChange={(e) => setCityFilter(e.target.value)}>
             <option value="">{t("allStatus")}</option>
             {cities.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+        <div className="more-filter-field">
+          <label>{t("regionLabel")}</label>
+          <select value={regionFilter} onChange={(e) => setRegionFilter(e.target.value)}>
+            <option value="">{t("allStatus")}</option>
+            {regions.map((r) => <option key={r} value={r}>{r}</option>)}
           </select>
         </div>
         {collectors.length > 1 && (

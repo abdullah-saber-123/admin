@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { X, Phone, MapPin, Receipt, Wallet, ChevronLeft, ChevronRight, ClipboardList, Download, Search, AlertTriangle, Mail, UserCheck, Flame, MessageCircle, CalendarClock, Banknote, TrendingUp, CalendarCheck, CircleDollarSign, Gift, Zap, CreditCard, Send, Megaphone, BarChart3, History, MapPinned } from "lucide-react";
+import { X, Phone, MapPin, Receipt, Wallet, ChevronLeft, ChevronRight, ClipboardList, Download, Search, AlertTriangle, Mail, UserCheck, Flame, MessageCircle, CalendarClock, Banknote, TrendingUp, CalendarCheck, CircleDollarSign, Gift, Zap, CreditCard, Send, Megaphone, BarChart3, History, MapPinned, FileText, FileSignature } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 import { useToast } from "../toast.jsx";
@@ -50,6 +50,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
   const [requestingVisit, setRequestingVisit] = useState(false);
   const [activeVisitRequest, setActiveVisitRequest] = useState(null);
   const [staffList, setStaffList] = useState(null);
+  const [contractCaseSummary, setContractCaseSummary] = useState(null);
   const [showVisitHistoryModal, setShowVisitHistoryModal] = useState(false);
   const [visitHistory, setVisitHistory] = useState(null);
   const [reconciliationHistory, setReconciliationHistory] = useState(null);
@@ -124,9 +125,11 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
     setVisitHistory(null);
     setReconciliationHistory(null);
     setNominableOffers([]);
+    setContractCaseSummary(null);
     load(1, 1);
     api.followupStatuses().then(setStatuses).catch(() => {});
     loadActiveVisitRequest();
+    api.getContractCaseSummary(partnerId).then(setContractCaseSummary).catch(() => {});
     if (canSeeReconciliations) {
       api.reconciliationHistory(partnerId).then(setReconciliationHistory).catch(() => {});
     }
@@ -492,6 +495,18 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
                   <span className="fu-tag warn">
                     <Zap size={11} style={{ verticalAlign: -1, marginInlineEnd: 3 }} />
                     {t("nominatedCollectionActive")}
+                  </span>
+                )}
+                {contractCaseSummary?.has_signed_note && (
+                  <span className="fu-tag ok">
+                    <FileText size={11} style={{ verticalAlign: -1, marginInlineEnd: 3 }} />
+                    {t("customerHasPromissoryNote")}
+                  </span>
+                )}
+                {contractCaseSummary?.has_signed_contract && (
+                  <span className="fu-tag ok">
+                    <FileSignature size={11} style={{ verticalAlign: -1, marginInlineEnd: 3 }} />
+                    {t("customerHasContract")}
                   </span>
                 )}
 

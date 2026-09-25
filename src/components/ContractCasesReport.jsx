@@ -872,21 +872,34 @@ export default function ContractCasesReport({ session }) {
                     <tr>
                       <th>{t("customer")}</th>
                       <th>{t("status")}</th>
+                      <th>{t("contractCaseDelayColumn")}</th>
                       <th>{t("contractCaseCreditLimitRequested")}</th>
                       <th>{t("requestedBy")}</th>
                       <th>{t("date")}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {cases.map((c) => (
-                      <tr key={c.id} className="clickable-row" onClick={() => setSelectedCaseId(c.id)}>
-                        <td data-label={t("customer")}>{c.customer_name}</td>
-                        <td data-label={t("status")}><span className={`fu-tag ${STATUS_TONE[c.status]}`}>{t(`contractCaseStatus_${c.status}`)}</span></td>
-                        <td data-label={t("contractCaseCreditLimitRequested")}><RiyalAmount amount={c.credit_limit_requested} /></td>
-                        <td data-label={t("requestedBy")}>{c.requested_by}</td>
-                        <td data-label={t("date")}>{fmtDate(c.requested_at)}</td>
-                      </tr>
-                    ))}
+                    {cases.map((c) => {
+                      const who = [];
+                      if (c.blocked_on_customer) who.push(t("contractCaseBlockedOnCustomer"));
+                      if (c.blocked_staff?.length) who.push(c.blocked_staff.join("، "));
+                      return (
+                        <tr key={c.id} className="clickable-row" onClick={() => setSelectedCaseId(c.id)}>
+                          <td data-label={t("customer")}>{c.customer_name}</td>
+                          <td data-label={t("status")}><span className={`fu-tag ${STATUS_TONE[c.status]}`}>{t(`contractCaseStatus_${c.status}`)}</span></td>
+                          <td data-label={t("contractCaseDelayColumn")}>
+                            {c.overdue_stage > 0 ? (
+                              <span className={`fu-tag ${c.overdue_stage === 2 ? "danger" : "warn"}`} title={who.join(" + ")}>
+                                {t("contractCaseDelayed")}{who.length > 0 ? ` - ${t("contractCaseWaitingOn")}: ${who.join(" + ")}` : ""}
+                              </span>
+                            ) : "—"}
+                          </td>
+                          <td data-label={t("contractCaseCreditLimitRequested")}><RiyalAmount amount={c.credit_limit_requested} /></td>
+                          <td data-label={t("requestedBy")}>{c.requested_by}</td>
+                          <td data-label={t("date")}>{fmtDate(c.requested_at)}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

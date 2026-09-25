@@ -72,7 +72,7 @@ export default function UsersPanel({ onOpenUserProfile }) {
     try {
       await api.createUser({
         username, password, role, full_name: fullName || null,
-        linked_salesperson: role === "staff" ? (linkedSalespersons.join(", ") || null) : null,
+        linked_salesperson: linkedSalespersons.join(", ") || null,
         full_customer_access: role === "staff" ? newUserFullAccess : false,
         permissions: role === "staff" ? (newUserPermissions.join(",") || null) : null,
       });
@@ -254,16 +254,18 @@ export default function UsersPanel({ onOpenUserProfile }) {
             </div>
           </div>
 
-          {role === "staff" && (
-            <div className="user-form-section">
-              <div className="user-form-section-title">{t("accessSectionTitle")}</div>
-              <p className="user-form-section-hint">{t("accessSectionHint")}</p>
-              <div className="user-create-lists">
-                <div className="user-form-box">
-                  <div className="user-form-box-head">
-                    <span>{t("collectorField")}</span>
-                    {linkedSalespersons.length > 0 && <span className="user-form-box-count">{linkedSalespersons.length}</span>}
-                  </div>
+          <div className="user-form-section">
+            <div className="user-form-section-title">{t("accessSectionTitle")}</div>
+            <p className="user-form-section-hint">
+              {role === "admin" ? t("accessSectionHintAdmin") : t("accessSectionHint")}
+            </p>
+            <div className="user-create-lists">
+              <div className="user-form-box">
+                <div className="user-form-box-head">
+                  <span>{t("collectorField")}</span>
+                  {linkedSalespersons.length > 0 && <span className="user-form-box-count">{linkedSalespersons.length}</span>}
+                </div>
+                {role === "staff" && (
                   <label className="multiselect-item" style={{ borderBottom: "1px solid var(--border)" }}>
                     <input
                       type="checkbox"
@@ -272,25 +274,27 @@ export default function UsersPanel({ onOpenUserProfile }) {
                     />
                     {t("fullCustomerAccessLabel")}
                   </label>
-                  {newUserFullAccess ? (
-                    <div className="settings-meta" style={{ padding: "10px 12px" }}>{t("fullCustomerAccessHint")}</div>
-                  ) : salespersons.length === 0 ? (
-                    <div className="settings-meta" style={{ padding: "10px 12px" }}>{t("chooseAfterSync")}</div>
-                  ) : (
-                    <div className="multiselect-list" style={{ maxHeight: 160 }}>
-                      {salespersons.map((s) => (
-                        <label key={s} className="multiselect-item">
-                          <input
-                            type="checkbox"
-                            checked={linkedSalespersons.includes(s)}
-                            onChange={() => setLinkedSalespersons((arr) => toggleInArray(arr, s))}
-                          />
-                          {s}
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                )}
+                {role === "staff" && newUserFullAccess ? (
+                  <div className="settings-meta" style={{ padding: "10px 12px" }}>{t("fullCustomerAccessHint")}</div>
+                ) : salespersons.length === 0 ? (
+                  <div className="settings-meta" style={{ padding: "10px 12px" }}>{t("chooseAfterSync")}</div>
+                ) : (
+                  <div className="multiselect-list" style={{ maxHeight: 160 }}>
+                    {salespersons.map((s) => (
+                      <label key={s} className="multiselect-item">
+                        <input
+                          type="checkbox"
+                          checked={linkedSalespersons.includes(s)}
+                          onChange={() => setLinkedSalespersons((arr) => toggleInArray(arr, s))}
+                        />
+                        {s}
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {role === "staff" && (
                 <div className="user-form-box">
                   <div className="user-form-box-head">
                     <span>{t("extraPermissions")}</span>
@@ -307,11 +311,11 @@ export default function UsersPanel({ onOpenUserProfile }) {
                       {t(PERMISSION_LABEL_KEYS[p])}
                     </label>
                   ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
-          )}
 
           <button className="btn-primary" type="submit" disabled={creating} style={{ marginTop: 14 }}>
             <UserPlus size={15} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />
@@ -363,20 +367,20 @@ export default function UsersPanel({ onOpenUserProfile }) {
                     <td onClick={() => onOpenUserProfile?.(u.id)} className="user-row-name-cell">{u.full_name || "—"}</td>
                     <td><span className={`role-tag ${u.role}`}>{u.role === "admin" ? t("roleAdmin") : t("roleStaff")}</span></td>
                     <td>
-                      {u.role === "admin" || u.full_customer_access ? (
+                      {u.linked_salesperson ? (
+                        u.linked_salesperson
+                      ) : u.role === "admin" || u.full_customer_access ? (
                         <span style={{ color: "var(--text-faint)" }}>{t("allCustomers")}</span>
                       ) : (
-                        u.linked_salesperson || <span style={{ color: "var(--danger)" }}>{t("unassigned")}</span>
+                        <span style={{ color: "var(--danger)" }}>{t("unassigned")}</span>
                       )}
                     </td>
                     <td>{fmtDate(u.created_at)}</td>
                     <td>
                       <div className="row-actions">
-                        {u.role === "staff" && (
-                          <button className="icon-btn" title="Assign collector" onClick={() => setReassignTarget(u)}>
-                            <Link2 size={14} />
-                          </button>
-                        )}
+                        <button className="icon-btn" title="Assign collector" onClick={() => setReassignTarget(u)}>
+                          <Link2 size={14} />
+                        </button>
                         {u.role === "staff" && (
                           <button
                             className={`icon-btn ${u.full_customer_access ? "active-toggle" : ""}`}

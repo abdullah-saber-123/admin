@@ -57,6 +57,9 @@ export default function AnnouncementOverlay() {
           <div className="announcement-customer-tag">{current.customer_name}</div>
         )}
         <div className="announcement-message">{current.message}</div>
+        {current.attachment_url && (
+          <img src={current.attachment_url} alt="" style={{ maxWidth: "100%", maxHeight: 260, borderRadius: 10, margin: "4px 0" }} />
+        )}
 
         <textarea
           className="announcement-response"

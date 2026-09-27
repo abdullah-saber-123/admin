@@ -48,6 +48,7 @@ export default function AnnouncementHistory({ onSelectCustomer }) {
                 </span>
               </div>
               <div className="announcement-history-message">{ann.message}</div>
+              {ann.attachment_url && <img src={ann.attachment_url} alt="" style={{ maxWidth: "100%", maxHeight: 200, borderRadius: 8, marginTop: 6 }} />}
               {ann.response && <div className="announcement-history-response">{t("announcementResponsePlaceholder")}: "{ann.response}"</div>}
             </div>
           ))}
@@ -83,6 +84,7 @@ export default function AnnouncementHistory({ onSelectCustomer }) {
                 <span className="fu-tag sm ok">{ackCount}/{ann.recipients.length} {t("acknowledgedLabel")}</span>
               </div>
               <div className="announcement-history-message">{ann.message}</div>
+              {ann.attachment_url && <img src={ann.attachment_url} alt="" style={{ maxWidth: "100%", maxHeight: 200, borderRadius: 8, marginTop: 6 }} />}
               <div className="announcement-history-recipients">
                 {ann.recipients.map((r) => (
                   <div key={r.username} className={`announcement-history-recipient ${r.acknowledged ? "ok" : "pending"}`}>

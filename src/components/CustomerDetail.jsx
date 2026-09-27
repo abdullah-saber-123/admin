@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { X, Phone, MapPin, Receipt, Wallet, ChevronLeft, ChevronRight, ClipboardList, Download, Search, AlertTriangle, Mail, UserCheck, Flame, MessageCircle, CalendarClock, Banknote, TrendingUp, CalendarCheck, CircleDollarSign, Gift, Zap, CreditCard, Send, Megaphone, BarChart3, History, MapPinned, FileText, FileSignature, Scale } from "lucide-react";
+import { X, Phone, MapPin, Receipt, Wallet, ChevronLeft, ChevronRight, ClipboardList, Download, Search, AlertTriangle, Mail, UserCheck, Flame, MessageCircle, CalendarClock, Banknote, TrendingUp, CalendarCheck, CircleDollarSign, Gift, Zap, CreditCard, Send, Megaphone, BarChart3, History, MapPinned, FileText, FileSignature, Scale, Pencil } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 import { useToast } from "../toast.jsx";
@@ -55,6 +55,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
   const [contractCaseSummary, setContractCaseSummary] = useState(null);
   const [salespersonComparison, setSalespersonComparison] = useState(null);
   const [showSalespersonComparison, setShowSalespersonComparison] = useState(false);
+  const [locatingGPS, setLocatingGPS] = useState(false);
   const [paymentTypeOptions, setPaymentTypeOptions] = useState([]);
   const [savingPaymentType, setSavingPaymentType] = useState(false);
   const [showVisitHistoryModal, setShowVisitHistoryModal] = useState(false);
@@ -234,6 +235,32 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
     } catch (e) {
       showToast(e.message, "error");
     }
+  };
+
+  const handleSetLocation = () => {
+    if (!navigator.geolocation) {
+      showToast(t("locationUnavailable"), "error");
+      return;
+    }
+    setLocatingGPS(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const res = await api.updateCustomerLocation(partnerId, pos.coords.latitude, pos.coords.longitude);
+          setDetail((prev) => ({ ...prev, summary: { ...prev.summary, latitude: res.latitude, longitude: res.longitude, location_set_by: res.location_set_by, location_set_at: res.location_set_at } }));
+          showToast(t("saved"), "success");
+        } catch (e) {
+          showToast(e.message, "error");
+        } finally {
+          setLocatingGPS(false);
+        }
+      },
+      () => {
+        showToast(t("locationDenied"), "error");
+        setLocatingGPS(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
   };
 
   const loadActivity = () => {
@@ -619,6 +646,33 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
                   >
                     <Scale size={11} style={{ verticalAlign: -1, marginInlineEnd: 3 }} />
                     {t("legalHoldMarkAction")}
+                  </span>
+                )}
+
+                {detail.summary.latitude != null ? (
+                  <span className="fu-tag faint" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <MapPinned size={11} />
+                    <a
+                      href={`https://www.google.com/maps?q=${detail.summary.latitude},${detail.summary.longitude}`}
+                      target="_blank" rel="noopener noreferrer"
+                      title={`${t("locationSetBy")}: ${detail.summary.location_set_by || "—"} - ${detail.summary.location_set_at ? fmtDateTime(detail.summary.location_set_at) : ""}`}
+                    >
+                      {t("locationOpenInMaps")}
+                    </a>
+                    <button
+                      className="icon-btn" style={{ width: 18, height: 18 }} title={t("locationUpdateAction")}
+                      onClick={handleSetLocation} disabled={locatingGPS}
+                    >
+                      <Pencil size={10} />
+                    </button>
+                  </span>
+                ) : (
+                  <span
+                    className="fu-tag faint clickable" style={{ cursor: "pointer" }}
+                    title={t("locationSetHint")} onClick={handleSetLocation}
+                  >
+                    <MapPinned size={11} style={{ verticalAlign: -1, marginInlineEnd: 3 }} />
+                    {locatingGPS ? t("locationLocating") : t("locationSetAction")}
                   </span>
                 )}
 

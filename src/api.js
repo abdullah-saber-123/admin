@@ -413,6 +413,8 @@ export const api = {
   updateLegalHold: (id, legal_hold, reason) =>
     request(`/api/customers/${id}/legal-hold`, { method: "PATCH", body: JSON.stringify({ legal_hold, reason }) }),
   legalHoldCustomers: () => request("/api/admin/legal-hold-customers"),
+  updateCustomerLocation: (id, latitude, longitude) =>
+    request(`/api/customers/${id}/location`, { method: "PATCH", body: JSON.stringify({ latitude, longitude }) }),
   fieldOptions: (field) => request(`/api/customer-field-options?field=${encodeURIComponent(field)}`),
   addFieldOption: (field, value) =>
     request(`/api/customer-field-options`, { method: "POST", body: JSON.stringify({ field, value }) }),

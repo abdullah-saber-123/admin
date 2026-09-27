@@ -457,13 +457,16 @@ function HistoryModal({ item, onClose, t, showToast, staffList }) {
         )}
         {viewerUrl && (
           <div className="overlay modal-overlay" onClick={() => setViewerUrl(null)}>
-            <div className="prompt-modal" style={{ maxWidth: 640 }} onClick={(e) => e.stopPropagation()}>
+            <div className="prompt-modal" style={{ maxWidth: 960, width: "95vw" }} onClick={(e) => e.stopPropagation()}>
               <button className="close-btn" onClick={() => setViewerUrl(null)}><XIcon size={16} /></button>
               {viewerType === "application/pdf" ? (
-                <iframe src={viewerUrl} title="attachment" style={{ width: "100%", height: "60vh", border: "none" }} />
+                <iframe src={viewerUrl} title="attachment" style={{ width: "100%", height: "85vh", border: "none" }} />
               ) : (
-                <img src={viewerUrl} alt="attachment" style={{ width: "100%", borderRadius: 10 }} />
+                <img src={viewerUrl} alt="attachment" style={{ width: "100%", maxHeight: "85vh", objectFit: "contain", borderRadius: 10 }} />
               )}
+              <a href={viewerUrl} download="attachment" className="btn-secondary sm" style={{ marginTop: 10, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <Download size={13} /> {t("downloadButton")}
+              </a>
             </div>
           </div>
         )}
@@ -527,6 +530,9 @@ function ResolveModal({ item, onClose, onDone, t, showToast }) {
             ) : (
               <img src={viewerUrl} alt="issue-attachment" style={{ width: "100%", borderRadius: 10 }} />
             )}
+            <a href={viewerUrl} download="attachment" className="btn-secondary sm" style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <Download size={13} /> {t("downloadButton")}
+            </a>
           </div>
         )}
         <form onSubmit={handleSubmit}>
@@ -865,13 +871,16 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
       )}
       {viewerUrl && (
         <div className="overlay modal-overlay" onClick={() => setViewerUrl(null)}>
-          <div className="prompt-modal" style={{ maxWidth: 640 }} onClick={(e) => e.stopPropagation()}>
+          <div className="prompt-modal" style={{ maxWidth: 960, width: "95vw" }} onClick={(e) => e.stopPropagation()}>
             <button className="close-btn" onClick={() => setViewerUrl(null)}><XIcon size={16} /></button>
             {viewerType === "application/pdf" ? (
-              <iframe src={viewerUrl} title="proof" style={{ width: "100%", height: "70vh", border: "none" }} />
+              <iframe src={viewerUrl} title="proof" style={{ width: "100%", height: "85vh", border: "none" }} />
             ) : (
-              <img src={viewerUrl} alt="proof" style={{ width: "100%", borderRadius: 10 }} />
+              <img src={viewerUrl} alt="proof" style={{ width: "100%", maxHeight: "85vh", objectFit: "contain", borderRadius: 10 }} />
             )}
+            <a href={viewerUrl} download="attachment" className="btn-secondary sm" style={{ marginTop: 10, display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <Download size={13} /> {t("downloadButton")}
+            </a>
           </div>
         </div>
       )}

@@ -230,8 +230,6 @@ export default function SettingsPanel({ onSaved }) {
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState(null);
   const [error, setError] = useState(null);
-  const [exploring, setExploring] = useState(false);
-  const [exploreResult, setExploreResult] = useState(null);
 
   const load = () => {
     api.getOdooSettings()
@@ -281,23 +279,6 @@ export default function SettingsPanel({ onSaved }) {
     }
   };
 
-  const handleExplore = async () => {
-    setExploring(true);
-    setExploreResult(null);
-    setError(null);
-    try {
-      const res = await api.exploreOdooInvoiceFlow();
-      setExploreResult(JSON.stringify(res, null, 2));
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setExploring(false);
-    }
-  };
-
-  const handleCopyExplore = () => {
-    if (exploreResult) navigator.clipboard?.writeText(exploreResult).catch(() => {});
-  };
 
   return (
     <div className="content-stack">
@@ -341,24 +322,8 @@ export default function SettingsPanel({ onSaved }) {
                 {testing ? t("testing") : t("testConnection")}
               </button>
             )}
-            {current?.configured && (
-              <button type="button" className="btn-secondary" onClick={handleExplore} disabled={exploring}>
-                {exploring ? "...جاري الاستكشاف" : "استكشاف بيانات ربط الفواتير"}
-              </button>
-            )}
           </div>
         </form>
-        {exploreResult && (
-          <div style={{ marginTop: 14 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-              <span style={{ fontWeight: 700, fontSize: 12.5 }}>نتيجة الاستكشاف (انسخها وارسلها)</span>
-              <button type="button" className="btn-secondary sm" onClick={handleCopyExplore}>نسخ</button>
-            </div>
-            <pre style={{ maxHeight: 400, overflow: "auto", background: "var(--card)", padding: 10, borderRadius: 10, fontSize: 11, direction: "ltr", textAlign: "left" }}>
-              {exploreResult}
-            </pre>
-          </div>
-        )}
       </div>
       <FollowupStatusManager />
       <AutomationSettingsForm />

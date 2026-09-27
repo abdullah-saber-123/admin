@@ -5,7 +5,7 @@ import {
   CalendarClock, ClipboardList, Menu, X, ChevronLeft, ChevronRight, ChevronDown,
   CircleDollarSign, CreditCard, Receipt, Smartphone, BellRing,
   Gauge, FileText, FileX, HeartCrack, MessageSquare, UserCircle, Moon, Sun, Wallet, History, Share2, Activity, Megaphone, MapPin, Target, ClipboardCheck, Percent, GitCompare,
-  MessageCircle, ShieldCheck, FileSignature, ListChecks, Scale, MapPinned,
+  MessageCircle, ShieldCheck, FileSignature, ListChecks, Scale, MapPinned, FileCheck2,
 } from "lucide-react";
 import { useLang } from "../i18n.jsx";
 import swagLogo from "../assets/swag-mark.png";
@@ -85,6 +85,7 @@ export default function Sidebar({ view, setView, role, username, displayName, av
         { view: "followupLog", icon: ClipboardList, label: t("followupLogTitle"), visible: true, color: "#F4A460" },
         { view: "visits", icon: MapPin, label: t("visitsTitle"), visible: true, color: "#5750f1" },
         { view: "invoices", icon: FileText, label: t("invoicesReportTitle"), visible: canSeeInvoices, color: "#F06050" },
+        { view: "draftInvoiceReadiness", icon: FileCheck2, label: t("draftInvoiceReadinessTitle"), visible: role === "admin", color: "#1a7a4c" },
         { view: "reminders", icon: BellRing, label: t("remindersOverviewTitle"), visible: canSeeReminders, color: "#D6145F" },
         { view: "brokenPromises", icon: HeartCrack, label: t("brokenPromisesTitle"), visible: canSeeBrokenPromises, color: "#EB7E7F" },
       ],

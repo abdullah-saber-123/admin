@@ -62,6 +62,7 @@ const LegalHoldReport = lazy(() => import("./components/LegalHoldReport.jsx"));
 const CustomerMapReport = lazy(() => import("./components/CustomerMapReport.jsx"));
 const StaffChat = lazy(() => import("./components/StaffChat.jsx"));
 const InvoicesReport = lazy(() => import("./components/InvoicesReport.jsx"));
+const DraftInvoiceReadiness = lazy(() => import("./components/DraftInvoiceReadiness.jsx"));
 const ChartsRow = lazy(() => import("./components/ChartsRow.jsx"));
 
 import { parseServerDate } from "./dateUtils.js";
@@ -211,6 +212,7 @@ export default function App() {
               : view === "trends" ? t("trends")
               : view === "staffChat" ? t("staffChatTitle")
               : view === "invoices" ? t("invoicesReportTitle")
+              : view === "draftInvoiceReadiness" ? t("draftInvoiceReadinessTitle")
               : view === "followupLog" ? t("followupLogTitle")
               : view === "visits" ? t("visitsTitle")
               : view === "retargeting" ? t("retargetingTitle")
@@ -397,6 +399,9 @@ export default function App() {
           )}
           {view === "invoices" && (session.role === "admin" || (session.permissions || "").includes("invoices")) && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><InvoicesReport onSelectCustomer={setSelectedId} /></Suspense>
+          )}
+          {view === "draftInvoiceReadiness" && session.role === "admin" && (
+            <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><DraftInvoiceReadiness /></Suspense>
           )}
           {view === "followupLog" && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}>

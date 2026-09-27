@@ -415,6 +415,10 @@ export const api = {
   legalHoldCustomers: () => request("/api/admin/legal-hold-customers"),
   updateCustomerLocation: (id, latitude, longitude) =>
     request(`/api/customers/${id}/location`, { method: "PATCH", body: JSON.stringify({ latitude, longitude }) }),
+  customerMap: (params = {}) => {
+    const qs = buildQueryString(params);
+    return request(`/api/customer-map${qs ? `?${qs}` : ""}`);
+  },
   fieldOptions: (field) => request(`/api/customer-field-options?field=${encodeURIComponent(field)}`),
   addFieldOption: (field, value) =>
     request(`/api/customer-field-options`, { method: "POST", body: JSON.stringify({ field, value }) }),

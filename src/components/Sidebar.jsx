@@ -5,7 +5,7 @@ import {
   CalendarClock, ClipboardList, Menu, X, ChevronLeft, ChevronRight, ChevronDown,
   CircleDollarSign, CreditCard, Receipt, Smartphone, BellRing,
   Gauge, FileText, FileX, HeartCrack, MessageSquare, UserCircle, Moon, Sun, Wallet, History, Share2, Activity, Megaphone, MapPin, Target, ClipboardCheck, Percent, GitCompare,
-  MessageCircle, ShieldCheck, FileSignature, ListChecks, Scale,
+  MessageCircle, ShieldCheck, FileSignature, ListChecks, Scale, MapPinned,
 } from "lucide-react";
 import { useLang } from "../i18n.jsx";
 import swagLogo from "../assets/swag-mark.png";
@@ -115,6 +115,7 @@ export default function Sidebar({ view, setView, role, username, displayName, av
         { view: "reconciliations", icon: ClipboardCheck, label: t("reconciliationsTitle"), visible: canSeeReconciliations, color: "#2C8397" },
         { view: "contractCases", icon: FileSignature, label: t("contractCasesTitle"), visible: canSeeContractCases, color: "#B9862F" },
         { view: "legalHold", icon: Scale, label: t("legalHoldTitle"), visible: canSeeLegalHold, color: "#e5484d" },
+        { view: "customerMap", icon: MapPinned, label: t("customerMapTitle"), visible: true, color: "#2C8397" },
       ],
     },
     {

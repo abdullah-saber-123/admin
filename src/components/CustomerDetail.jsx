@@ -403,6 +403,9 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paymentSearch]);
 
+  useEffect(() => { api.staffList().then(setStaffList).catch(() => setStaffList([])); }, []);
+  const nameFor = (uname) => (uname ? (staffList || []).find((s) => s.username === uname)?.full_name || uname : "—");
+
   const submitFollowup = async (e) => {
     e.preventDefault();
     if (!fuNote.trim()) {
@@ -1316,7 +1319,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
                     </div>
                     {v.reason && <div style={{ marginTop: 6 }}>{t("visitReasonLabel")}: {v.reason}</div>}
                     {v.report && <div style={{ marginTop: 6 }}>{t("visitReportLabel")}: {v.report}</div>}
-                    {v.assigned_to && <div style={{ marginTop: 6 }}>{t("assignTo")}: {v.assigned_to}</div>}
+                    {v.assigned_to && <div style={{ marginTop: 6 }}>{t("assignTo")}: {nameFor(v.assigned_to)}</div>}
                   </div>
                 ))}
               </div>
@@ -1358,7 +1361,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
                       </span>
                       <span className="my-day-city">{fmtDate(r.created_at)}</span>
                     </div>
-                    <div style={{ marginTop: 6 }}>{t("assignTo")}: {r.assigned_to || "—"}</div>
+                    <div style={{ marginTop: 6 }}>{t("assignTo")}: {nameFor(r.assigned_to)}</div>
                     {r.status === "matched" && (
                       <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 4 }}>
                         <div>{t("lastReconciliationDate")}: {fmtDate(r.reconciliation_date)}</div>

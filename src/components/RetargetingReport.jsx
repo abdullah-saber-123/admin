@@ -293,7 +293,8 @@ export default function RetargetingReport({ onSelectCustomer, role, username }) 
   }, [stage, statusFilter, mineOnly, search, cityFilter, regionFilter, paymentTypeFilter, branchFilter, sortBy, sortDir]);
 
   useEffect(() => { load(); }, [load]);
-  useEffect(() => { if (role === "admin") api.staffList().then(setStaffList).catch(() => {}); }, [role]);
+  useEffect(() => { api.staffList().then(setStaffList).catch(() => {}); }, []);
+  const nameFor = useCallback((uname) => (uname ? (staffList || []).find((s) => s.username === uname)?.full_name || uname : "—"), [staffList]);
   useEffect(() => { api.fieldOptions("payment_type").then(setPaymentTypeOptions).catch(() => {}); }, []);
   useEffect(() => { api.cities().then(setCities).catch(() => {}); }, []);
   useEffect(() => { api.fieldOptions("region").then((opts) => setRegions(opts.map((o) => o.value))).catch(() => {}); }, []);
@@ -467,7 +468,7 @@ export default function RetargetingReport({ onSelectCustomer, role, username }) 
                         </select>
                       </td>
                       <td data-label={t("retargetBranchLabel")}>{r.top_branch || "—"}</td>
-                      <td data-label={t("assignTo")}>{r.assigned_to || "—"}</td>
+                      <td data-label={t("assignTo")}>{nameFor(r.assigned_to)}</td>
                       <td data-label={t("actions")}>
                         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                           {role === "admin" && r.status !== "closed" && (

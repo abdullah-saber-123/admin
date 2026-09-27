@@ -374,7 +374,8 @@ function SendStatementModal({ item, onClose, onDone, t, showToast, lang }) {
   );
 }
 
-function HistoryModal({ item, onClose, t, showToast }) {
+function HistoryModal({ item, onClose, t, showToast, staffList }) {
+  const nameFor = (uname) => (staffList || []).find((s) => s.username === uname)?.full_name || uname;
   const [rows, setRows] = useState(null);
   const [error, setError] = useState(null);
   const [viewerUrl, setViewerUrl] = useState(null);
@@ -419,9 +420,9 @@ function HistoryModal({ item, onClose, t, showToast }) {
                   <span className={`fu-tag sm ${STATUS_TONE[r.status]}`}>{t(`reconciliationStatus_${r.status}`)}</span>
                   <span className="my-day-city">{fmtDate(r.created_at)}</span>
                 </div>
-                <div style={{ marginTop: 4 }}>{t("assignTo")}: {r.assigned_to || "—"}</div>
+                <div style={{ marginTop: 4 }}>{t("assignTo")}: {r.assigned_to ? nameFor(r.assigned_to) : "—"}</div>
                 {r.status === "issue" && r.specialist_assigned_to && (
-                  <div>{t("specialistLabel")}: {r.specialist_assigned_to}</div>
+                  <div>{t("specialistLabel")}: {nameFor(r.specialist_assigned_to)}</div>
                 )}
                 {r.status === "matched" && (
                   <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
@@ -581,6 +582,8 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
     api.collectors().then(setCollectors).catch(() => {});
     api.staffList().then(setStaffList).catch(() => {});
   }, []);
+
+  const nameFor = useCallback((uname) => (uname ? (staffList || []).find((s) => s.username === uname)?.full_name || uname : "—"), [staffList]);
 
   const filterParams = useCallback(() => {
     const params = {
@@ -777,7 +780,7 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
                         <span className={`fu-tag sm ${STATUS_TONE[r.case_status]}`}>{t(`reconciliationStatus_${r.case_status}`)}</span>
                       </td>
                       <td data-label={t("assignTo")}>
-                        {r.case_status === "issue" ? (r.specialist_assigned_to || "—") : (r.assigned_to || "—")}
+                        {r.case_status === "issue" ? nameFor(r.specialist_assigned_to) : nameFor(r.assigned_to)}
                       </td>
                       <td data-label={t("actions")}>
                         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -843,7 +846,7 @@ export default function ReconciliationsReport({ onSelectCustomer, role, username
         <ResolveModal item={resolveModal} onClose={() => setResolveModal(null)} onDone={() => { setResolveModal(null); load(); }} t={t} showToast={showToast} />
       )}
       {historyModal && (
-        <HistoryModal item={historyModal} onClose={() => setHistoryModal(null)} t={t} showToast={showToast} />
+        <HistoryModal item={historyModal} onClose={() => setHistoryModal(null)} t={t} showToast={showToast} staffList={staffList} />
       )}
       {sendStatementModal && (
         <SendStatementModal

@@ -313,7 +313,7 @@ function HistoricalCaseForm({ onCreated, onCancel }) {
   );
 }
 
-function StepRow({ step, canDo, busy, onComplete, isPostArchive, caseArchived, onTogglePostArchive }) {
+function StepRow({ step, canDo, busy, onComplete, isPostArchive, caseArchived, onTogglePostArchive, nameFor }) {
   const { t } = useLang();
   const [attachment, setAttachment] = useState(null);
   const [showAttach, setShowAttach] = useState(false);
@@ -335,8 +335,8 @@ function StepRow({ step, canDo, busy, onComplete, isPostArchive, caseArchived, o
       <span className={`cc-step-dot${step.done ? " done" : ""}`}>{step.done ? <Check size={12} /> : ""}</span>
       <div className="cc-step-row-body">
         <div className="cc-step-name">{step.name}{step.requires_attachment && <Paperclip size={11} style={{ verticalAlign: -1, marginInlineStart: 4, color: "var(--text-dim)" }} />}</div>
-        {step.assigned_username && <div className="cc-step-meta">{step.assigned_username}</div>}
-        {step.done && <div className="cc-step-meta">{step.done_by} - {fmtDateTime(step.done_at)}</div>}
+        {step.assigned_username && <div className="cc-step-meta">{nameFor(step.assigned_username)}</div>}
+        {step.done && <div className="cc-step-meta">{nameFor(step.done_by)} - {fmtDateTime(step.done_at)}</div>}
         {!step.done && step.requires_attachment && <div className="cc-step-meta">{t("contractCaseRequiresAttachment")}</div>}
         {isPostArchive && !caseArchived && <div className="cc-step-meta">{t("contractCasePostArchiveLocked")}</div>}
       </div>
@@ -521,6 +521,7 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
   const [noteExpiryDate, setNoteExpiryDate] = useState("");
   const [newNote, setNewNote] = useState("");
   const [savingNote, setSavingNote] = useState(false);
+  const [staffList, setStaffList] = useState([]);
 
   const load = () => {
     api.getContractCase(caseId).then((data) => {
@@ -531,6 +532,8 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
     }).catch((e) => setError(e.message));
   };
   useEffect(load, [caseId]);
+  useEffect(() => { api.staffList().then(setStaffList).catch(() => {}); }, []);
+  const nameFor = (uname) => (uname ? (staffList || []).find((s) => s.username === uname)?.full_name || uname : "—");
 
   const handleSaveLimit = async () => {
     if (limitValue === "" || Number.isNaN(Number(limitValue))) return;
@@ -839,7 +842,7 @@ function CaseDetail({ caseId, onClose, onChanged, session }) {
               <StepRow
                 key={s.id} step={s} canDo={track === "post_archive" ? canTogglePostArchive(s) : canDoStep(s)} busy={busy} onComplete={handleCompleteStep}
                 isPostArchive={track === "post_archive"} caseArchived={c.status === "archived"}
-                onTogglePostArchive={handleTogglePostArchive}
+                onTogglePostArchive={handleTogglePostArchive} nameFor={nameFor}
               />
             ))}
           </div>

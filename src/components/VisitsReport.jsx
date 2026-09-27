@@ -182,7 +182,8 @@ export default function VisitsReport({ onSelectCustomer, role, username }) {
   }, [statusFilter, mineOnly, search]);
 
   useEffect(() => { load(); }, [load]);
-  useEffect(() => { if (role === "admin") api.staffList().then(setStaffList).catch(() => {}); }, [role]);
+  useEffect(() => { api.staffList().then(setStaffList).catch(() => {}); }, []);
+  const nameFor = useCallback((uname) => (staffList || []).find((s) => s.username === uname)?.full_name || uname, [staffList]);
 
   return (
     <div className="content-stack" style={{ maxWidth: "100%" }}>
@@ -247,7 +248,7 @@ export default function VisitsReport({ onSelectCustomer, role, username }) {
                         {r.requested_by}
                         <div style={{ fontSize: 10.5, color: "var(--text-dim)" }}>{fmtDateTime(r.requested_at)}</div>
                       </td>
-                      <td data-label={t("assignTo")}>{r.assigned_to || "—"}</td>
+                      <td data-label={t("assignTo")}>{r.assigned_to ? nameFor(r.assigned_to) : "—"}</td>
                       <td data-label={t("actions")}>
                         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                           {role === "admin" && r.status === "pending" && (

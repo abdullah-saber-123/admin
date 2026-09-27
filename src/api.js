@@ -598,6 +598,7 @@ export const api = {
   getAutomationSettings: () => request("/api/admin/automation-settings"),
   saveAutomationSettings: (payload) => request("/api/admin/automation-settings", { method: "PUT", body: JSON.stringify(payload) }),
   testOdooSettings: () => request("/api/admin/odoo-settings/test", { method: "POST" }),
+  exploreOdooInvoiceFlow: () => request("/api/admin/odoo-settings/explore-invoice-flow"),
 
   // collection offers (عرض التحصيل)
   createCollectionOffer: (payload) => request("/api/admin/collection-offers", { method: "POST", body: JSON.stringify(payload) }),

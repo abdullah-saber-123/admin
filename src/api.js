@@ -413,6 +413,7 @@ export const api = {
   updateLegalHold: (id, legal_hold, reason) =>
     request(`/api/customers/${id}/legal-hold`, { method: "PATCH", body: JSON.stringify({ legal_hold, reason }) }),
   legalHoldCustomers: () => request("/api/admin/legal-hold-customers"),
+  createLocationShareLink: (id) => request(`/api/customers/${id}/location-share-link`, { method: "POST" }),
   updateCustomerLocation: (id, latitude, longitude) =>
     request(`/api/customers/${id}/location`, { method: "PATCH", body: JSON.stringify({ latitude, longitude }) }),
   customerMap: (params = {}) => {

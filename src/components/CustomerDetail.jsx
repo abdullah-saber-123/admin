@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { X, Phone, MapPin, Receipt, Wallet, ChevronLeft, ChevronRight, ClipboardList, Download, Search, AlertTriangle, Mail, UserCheck, Flame, MessageCircle, CalendarClock, Banknote, TrendingUp, CalendarCheck, CircleDollarSign, Gift, Zap, CreditCard, Send, Megaphone, BarChart3, History, MapPinned, FileText, FileSignature, Scale, Pencil, Files } from "lucide-react";
-import { api } from "../api";
+import { api, BASE } from "../api";
 import { useLang } from "../i18n.jsx";
 import { useToast } from "../toast.jsx";
 import { fmtDate, fmtDateTime, daysUntil } from "../dateUtils.js";
@@ -56,6 +56,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
   const [salespersonComparison, setSalespersonComparison] = useState(null);
   const [showSalespersonComparison, setShowSalespersonComparison] = useState(false);
   const [locatingGPS, setLocatingGPS] = useState(false);
+  const [sendingLocationLink, setSendingLocationLink] = useState(false);
   const [paymentTypeOptions, setPaymentTypeOptions] = useState([]);
   const [savingPaymentType, setSavingPaymentType] = useState(false);
   const [showVisitHistoryModal, setShowVisitHistoryModal] = useState(false);
@@ -262,6 +263,26 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
       },
       { enableHighAccuracy: true, timeout: 10000 },
     );
+  };
+
+  const handleSendLocationLink = async () => {
+    setSendingLocationLink(true);
+    try {
+      const { token } = await api.createLocationShareLink(partnerId);
+      const link = `${BASE}/api/public/share-location/${token}`;
+      const phone = detail?.profile?.phone;
+      const message = `${t("locationShareMessage")} ${link}`;
+      const wa = waLink(phone);
+      if (wa) {
+        window.location.href = `${wa}?text=${encodeURIComponent(message)}`;
+      } else {
+        showToast(t("locationShareNoPhone"), "error");
+      }
+    } catch (e) {
+      showToast(e.message, "error");
+    } finally {
+      setSendingLocationLink(false);
+    }
   };
 
   const loadActivity = () => {
@@ -692,6 +713,13 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
                     {locatingGPS ? t("locationLocating") : t("locationSetAction")}
                   </span>
                 )}
+                <span
+                  className="fu-tag faint clickable" style={{ cursor: "pointer" }}
+                  title={t("locationShareLinkHint")} onClick={handleSendLocationLink}
+                >
+                  <Send size={11} style={{ verticalAlign: -1, marginInlineEnd: 3 }} />
+                  {sendingLocationLink ? t("locationShareLinkSending") : t("locationShareLinkAction")}
+                </span>
 
                 <button className="btn-secondary sm detail-export-btn" onClick={handleExport} disabled={exporting}>
                   <Download size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />

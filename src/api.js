@@ -497,6 +497,7 @@ export const api = {
   },
   exportCustomerDetail: (id) => requestBlob(`/api/export/customers/${id}.xlsx`),
   exportStatementPdf: (id, lang) => requestBlob(`/api/customers/${id}/statement.pdf?lang=${lang}`),
+  exportFullReportPdf: (id, lang) => requestBlob(`/api/customers/${id}/full-report.pdf?lang=${lang}`),
   followupDailyPdf: (lang) => requestBlob(`/api/reports/followup-daily-pdf?lang=${lang}`),
   costOfDebt: (id) => request(`/api/customers/${id}/cost-of-debt`),
   costOfDebtReport: (params = {}) => {

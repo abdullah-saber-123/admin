@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { X, Phone, MapPin, Receipt, Wallet, ChevronLeft, ChevronRight, ClipboardList, Download, Search, AlertTriangle, Mail, UserCheck, Flame, MessageCircle, CalendarClock, Banknote, TrendingUp, CalendarCheck, CircleDollarSign, Gift, Zap, CreditCard, Send, Megaphone, BarChart3, History, MapPinned, FileText, FileSignature, Scale, Pencil } from "lucide-react";
+import { X, Phone, MapPin, Receipt, Wallet, ChevronLeft, ChevronRight, ClipboardList, Download, Search, AlertTriangle, Mail, UserCheck, Flame, MessageCircle, CalendarClock, Banknote, TrendingUp, CalendarCheck, CircleDollarSign, Gift, Zap, CreditCard, Send, Megaphone, BarChart3, History, MapPinned, FileText, FileSignature, Scale, Pencil, Files } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 import { useToast } from "../toast.jsx";
@@ -81,6 +81,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
   const [loggingFu, setLoggingFu] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
+  const [exportingFullReport, setExportingFullReport] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
   const [activity, setActivity] = useState(null);
   const [showCostOfDebt, setShowCostOfDebt] = useState(false);
@@ -474,6 +475,19 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
     }
   };
 
+  const handleFullReportExport = async () => {
+    setExportingFullReport(true);
+    try {
+      await api.exportFullReportPdf(partnerId, lang);
+      showToast(t("exportReady"), "success");
+    } catch (e) {
+      setError(e.message);
+      showToast(e.message, "error");
+    } finally {
+      setExportingFullReport(false);
+    }
+  };
+
   const custStatusLabel = (s) => {
     if (s === "Overdue") return t("statusOverdue");
     if (s === "Pending") return t("statusPending");
@@ -686,6 +700,10 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
                 <button className="btn-secondary sm" onClick={handlePdfExport} disabled={exportingPdf}>
                   <Receipt size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
                   {exportingPdf ? t("exporting") : t("pdfStatement")}
+                </button>
+                <button className="btn-secondary sm" onClick={handleFullReportExport} disabled={exportingFullReport}>
+                  <Files size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
+                  {exportingFullReport ? t("exporting") : t("fullReportPdf")}
                 </button>
                 <button
                   className="btn-secondary sm"

@@ -42,6 +42,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
   const canSeeReconciliations = role === "admin" || permsList.includes("reconciliations");
   const canEditPaymentType = role === "admin" || permsList.includes("creditNomination");
   const canEditLegalHold = role === "admin" || permsList.includes("creditNomination");
+  const canSendLocationLink = role === "admin" || permsList.includes("locationShareLink");
   const customerAnalysisUrl = `${window.location.pathname}?view=customerAnalytics&customer=${partnerId}`;
   useBodyScrollLock(true);
   const [detail, setDetail] = useState(null);
@@ -713,13 +714,15 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
                     {locatingGPS ? t("locationLocating") : t("locationSetAction")}
                   </span>
                 )}
-                <span
-                  className="fu-tag faint clickable" style={{ cursor: "pointer" }}
-                  title={t("locationShareLinkHint")} onClick={handleSendLocationLink}
-                >
-                  <Send size={11} style={{ verticalAlign: -1, marginInlineEnd: 3 }} />
-                  {sendingLocationLink ? t("locationShareLinkSending") : t("locationShareLinkAction")}
-                </span>
+                {canSendLocationLink && (
+                  <span
+                    className="fu-tag faint clickable" style={{ cursor: "pointer" }}
+                    title={t("locationShareLinkHint")} onClick={handleSendLocationLink}
+                  >
+                    <Send size={11} style={{ verticalAlign: -1, marginInlineEnd: 3 }} />
+                    {sendingLocationLink ? t("locationShareLinkSending") : t("locationShareLinkAction")}
+                  </span>
+                )}
 
                 <button className="btn-secondary sm detail-export-btn" onClick={handleExport} disabled={exporting}>
                   <Download size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />

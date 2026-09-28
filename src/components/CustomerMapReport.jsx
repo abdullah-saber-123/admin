@@ -230,10 +230,7 @@ export default function CustomerMapReport({ onSelectCustomer }) {
     });
   };
 
-  const openInMaps = () => {
-    const url = googleMapsRouteUrl(routeStops, myLocation);
-    if (url) window.open(url, "_blank", "noopener,noreferrer");
-  };
+  const routeMapsUrl = googleMapsRouteUrl(routeStops, myLocation);
 
   const pct = data && data.total_customers > 0 ? Math.round((data.with_location_count / data.total_customers) * 100) : 0;
 
@@ -339,7 +336,19 @@ export default function CustomerMapReport({ onSelectCustomer }) {
 
               <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: "auto" }}>
                 <button className="btn-secondary sm" onClick={handleOptimizeRoute} disabled={routeStops.length < 2}>{t("customerMapOptimizeRoute")}</button>
-                <button className="btn-primary sm" onClick={openInMaps} disabled={routeStops.length + (myLocation ? 1 : 0) < 2}>{t("customerMapOpenInMaps")}</button>
+                <a
+                  className="btn-primary sm"
+                  href={routeMapsUrl || undefined}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    textAlign: "center",
+                    ...(!routeMapsUrl ? { pointerEvents: "none", opacity: 0.5 } : {}),
+                  }}
+                  aria-disabled={!routeMapsUrl}
+                >
+                  {t("customerMapOpenInMaps")}
+                </a>
                 {routeStops.length > 0 && (
                   <button className="btn-secondary sm danger" onClick={() => setRouteStops([])}>{t("customerMapClearRoute")}</button>
                 )}

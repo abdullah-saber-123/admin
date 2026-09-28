@@ -1,6 +1,6 @@
 // Customer field visit requests: request -> assign -> GPS-tagged report.
 import { useEffect, useState, useCallback, Fragment } from "react";
-import { MapPin, Check, X as XIcon, ClipboardList, Navigation, ExternalLink, Search } from "lucide-react";
+import { MapPin, Check, X as XIcon, ClipboardList, Navigation, ExternalLink, Search, AlertTriangle } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 import { useToast } from "../toast.jsx";
@@ -243,6 +243,13 @@ export default function VisitsReport({ onSelectCustomer, role, username }) {
                       <td data-label={t("visitReasonLabel")}>{r.reason}</td>
                       <td data-label={t("status")}>
                         <span className={`fu-tag sm ${STATUS_TONE[r.status]}`}>{t(`visitStatus_${r.status}`)}</span>
+                        {(r.location_distance_flag || r.location_travel_flag) && (
+                          <div style={{ marginTop: 4 }}>
+                            <span className="fu-tag sm danger" title={t("visitLocationFlagHint")}>
+                              <AlertTriangle size={11} style={{ verticalAlign: -1, marginInlineEnd: 3 }} />{t("visitLocationFlagBadge")}
+                            </span>
+                          </div>
+                        )}
                       </td>
                       <td data-label={t("requestedByLabel")}>
                         {r.requested_by}
@@ -286,6 +293,18 @@ export default function VisitsReport({ onSelectCustomer, role, username }) {
                                 </>
                               )}
                             </p>
+                            {r.location_distance_flag && (
+                              <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--danger)" }}>
+                                <AlertTriangle size={12} style={{ verticalAlign: -2, marginInlineEnd: 4 }} />
+                                {t("visitLocationDistanceFlagDetail").replace("{km}", r.location_distance_km)}
+                              </p>
+                            )}
+                            {r.location_travel_flag && (
+                              <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--danger)" }}>
+                                <AlertTriangle size={12} style={{ verticalAlign: -2, marginInlineEnd: 4 }} />
+                                {t("visitLocationTravelFlagDetail").replace("{speed}", r.location_travel_speed_kmh)}
+                              </p>
+                            )}
                           </div>
                         </td>
                       </tr>

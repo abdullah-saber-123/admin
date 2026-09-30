@@ -550,7 +550,7 @@ export const api = {
 
   // sync
   syncStatus: () => request("/api/sync/status"),
-  triggerSync: () => request("/api/sync", { method: "POST" }),
+  triggerSync: (forceLedger = false) => request(`/api/sync${forceLedger ? "?force_ledger=true" : ""}`, { method: "POST" }),
 
   // admin: users
   listUsers: () => request("/api/admin/users"),

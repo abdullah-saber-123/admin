@@ -36,6 +36,9 @@ const en = {
   loginSubtitle: "SWAG Trading — sign in to view customer balances",
   lastSynced: "Last synced",
   syncNow: "Sync now",
+  fullLedgerSyncNow: "Full ledger sync",
+  fullLedgerSyncHint: "Forces the full receivable-ledger fetch right now, instead of waiting for its usual interval - use after a change to what that fetch captures.",
+  fullLedgerSyncDone: "Full ledger sync completed.",
   syncing: "Syncing…",
   currency: "SAR",
 
@@ -1491,6 +1494,9 @@ const ar = {
   loginSubtitle: "شركة سواج التجارية — سجّل الدخول لعرض أرصدة العملاء",
   lastSynced: "آخر مزامنة",
   syncNow: "مزامنة الآن",
+  fullLedgerSyncNow: "مزامنة كاملة للسجل المحاسبي",
+  fullLedgerSyncHint: "يفرض جلب السجل المحاسبي الكامل الآن، بدون انتظار الفترة الاعتيادية - استخدمها بعد أي تعديل على البيانات اللي يجلبها هذا الجلب.",
+  fullLedgerSyncDone: "تمت المزامنة الكاملة للسجل المحاسبي.",
   syncing: "جارٍ المزامنة…",
   currency: "ر.س",
 

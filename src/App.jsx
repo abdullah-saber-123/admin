@@ -202,13 +202,14 @@ export default function App() {
 
   const handleLogout = () => { clearSession(); localStorage.removeItem("collect_view"); setSessionState(null); };
 
-  const handleSync = async () => {
+  const handleSync = async (forceLedger = false) => {
     setSyncing(true);
     try {
-      await api.triggerSync();
+      await api.triggerSync(forceLedger);
       loadKpis();
       loadSyncStatus();
       setRefreshSignal((s) => s + 1);
+      if (forceLedger) showToast(t("fullLedgerSyncDone"), "success");
     } catch (e) {
       showToast(e.message, "error");
     } finally {
@@ -285,9 +286,15 @@ export default function App() {
                   {syncStatus?.status === "failed" ? " (last sync failed)" : ""}
                 </span>
                 {session.role === "admin" && (
-                  <button className="btn-secondary sm" onClick={handleSync} disabled={syncing}>
+                  <button className="btn-secondary sm" onClick={() => handleSync(false)} disabled={syncing}>
                     <RefreshCw size={14} className={syncing ? "spin" : ""} style={{ verticalAlign: -2, marginRight: 5 }} />
                     {syncing ? t("syncing") : t("syncNow")}
+                  </button>
+                )}
+                {session.role === "admin" && (
+                  <button className="btn-secondary sm" onClick={() => handleSync(true)} disabled={syncing} title={t("fullLedgerSyncHint")}>
+                    <RefreshCw size={14} className={syncing ? "spin" : ""} style={{ verticalAlign: -2, marginRight: 5 }} />
+                    {syncing ? t("syncing") : t("fullLedgerSyncNow")}
                   </button>
                 )}
               </div>

@@ -1457,12 +1457,14 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
               <div style={{ marginTop: 12 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>{t("cumulativeSchedulePeriodsTitle")}</div>
                 <div style={{ maxHeight: 340, overflowY: "auto", overflowX: "auto", borderRadius: 10, border: "1px solid var(--border)" }}>
-                  <table style={{ width: "100%", minWidth: 640, fontSize: 13, borderCollapse: "collapse" }}>
+                  <table style={{ width: "100%", minWidth: 920, fontSize: 13, borderCollapse: "collapse" }}>
                     <thead>
                       <tr style={{ background: "var(--card)" }}>
                         <th style={{ padding: "10px 12px", textAlign: "start", whiteSpace: "nowrap" }}>{t("cumulativeSchedulePeriodCol")}</th>
                         <th style={{ padding: "10px 12px", textAlign: "start", whiteSpace: "nowrap" }}>{t("cumulativeSchedulePeriodDateCol")}</th>
                         <th style={{ padding: "10px 12px", textAlign: "start", whiteSpace: "nowrap" }}>{t("cumulativeSchedulePeriodBalanceCol")}</th>
+                        <th style={{ padding: "10px 12px", textAlign: "start", whiteSpace: "nowrap", color: "var(--text-dim)" }}>{t("cumulativeSchedulePeriodPreviousCol")}</th>
+                        <th style={{ padding: "10px 12px", textAlign: "start", whiteSpace: "nowrap", color: "var(--text-dim)" }}>{t("cumulativeSchedulePeriodIncrementCol")}</th>
                         <th style={{ padding: "10px 12px", textAlign: "start", whiteSpace: "nowrap" }}>{t("cumulativeSchedulePeriodRequiredCol")}</th>
                         <th style={{ padding: "10px 12px", textAlign: "start", whiteSpace: "nowrap" }}>{t("cumulativeSchedulePeriodPaidCol")}</th>
                         <th style={{ padding: "10px 12px", textAlign: "start", whiteSpace: "nowrap" }}>{t("cumulativeSchedulePeriodShortfallCol")}</th>
@@ -1477,7 +1479,11 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
                           </td>
                           <td style={{ padding: "10px 12px", whiteSpace: "nowrap" }}>{p.period_end_date}</td>
                           <td style={{ padding: "10px 12px", whiteSpace: "nowrap" }}><RiyalAmount amount={p.balance_at_checkpoint} /></td>
-                          <td style={{ padding: "10px 12px", whiteSpace: "nowrap" }}><RiyalAmount amount={p.required_amount} /></td>
+                          <td style={{ padding: "10px 12px", whiteSpace: "nowrap", color: "var(--text-dim)" }}><RiyalAmount amount={p.previous_required} /></td>
+                          <td style={{ padding: "10px 12px", whiteSpace: "nowrap", color: "var(--text-dim)" }}>
+                            {p.increment_amount > 0 ? <>+<RiyalAmount amount={p.increment_amount} /></> : "—"}
+                          </td>
+                          <td style={{ padding: "10px 12px", whiteSpace: "nowrap", fontWeight: 700 }}><RiyalAmount amount={p.required_amount} /></td>
                           <td style={{ padding: "10px 12px", whiteSpace: "nowrap" }}><RiyalAmount amount={p.paid_cumulative} /></td>
                           <td style={{ padding: "10px 12px", whiteSpace: "nowrap", fontWeight: p.shortfall_cumulative > 0 ? 700 : 400, color: p.shortfall_cumulative > 0 ? "var(--danger)" : "inherit" }}>
                             <RiyalAmount amount={p.shortfall_cumulative} />

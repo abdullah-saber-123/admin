@@ -1462,7 +1462,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
                       <tr style={{ background: "var(--card)" }}>
                         <th style={{ padding: "6px 8px", textAlign: "start" }}>{t("cumulativeSchedulePeriodCol")}</th>
                         <th style={{ padding: "6px 8px", textAlign: "start" }}>{t("cumulativeSchedulePeriodDateCol")}</th>
-                        <th style={{ padding: "6px 8px", textAlign: "start" }}>{t("cumulativeSchedulePeriodPercentCol")}</th>
+                        <th style={{ padding: "6px 8px", textAlign: "start" }}>{t("cumulativeSchedulePeriodBalanceCol")}</th>
                         <th style={{ padding: "6px 8px", textAlign: "start" }}>{t("cumulativeSchedulePeriodRequiredCol")}</th>
                         <th style={{ padding: "6px 8px", textAlign: "start" }}>{t("cumulativeSchedulePeriodPaidCol")}</th>
                         <th style={{ padding: "6px 8px", textAlign: "start" }}>{t("cumulativeSchedulePeriodShortfallCol")}</th>
@@ -1476,7 +1476,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
                             {p.in_progress && <span style={{ marginInlineStart: 4, fontSize: 10, color: "var(--text-dim)" }}>({t("cumulativeSchedulePeriodInProgress")})</span>}
                           </td>
                           <td style={{ padding: "6px 8px" }}>{p.period_end_date}</td>
-                          <td style={{ padding: "6px 8px" }}>{p.required_percent}%</td>
+                          <td style={{ padding: "6px 8px" }}><RiyalAmount amount={p.balance_at_checkpoint} /></td>
                           <td style={{ padding: "6px 8px" }}><RiyalAmount amount={p.required_amount} /></td>
                           <td style={{ padding: "6px 8px" }}><RiyalAmount amount={p.paid_cumulative} /></td>
                           <td style={{ padding: "6px 8px", fontWeight: p.shortfall_cumulative > 0 ? 700 : 400, color: p.shortfall_cumulative > 0 ? "var(--danger)" : "inherit" }}>

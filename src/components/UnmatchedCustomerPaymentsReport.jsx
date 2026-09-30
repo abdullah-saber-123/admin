@@ -1,23 +1,21 @@
-import { useEffect, useState, useCallback } from "react";
-import { Link2Off, Copy, Check, Search } from "lucide-react";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { Link2Off, Copy, Check, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 import RiyalAmount from "./RiyalAmount.jsx";
-import { fmtDate } from "../dateUtils.js";
 
 export default function UnmatchedCustomerPaymentsReport() {
   const { t } = useLang();
-  const [search, setSearch] = useState("");
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
+  const [sortBy, setSortBy] = useState("unmatched_debit");
+  const [sortDir, setSortDir] = useState("desc");
 
   const load = useCallback(() => {
     setError(null);
-    const isSearching = !!search.trim();
-    api.unmatchedCustomerPaymentsReport(isSearching ? { search: search.trim(), debug: true } : {})
-      .then(setData).catch((e) => setError(e.message));
-  }, [search]);
+    api.unmatchedCustomerPaymentsReport().then(setData).catch((e) => setError(e.message));
+  }, []);
 
   useEffect(load, [load]);
 
@@ -28,7 +26,33 @@ export default function UnmatchedCustomerPaymentsReport() {
     });
   };
 
-  const isSearching = !!search.trim();
+  const toggleSort = (key) => {
+    if (sortBy === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(key);
+      setSortDir(key === "name" || key === "collector" || key === "city" ? "asc" : "desc");
+    }
+  };
+
+  const sortIcon = (key) => {
+    if (sortBy !== key) {
+      return <ArrowUpDown size={12} style={{ verticalAlign: -1, marginInlineStart: 3, opacity: 0.35 }} />;
+    }
+    const Icon = sortDir === "asc" ? ArrowUp : ArrowDown;
+    return <Icon size={12} style={{ verticalAlign: -1, marginInlineStart: 3 }} />;
+  };
+
+  const sortedResults = useMemo(() => {
+    if (!data) return [];
+    const rows = [...data.results];
+    rows.sort((a, b) => {
+      const av = a[sortBy], bv = b[sortBy];
+      if (typeof av === "string") return sortDir === "asc" ? av.localeCompare(bv || "") : (bv || "").localeCompare(av);
+      return sortDir === "asc" ? (av || 0) - (bv || 0) : (bv || 0) - (av || 0);
+    });
+    return rows;
+  }, [data, sortBy, sortDir]);
 
   return (
     <div className="content-stack" style={{ maxWidth: "100%" }}>
@@ -37,22 +61,6 @@ export default function UnmatchedCustomerPaymentsReport() {
           <h2><Link2Off size={15} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />{t("unmatchedPaymentsTitle")}</h2>
           <p className="panel-sub">{t("unmatchedPaymentsHint")}</p>
         </div>
-
-        <div className="more-filters-row" style={{ marginBottom: 14 }}>
-          <div className="more-filter-field" style={{ position: "relative" }}>
-            <label>{t("customer")}</label>
-            <div className="input-icon compact">
-              <Search size={13} />
-              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("searchPlaceholder")} />
-            </div>
-          </div>
-        </div>
-
-        {isSearching && (
-          <div style={{ background: "var(--card)", borderRadius: 10, padding: 10, marginBottom: 14, fontSize: 12, color: "var(--text-dim)" }}>
-            {t("unmatchedPaymentsSearchHint")}
-          </div>
-        )}
 
         {error && <div className="error-state">{error}</div>}
         {!error && !data && <div className="loading-state">{t("loadingDots")}</div>}
@@ -67,16 +75,16 @@ export default function UnmatchedCustomerPaymentsReport() {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>{t("customer")}</th>
-                    <th>{t("collectorField")}</th>
-                    <th>{t("cityLabel")}</th>
-                    <th>{t("unmatchedPaymentsDebitCol")}</th>
-                    <th>{t("unmatchedPaymentsCreditCol")}</th>
+                    <th onClick={() => toggleSort("name")} style={{ cursor: "pointer" }}>{t("customer")}{sortIcon("name")}</th>
+                    <th onClick={() => toggleSort("collector")} style={{ cursor: "pointer" }}>{t("collectorField")}{sortIcon("collector")}</th>
+                    <th onClick={() => toggleSort("city")} style={{ cursor: "pointer" }}>{t("cityLabel")}{sortIcon("city")}</th>
+                    <th onClick={() => toggleSort("unmatched_debit")} style={{ cursor: "pointer" }}>{t("unmatchedPaymentsDebitCol")}{sortIcon("unmatched_debit")}</th>
+                    <th onClick={() => toggleSort("unmatched_credit")} style={{ cursor: "pointer" }}>{t("unmatchedPaymentsCreditCol")}{sortIcon("unmatched_credit")}</th>
                     <th></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {data.results.map((r) => (
+                  {sortedResults.map((r) => (
                     <tr key={r.partner_id}>
                       <td>{r.name}</td>
                       <td>{r.collector || "—"}</td>
@@ -90,51 +98,12 @@ export default function UnmatchedCustomerPaymentsReport() {
                       </td>
                     </tr>
                   ))}
-                  {data.results.length === 0 && (
+                  {sortedResults.length === 0 && (
                     <tr><td colSpan={6} className="empty-state">{t("noResults")}</td></tr>
                   )}
                 </tbody>
               </table>
             </div>
-
-            {isSearching && data.debug_lines && (
-              <div style={{ marginTop: 20 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>{t("unmatchedPaymentsRawLinesTitle")}</div>
-                <div className="table-wrap">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>{t("unmatchedPaymentsColAccount")}</th>
-                        <th>{t("unmatchedPaymentsColDate")}</th>
-                        <th>{t("unmatchedPaymentsColDebit")}</th>
-                        <th>{t("unmatchedPaymentsColCredit")}</th>
-                        <th>{t("unmatchedPaymentsColResidual")}</th>
-                        <th>{t("unmatchedPaymentsColMatching")}</th>
-                        <th>{t("unmatchedPaymentsColReference")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.debug_lines.map((l, i) => (
-                        <tr key={i}>
-                          <td>{l.account_code || "—"}{data.accounts[l.account_code] ? ` (${data.accounts[l.account_code]})` : ""}</td>
-                          <td>{l.line_date ? fmtDate(l.line_date) : "—"}</td>
-                          <td><RiyalAmount amount={l.debit} /></td>
-                          <td><RiyalAmount amount={l.credit} /></td>
-                          <td style={{ fontWeight: l.residual ? 700 : 400, color: l.residual ? "var(--danger)" : "var(--ok)" }}>
-                            <RiyalAmount amount={l.residual} />
-                          </td>
-                          <td>{l.matching_number || "—"}</td>
-                          <td>{l.reference || "—"}</td>
-                        </tr>
-                      ))}
-                      {data.debug_lines.length === 0 && (
-                        <tr><td colSpan={7} className="empty-state">{t("noResults")}</td></tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
           </>
         )}
       </div>

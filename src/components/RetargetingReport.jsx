@@ -11,9 +11,16 @@ import RiyalAmount from "./RiyalAmount.jsx";
 const STATUS_TONE = { pending: "warn", assigned: "teal", closed: "ok" };
 const CATEGORIES = ["price", "quality", "service", "competitor", "inactive", "other"];
 
-function AssignModal({ item, staffList, onClose, onDone, t, showToast }) {
+function AssignModal({ item, staffList, role, username, onClose, onDone, t, showToast }) {
   const [assignee, setAssignee] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // A non-admin can only claim a case for themselves or hand it up to an
+  // admin - reassigning to some other collector stays an admin-only call,
+  // enforced server-side too, so the picker here mirrors that.
+  const options = role === "admin"
+    ? staffList
+    : [{ username, full_name: t("assignToMyself") }, ...staffList.filter((s) => s.role === "admin")];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -39,7 +46,7 @@ function AssignModal({ item, staffList, onClose, onDone, t, showToast }) {
           <label>{t("assignTo")}</label>
           <select value={assignee} onChange={(e) => setAssignee(e.target.value)} autoFocus required>
             <option value="">{t("selectOption")}</option>
-            {staffList.map((s) => <option key={s.username} value={s.username}>{s.full_name || s.username}</option>)}
+            {options.map((s) => <option key={s.username} value={s.username}>{s.full_name || s.username}</option>)}
           </select>
           <div className="prompt-actions">
             <button type="button" className="btn-secondary" onClick={onClose}>{t("cancel")}</button>
@@ -471,7 +478,7 @@ export default function RetargetingReport({ onSelectCustomer, role, username }) 
                       <td data-label={t("assignTo")}>{nameFor(r.assigned_to)}</td>
                       <td data-label={t("actions")}>
                         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                          {role === "admin" && r.status !== "closed" && (
+                          {r.status !== "closed" && (
                             <button className="icon-btn" title={t("assignRetargetTitle")} onClick={() => setAssignModal(r)}><Check size={13} /></button>
                           )}
                           {eligibleOffers.length === 1 && (
@@ -541,7 +548,7 @@ export default function RetargetingReport({ onSelectCustomer, role, username }) 
       </div>
 
       {assignModal && (
-        <AssignModal item={assignModal} staffList={staffList} onClose={() => setAssignModal(null)} onDone={() => { setAssignModal(null); load(); }} t={t} showToast={showToast} />
+        <AssignModal item={assignModal} staffList={staffList} role={role} username={username} onClose={() => setAssignModal(null)} onDone={() => { setAssignModal(null); load(); }} t={t} showToast={showToast} />
       )}
       {reportModal && (
         <ReportModal item={reportModal} onClose={() => setReportModal(null)} onDone={() => { setReportModal(null); load(); }} t={t} showToast={showToast} />

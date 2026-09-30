@@ -9,9 +9,16 @@ import RiyalAmount from "./RiyalAmount.jsx";
 
 const STATUS_TONE = { pending: "warn", assigned: "teal", completed: "ok", rejected: "faint" };
 
-function AssignModal({ visit, staffList, onClose, onDone, t, showToast }) {
+function AssignModal({ visit, staffList, role, username, onClose, onDone, t, showToast }) {
   const [assignee, setAssignee] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // A non-admin can only claim a visit for themselves or hand it up to an
+  // admin - reassigning it to some other collector stays an admin-only
+  // call, enforced server-side too.
+  const options = role === "admin"
+    ? staffList
+    : [{ username, full_name: t("assignToMyself") }, ...staffList.filter((s) => s.role === "admin")];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -37,7 +44,7 @@ function AssignModal({ visit, staffList, onClose, onDone, t, showToast }) {
           <label>{t("assignTo")}</label>
           <select value={assignee} onChange={(e) => setAssignee(e.target.value)} autoFocus required>
             <option value="">{t("selectOption")}</option>
-            {staffList.map((s) => <option key={s.username} value={s.username}>{s.full_name || s.username}</option>)}
+            {options.map((s) => <option key={s.username} value={s.username}>{s.full_name || s.username}</option>)}
           </select>
           <div className="prompt-actions">
             <button type="button" className="btn-secondary" onClick={onClose}>{t("cancel")}</button>
@@ -258,11 +265,11 @@ export default function VisitsReport({ onSelectCustomer, role, username }) {
                       <td data-label={t("assignTo")}>{r.assigned_to ? nameFor(r.assigned_to) : "—"}</td>
                       <td data-label={t("actions")}>
                         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                          {r.status === "pending" && (role === "admin" || r.requested_by === username) && (
+                            <button className="icon-btn" title={t("assignVisitTitle")} onClick={() => setAssignModal(r)}><Check size={13} /></button>
+                          )}
                           {role === "admin" && r.status === "pending" && (
-                            <>
-                              <button className="icon-btn" title={t("assignVisitTitle")} onClick={() => setAssignModal(r)}><Check size={13} /></button>
-                              <button className="icon-btn" title={t("reject")} onClick={() => setRejectModal(r)}><XIcon size={13} /></button>
-                            </>
+                            <button className="icon-btn" title={t("reject")} onClick={() => setRejectModal(r)}><XIcon size={13} /></button>
                           )}
                           {r.status === "assigned" && (role === "admin" || r.assigned_to === username) && (
                             <button className="btn-secondary sm" onClick={() => setCompleteModal(r)}>
@@ -318,7 +325,7 @@ export default function VisitsReport({ onSelectCustomer, role, username }) {
       </div>
 
       {assignModal && (
-        <AssignModal visit={assignModal} staffList={staffList} onClose={() => setAssignModal(null)} onDone={() => { setAssignModal(null); load(); }} t={t} showToast={showToast} />
+        <AssignModal visit={assignModal} staffList={staffList} role={role} username={username} onClose={() => setAssignModal(null)} onDone={() => { setAssignModal(null); load(); }} t={t} showToast={showToast} />
       )}
       {rejectModal && (
         <RejectModal visit={rejectModal} onClose={() => setRejectModal(null)} onDone={() => { setRejectModal(null); load(); }} t={t} showToast={showToast} />

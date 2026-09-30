@@ -64,6 +64,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
   const [schedulePercent, setSchedulePercent] = useState("20");
   const [schedulePeriodDays, setSchedulePeriodDays] = useState("60");
   const [scheduleStartDate, setScheduleStartDate] = useState("");
+  const [scheduleOpeningBalance, setScheduleOpeningBalance] = useState("0");
   const [savingSchedule, setSavingSchedule] = useState(false);
   const [paymentTypeOptions, setPaymentTypeOptions] = useState([]);
   const [savingPaymentType, setSavingPaymentType] = useState(false);
@@ -448,11 +449,13 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
       setSchedulePercent(String(cumulativeSchedule.percent_per_period));
       setSchedulePeriodDays(String(cumulativeSchedule.period_days));
       setScheduleStartDate(cumulativeSchedule.start_date || "");
+      setScheduleOpeningBalance(String(cumulativeSchedule.opening_balance ?? 0));
     } else {
       setScheduleActive(true);
       setSchedulePercent("20");
       setSchedulePeriodDays("60");
       setScheduleStartDate(new Date().toISOString().slice(0, 10));
+      setScheduleOpeningBalance("0");
     }
     setShowScheduleModal(true);
   };
@@ -460,11 +463,13 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
   const handleSaveSchedule = async () => {
     const percent = Number(schedulePercent);
     const periodDays = Number(schedulePeriodDays);
-    if (!percent || percent <= 0 || percent > 100 || !periodDays || periodDays <= 0 || !scheduleStartDate) return;
+    const openingBalance = Number(scheduleOpeningBalance);
+    if (!percent || percent <= 0 || percent > 100 || !periodDays || periodDays <= 0 || !scheduleStartDate || openingBalance < 0) return;
     setSavingSchedule(true);
     try {
       await api.saveCumulativeSchedule(partnerId, {
-        active: scheduleActive, percent_per_period: percent, period_days: periodDays, start_date: scheduleStartDate,
+        active: scheduleActive, percent_per_period: percent, period_days: periodDays,
+        start_date: scheduleStartDate, opening_balance: openingBalance,
       });
       loadCumulativeSchedule();
       showToast(t("saved"), "success");
@@ -1435,12 +1440,52 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
             <label>{t("cumulativeScheduleStartDateLabel")}</label>
             <input type="date" value={scheduleStartDate} onChange={(e) => setScheduleStartDate(e.target.value)} />
 
+            <label>{t("cumulativeScheduleOpeningBalanceLabel")}</label>
+            <input type="number" min="0" value={scheduleOpeningBalance} onChange={(e) => setScheduleOpeningBalance(e.target.value)} />
+
             {cumulativeSchedule?.configured && (
               <div style={{ background: "var(--card)", borderRadius: 10, padding: 10, marginTop: 12, fontSize: 12, lineHeight: 1.8 }}>
                 <div>{t("cumulativeScheduleRequired")}: <RiyalAmount amount={cumulativeSchedule.required_amount} /></div>
                 <div>{t("cumulativeSchedulePaidSinceStart")}: <RiyalAmount amount={cumulativeSchedule.paid_since_start} /></div>
                 <div style={{ fontWeight: 700, color: cumulativeSchedule.shortfall > 0 ? "var(--danger)" : "var(--ok)" }}>
                   {t("cumulativeScheduleShortfall")}: <RiyalAmount amount={cumulativeSchedule.shortfall} />
+                </div>
+              </div>
+            )}
+
+            {cumulativeSchedule?.configured && Array.isArray(cumulativeSchedule.periods) && cumulativeSchedule.periods.length > 0 && (
+              <div style={{ marginTop: 12 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6 }}>{t("cumulativeSchedulePeriodsTitle")}</div>
+                <div style={{ maxHeight: 220, overflowY: "auto", borderRadius: 10, border: "1px solid var(--border)" }}>
+                  <table style={{ width: "100%", fontSize: 11, borderCollapse: "collapse" }}>
+                    <thead>
+                      <tr style={{ background: "var(--card)" }}>
+                        <th style={{ padding: "6px 8px", textAlign: "start" }}>{t("cumulativeSchedulePeriodCol")}</th>
+                        <th style={{ padding: "6px 8px", textAlign: "start" }}>{t("cumulativeSchedulePeriodDateCol")}</th>
+                        <th style={{ padding: "6px 8px", textAlign: "start" }}>{t("cumulativeSchedulePeriodPercentCol")}</th>
+                        <th style={{ padding: "6px 8px", textAlign: "start" }}>{t("cumulativeSchedulePeriodRequiredCol")}</th>
+                        <th style={{ padding: "6px 8px", textAlign: "start" }}>{t("cumulativeSchedulePeriodPaidCol")}</th>
+                        <th style={{ padding: "6px 8px", textAlign: "start" }}>{t("cumulativeSchedulePeriodShortfallCol")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {cumulativeSchedule.periods.map((p) => (
+                        <tr key={p.period_number} style={{ borderTop: "1px solid var(--border)", opacity: p.in_progress ? 0.7 : 1 }}>
+                          <td style={{ padding: "6px 8px" }}>
+                            {p.period_number}
+                            {p.in_progress && <span style={{ marginInlineStart: 4, fontSize: 10, color: "var(--text-dim)" }}>({t("cumulativeSchedulePeriodInProgress")})</span>}
+                          </td>
+                          <td style={{ padding: "6px 8px" }}>{p.period_end_date}</td>
+                          <td style={{ padding: "6px 8px" }}>{p.required_percent}%</td>
+                          <td style={{ padding: "6px 8px" }}><RiyalAmount amount={p.required_amount} /></td>
+                          <td style={{ padding: "6px 8px" }}><RiyalAmount amount={p.paid_cumulative} /></td>
+                          <td style={{ padding: "6px 8px", fontWeight: p.shortfall_cumulative > 0 ? 700 : 400, color: p.shortfall_cumulative > 0 ? "var(--danger)" : "inherit" }}>
+                            <RiyalAmount amount={p.shortfall_cumulative} />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}

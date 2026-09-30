@@ -58,6 +58,13 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
   const [showSalespersonComparison, setShowSalespersonComparison] = useState(false);
   const [locatingGPS, setLocatingGPS] = useState(false);
   const [sendingLocationLink, setSendingLocationLink] = useState(false);
+  const [cumulativeSchedule, setCumulativeSchedule] = useState(null);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [scheduleActive, setScheduleActive] = useState(true);
+  const [schedulePercent, setSchedulePercent] = useState("20");
+  const [schedulePeriodDays, setSchedulePeriodDays] = useState("60");
+  const [scheduleStartDate, setScheduleStartDate] = useState("");
+  const [savingSchedule, setSavingSchedule] = useState(false);
   const [paymentTypeOptions, setPaymentTypeOptions] = useState([]);
   const [savingPaymentType, setSavingPaymentType] = useState(false);
   const [showVisitHistoryModal, setShowVisitHistoryModal] = useState(false);
@@ -429,6 +436,46 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
   useEffect(() => { api.staffList().then(setStaffList).catch(() => setStaffList([])); }, []);
   const nameFor = (uname) => (uname ? (staffList || []).find((s) => s.username === uname)?.full_name || uname : "—");
 
+  const loadCumulativeSchedule = () => {
+    if (role !== "admin") return;
+    api.getCumulativeSchedule(partnerId).then(setCumulativeSchedule).catch(() => {});
+  };
+  useEffect(loadCumulativeSchedule, [partnerId, role]);
+
+  const openScheduleModal = () => {
+    if (cumulativeSchedule?.configured) {
+      setScheduleActive(cumulativeSchedule.active);
+      setSchedulePercent(String(cumulativeSchedule.percent_per_period));
+      setSchedulePeriodDays(String(cumulativeSchedule.period_days));
+      setScheduleStartDate(cumulativeSchedule.start_date || "");
+    } else {
+      setScheduleActive(true);
+      setSchedulePercent("20");
+      setSchedulePeriodDays("60");
+      setScheduleStartDate(new Date().toISOString().slice(0, 10));
+    }
+    setShowScheduleModal(true);
+  };
+
+  const handleSaveSchedule = async () => {
+    const percent = Number(schedulePercent);
+    const periodDays = Number(schedulePeriodDays);
+    if (!percent || percent <= 0 || percent > 100 || !periodDays || periodDays <= 0 || !scheduleStartDate) return;
+    setSavingSchedule(true);
+    try {
+      await api.saveCumulativeSchedule(partnerId, {
+        active: scheduleActive, percent_per_period: percent, period_days: periodDays, start_date: scheduleStartDate,
+      });
+      loadCumulativeSchedule();
+      showToast(t("saved"), "success");
+      setShowScheduleModal(false);
+    } catch (e) {
+      showToast(e.message, "error");
+    } finally {
+      setSavingSchedule(false);
+    }
+  };
+
   const submitFollowup = async (e) => {
     e.preventDefault();
     if (!fuNote.trim()) {
@@ -685,6 +732,24 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
                   >
                     <Scale size={11} style={{ verticalAlign: -1, marginInlineEnd: 3 }} />
                     {t("legalHoldMarkAction")}
+                  </span>
+                )}
+                {role === "admin" && cumulativeSchedule?.configured && cumulativeSchedule.active && (
+                  <span
+                    className="fu-tag warn clickable" style={{ cursor: "pointer" }}
+                    title={`${t("cumulativeScheduleShortfall")}: ${cumulativeSchedule.shortfall} | ${t("cumulativeScheduleRequired")}: ${cumulativeSchedule.required_amount}`}
+                    onClick={openScheduleModal}
+                  >
+                    📊 {t("cumulativeScheduleBadge")} ({cumulativeSchedule.percent_per_period}% / {cumulativeSchedule.period_days} {t("cumulativeScheduleDays")})
+                  </span>
+                )}
+                {role === "admin" && (!cumulativeSchedule?.configured || !cumulativeSchedule.active) && (
+                  <span
+                    className="fu-tag faint clickable" style={{ cursor: "pointer" }}
+                    title={t("cumulativeScheduleSetupHint")}
+                    onClick={openScheduleModal}
+                  >
+                    📊 {t("cumulativeScheduleSetupAction")}
                   </span>
                 )}
 
@@ -1348,6 +1413,50 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
           partnerId={partnerId}
           onClose={() => setShowUrgentModal(false)}
         />
+      )}
+      {showScheduleModal && (
+        <div className="overlay modal-overlay" onClick={() => setShowScheduleModal(false)}>
+          <div className="prompt-modal" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+            <button className="close-btn" onClick={() => setShowScheduleModal(false)}><X size={16} /></button>
+            <h3>{t("cumulativeScheduleModalTitle")}</h3>
+            <p className="prompt-message">{detail.profile.name}</p>
+
+            <label className="checkbox-inline" style={{ marginBottom: 10 }}>
+              <input type="checkbox" checked={scheduleActive} onChange={(e) => setScheduleActive(e.target.checked)} />
+              {t("cumulativeScheduleEnableAction")}
+            </label>
+
+            <label>{t("cumulativeSchedulePercentLabel")}</label>
+            <input type="number" min="1" max="100" value={schedulePercent} onChange={(e) => setSchedulePercent(e.target.value)} />
+
+            <label>{t("cumulativeSchedulePeriodLabel")}</label>
+            <input type="number" min="1" value={schedulePeriodDays} onChange={(e) => setSchedulePeriodDays(e.target.value)} />
+
+            <label>{t("cumulativeScheduleStartDateLabel")}</label>
+            <input type="date" value={scheduleStartDate} onChange={(e) => setScheduleStartDate(e.target.value)} />
+
+            {cumulativeSchedule?.configured && (
+              <div style={{ background: "var(--card)", borderRadius: 10, padding: 10, marginTop: 12, fontSize: 12, lineHeight: 1.8 }}>
+                <div>{t("cumulativeScheduleRequired")}: <RiyalAmount amount={cumulativeSchedule.required_amount} /></div>
+                <div>{t("cumulativeSchedulePaidSinceStart")}: <RiyalAmount amount={cumulativeSchedule.paid_since_start} /></div>
+                <div style={{ fontWeight: 700, color: cumulativeSchedule.shortfall > 0 ? "var(--danger)" : "var(--ok)" }}>
+                  {t("cumulativeScheduleShortfall")}: <RiyalAmount amount={cumulativeSchedule.shortfall} />
+                </div>
+              </div>
+            )}
+
+            <div style={{ background: "var(--card)", borderRadius: 10, padding: 10, marginTop: 10, fontSize: 11, color: "var(--text-dim)", lineHeight: 1.7 }}>
+              {t("cumulativeScheduleBalanceNote")}
+            </div>
+
+            <div className="prompt-actions">
+              <button className="btn-secondary" onClick={() => setShowScheduleModal(false)}>{t("cancel")}</button>
+              <button className="btn-primary" disabled={savingSchedule} onClick={handleSaveSchedule}>
+                {savingSchedule ? t("saving") : t("save")}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
       {showVisitHistoryModal && (
         <div className="overlay modal-overlay" onClick={() => setShowVisitHistoryModal(false)}>

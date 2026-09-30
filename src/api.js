@@ -414,6 +414,8 @@ export const api = {
     request(`/api/customers/${id}/legal-hold`, { method: "PATCH", body: JSON.stringify({ legal_hold, reason }) }),
   legalHoldCustomers: () => request("/api/admin/legal-hold-customers"),
   createLocationShareLink: (id) => request(`/api/customers/${id}/location-share-link`, { method: "POST" }),
+  getCumulativeSchedule: (id) => request(`/api/customers/${id}/cumulative-schedule`),
+  saveCumulativeSchedule: (id, data) => request(`/api/customers/${id}/cumulative-schedule`, { method: "PUT", body: JSON.stringify(data) }),
   updateCustomerLocation: (id, latitude, longitude) =>
     request(`/api/customers/${id}/location`, { method: "PATCH", body: JSON.stringify({ latitude, longitude }) }),
   customerMap: (params = {}) => {

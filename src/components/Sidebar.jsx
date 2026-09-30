@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, Settings, LogOut, BarChart3, TrendingUp, Languages,
   CalendarClock, ClipboardList, Menu, X, ChevronLeft, ChevronRight, ChevronDown,
   CircleDollarSign, CreditCard, Receipt, Smartphone, BellRing,
-  Gauge, FileText, FileX, HeartCrack, MessageSquare, UserCircle, Moon, Sun, Wallet, History, Share2, Activity, Megaphone, MapPin, Target, ClipboardCheck, Percent, GitCompare, Layers, Search,
+  Gauge, FileText, FileX, HeartCrack, MessageSquare, UserCircle, Moon, Sun, Wallet, History, Share2, Activity, Megaphone, MapPin, Target, ClipboardCheck, Percent, GitCompare, Layers, Search, Link2Off,
   MessageCircle, ShieldCheck, FileSignature, ListChecks, Scale, MapPinned, FileCheck2,
 } from "lucide-react";
 import { useLang } from "../i18n.jsx";
@@ -49,6 +49,7 @@ export default function Sidebar({ view, setView, role, username, displayName, av
   const canSeeDiscounts = role === "admin" || perms.includes("discounts");
   const canSeeCustomerComparison = role === "admin" || perms.includes("customerComparison");
   const canSeeCustomersInquiry = role === "admin" || perms.includes("customersInquiry");
+  const canSeeUnmatchedPayments = role === "admin" || perms.includes("unmatchedPayments");
   const canSeeLegalHold = role === "admin" || perms.includes("reports");
 
   const go = (v) => {
@@ -98,6 +99,7 @@ export default function Sidebar({ view, setView, role, username, displayName, av
       items: [
         { view: "costOfDebt", icon: CircleDollarSign, label: t("costOfDebtTitle"), visible: canSeeCostOfDebt, color: "#30C381" },
         { view: "debtAging", icon: Layers, label: t("debtAgingReportTitle"), visible: canSeeDebtAging, color: "#B8552F" },
+        { view: "unmatchedPayments", icon: Link2Off, label: t("unmatchedPaymentsTitle"), visible: canSeeUnmatchedPayments, color: "#D6145F" },
         { view: "debtWriteOffs", icon: FileX, label: t("debtWriteOffsTitle"), visible: false, color: "#e5484d" },
         { view: "creditNomination", icon: CreditCard, label: t("creditNominationTitle"), visible: canSeeCreditNomination, color: "#9365B8" },
         { view: "paymentProofs", icon: Receipt, label: t("paymentProofsTitle"), visible: false, color: "#814968" },

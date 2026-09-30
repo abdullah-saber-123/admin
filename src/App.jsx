@@ -44,6 +44,7 @@ const CollectorActivityExplorer = lazy(() => import("./components/CollectorActiv
 const CostOfDebtReport = lazy(() => import("./components/CostOfDebtReport.jsx"));
 const DebtAgingReport = lazy(() => import("./components/DebtAgingReport.jsx"));
 const CustomersInquiry = lazy(() => import("./components/CustomersInquiry.jsx"));
+const UnmatchedCustomerPaymentsReport = lazy(() => import("./components/UnmatchedCustomerPaymentsReport.jsx"));
 const DebtWriteOffsReport = lazy(() => import("./components/DebtWriteOffsReport.jsx"));
 const CreditNominationReport = lazy(() => import("./components/CreditNominationReport.jsx"));
 const CollectionOffers = lazy(() => import("./components/CollectionOffers.jsx"));
@@ -242,6 +243,7 @@ export default function App() {
               : view === "costOfDebt" ? t("costOfDebtTitle")
               : view === "debtAging" ? t("debtAgingReportTitle")
               : view === "customersInquiry" ? t("customersInquiryTitle")
+              : view === "unmatchedPayments" ? t("unmatchedPaymentsTitle")
               : view === "debtWriteOffs" ? t("debtWriteOffsTitle")
               : view === "creditNomination" ? t("creditNominationTitle")
               : view === "paymentProofs" ? t("paymentProofsTitle")
@@ -465,6 +467,9 @@ export default function App() {
           )}
           {view === "customersInquiry" && (session.role === "admin" || (session.permissions || "").includes("customersInquiry")) && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><CustomersInquiry onSelectCustomer={setReadOnlyCustomerId} /></Suspense>
+          )}
+          {view === "unmatchedPayments" && (session.role === "admin" || (session.permissions || "").includes("unmatchedPayments")) && (
+            <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><UnmatchedCustomerPaymentsReport /></Suspense>
           )}
           {false && view === "debtWriteOffs" && (session.role === "admin" || (session.permissions || "").includes("debtWriteOffs")) && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><DebtWriteOffsReport onSelectCustomer={setSelectedId} role={session.role} /></Suspense>

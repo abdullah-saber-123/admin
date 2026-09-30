@@ -520,6 +520,7 @@ export const api = {
     const qs = buildQueryString(params);
     return request(`/api/reports/debt-aging${qs ? `?${qs}` : ""}`);
   },
+  unmatchedCustomerPaymentsReport: () => request("/api/reports/unmatched-customer-payments"),
   customersInquiryReport: (params = {}) => {
     const qs = buildQueryString(params);
     return request(`/api/reports/customers-inquiry${qs ? `?${qs}` : ""}`);

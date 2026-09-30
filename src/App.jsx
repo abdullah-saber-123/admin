@@ -42,6 +42,7 @@ const PerformanceReport = lazy(() => import("./components/PerformanceReport.jsx"
 const DailyActivityReport = lazy(() => import("./components/DailyActivityReport.jsx"));
 const CollectorActivityExplorer = lazy(() => import("./components/CollectorActivityExplorer.jsx"));
 const CostOfDebtReport = lazy(() => import("./components/CostOfDebtReport.jsx"));
+const DebtAgingReport = lazy(() => import("./components/DebtAgingReport.jsx"));
 const DebtWriteOffsReport = lazy(() => import("./components/DebtWriteOffsReport.jsx"));
 const CreditNominationReport = lazy(() => import("./components/CreditNominationReport.jsx"));
 const CollectionOffers = lazy(() => import("./components/CollectionOffers.jsx"));
@@ -224,6 +225,7 @@ export default function App() {
               : view === "paymentPlans" ? t("paymentPlansPageTitle")
               : view === "announcementHistory" ? t("announcementHistoryTitle")
               : view === "costOfDebt" ? t("costOfDebtTitle")
+              : view === "debtAging" ? t("debtAgingReportTitle")
               : view === "debtWriteOffs" ? t("debtWriteOffsTitle")
               : view === "creditNomination" ? t("creditNominationTitle")
               : view === "paymentProofs" ? t("paymentProofsTitle")
@@ -441,6 +443,9 @@ export default function App() {
           )}
           {view === "costOfDebt" && (session.role === "admin" || (session.permissions || "").includes("costOfDebt")) && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><CostOfDebtReport role={session.role} /></Suspense>
+          )}
+          {view === "debtAging" && (session.role === "admin" || (session.permissions || "").includes("debtAging")) && (
+            <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><DebtAgingReport /></Suspense>
           )}
           {false && view === "debtWriteOffs" && (session.role === "admin" || (session.permissions || "").includes("debtWriteOffs")) && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><DebtWriteOffsReport onSelectCustomer={setSelectedId} role={session.role} /></Suspense>

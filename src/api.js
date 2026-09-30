@@ -511,6 +511,7 @@ export const api = {
     const qs = buildQueryString(params);
     return requestBlob(`/api/reports/cost-of-debt/export.pdf${qs ? `?${qs}` : ""}`);
   },
+  debtAgingReport: (groupBy = "none") => request(`/api/reports/debt-aging?group_by=${groupBy}`),
   getCostOfDebtBucketSettings: () => request("/api/admin/cost-of-debt-bucket-settings"),
   saveCostOfDebtBucketSettings: (payload) => request("/api/admin/cost-of-debt-bucket-settings", { method: "PUT", body: JSON.stringify(payload) }),
   getDiscountCase: (partnerId, params = {}) => {

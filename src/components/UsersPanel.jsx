@@ -12,7 +12,7 @@ const PERMISSION_OPTIONS = [
   "reports", "trends", "costOfDebt", "customerScore", "customerAnalytics", "customerOwnAnalysis", "reminders",
   "portalManagement", "invoices", "creditNomination", "paymentProofs", "brokenPromises", "debtWriteOffs",
   "customerRetargeting", "retargetingViewAll", "reconciliations", "discounts", "customerComparison", "contractCases", "locationShareLink",
-  "dashboardCompanyTotals",
+  "dashboardCompanyTotals", "debtAging",
 ];
 const PERMISSION_LABEL_KEYS = {
   reports: "permCollectorReports", trends: "permTrends",
@@ -31,6 +31,7 @@ const PERMISSION_LABEL_KEYS = {
   contractCases: "contractCasesTitle",
   locationShareLink: "permLocationShareLink",
   dashboardCompanyTotals: "permDashboardCompanyTotals",
+  debtAging: "debtAgingReportTitle",
 };
 
 export default function UsersPanel({ onOpenUserProfile }) {

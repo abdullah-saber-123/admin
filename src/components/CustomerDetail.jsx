@@ -1421,7 +1421,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
       )}
       {showScheduleModal && (
         <div className="overlay modal-overlay" onClick={() => setShowScheduleModal(false)}>
-          <div className="prompt-modal" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+          <div className="prompt-modal" style={{ maxWidth: 720, width: "95vw" }} onClick={(e) => e.stopPropagation()}>
             <button className="close-btn" onClick={() => setShowScheduleModal(false)}><X size={16} /></button>
             <h3>{t("cumulativeScheduleModalTitle")}</h3>
             <p className="prompt-message">{detail.profile.name}</p>
@@ -1455,31 +1455,31 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
 
             {cumulativeSchedule?.configured && Array.isArray(cumulativeSchedule.periods) && cumulativeSchedule.periods.length > 0 && (
               <div style={{ marginTop: 12 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6 }}>{t("cumulativeSchedulePeriodsTitle")}</div>
-                <div style={{ maxHeight: 220, overflowY: "auto", borderRadius: 10, border: "1px solid var(--border)" }}>
-                  <table style={{ width: "100%", fontSize: 11, borderCollapse: "collapse" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>{t("cumulativeSchedulePeriodsTitle")}</div>
+                <div style={{ maxHeight: 340, overflowY: "auto", overflowX: "auto", borderRadius: 10, border: "1px solid var(--border)" }}>
+                  <table style={{ width: "100%", minWidth: 640, fontSize: 13, borderCollapse: "collapse" }}>
                     <thead>
                       <tr style={{ background: "var(--card)" }}>
-                        <th style={{ padding: "6px 8px", textAlign: "start" }}>{t("cumulativeSchedulePeriodCol")}</th>
-                        <th style={{ padding: "6px 8px", textAlign: "start" }}>{t("cumulativeSchedulePeriodDateCol")}</th>
-                        <th style={{ padding: "6px 8px", textAlign: "start" }}>{t("cumulativeSchedulePeriodBalanceCol")}</th>
-                        <th style={{ padding: "6px 8px", textAlign: "start" }}>{t("cumulativeSchedulePeriodRequiredCol")}</th>
-                        <th style={{ padding: "6px 8px", textAlign: "start" }}>{t("cumulativeSchedulePeriodPaidCol")}</th>
-                        <th style={{ padding: "6px 8px", textAlign: "start" }}>{t("cumulativeSchedulePeriodShortfallCol")}</th>
+                        <th style={{ padding: "10px 12px", textAlign: "start", whiteSpace: "nowrap" }}>{t("cumulativeSchedulePeriodCol")}</th>
+                        <th style={{ padding: "10px 12px", textAlign: "start", whiteSpace: "nowrap" }}>{t("cumulativeSchedulePeriodDateCol")}</th>
+                        <th style={{ padding: "10px 12px", textAlign: "start", whiteSpace: "nowrap" }}>{t("cumulativeSchedulePeriodBalanceCol")}</th>
+                        <th style={{ padding: "10px 12px", textAlign: "start", whiteSpace: "nowrap" }}>{t("cumulativeSchedulePeriodRequiredCol")}</th>
+                        <th style={{ padding: "10px 12px", textAlign: "start", whiteSpace: "nowrap" }}>{t("cumulativeSchedulePeriodPaidCol")}</th>
+                        <th style={{ padding: "10px 12px", textAlign: "start", whiteSpace: "nowrap" }}>{t("cumulativeSchedulePeriodShortfallCol")}</th>
                       </tr>
                     </thead>
                     <tbody>
                       {cumulativeSchedule.periods.map((p) => (
                         <tr key={p.period_number} style={{ borderTop: "1px solid var(--border)", opacity: p.in_progress ? 0.7 : 1 }}>
-                          <td style={{ padding: "6px 8px" }}>
+                          <td style={{ padding: "10px 12px", whiteSpace: "nowrap" }}>
                             {p.period_number}
-                            {p.in_progress && <span style={{ marginInlineStart: 4, fontSize: 10, color: "var(--text-dim)" }}>({t("cumulativeSchedulePeriodInProgress")})</span>}
+                            {p.in_progress && <span style={{ marginInlineStart: 4, fontSize: 11, color: "var(--text-dim)" }}>({t("cumulativeSchedulePeriodInProgress")})</span>}
                           </td>
-                          <td style={{ padding: "6px 8px" }}>{p.period_end_date}</td>
-                          <td style={{ padding: "6px 8px" }}><RiyalAmount amount={p.balance_at_checkpoint} /></td>
-                          <td style={{ padding: "6px 8px" }}><RiyalAmount amount={p.required_amount} /></td>
-                          <td style={{ padding: "6px 8px" }}><RiyalAmount amount={p.paid_cumulative} /></td>
-                          <td style={{ padding: "6px 8px", fontWeight: p.shortfall_cumulative > 0 ? 700 : 400, color: p.shortfall_cumulative > 0 ? "var(--danger)" : "inherit" }}>
+                          <td style={{ padding: "10px 12px", whiteSpace: "nowrap" }}>{p.period_end_date}</td>
+                          <td style={{ padding: "10px 12px", whiteSpace: "nowrap" }}><RiyalAmount amount={p.balance_at_checkpoint} /></td>
+                          <td style={{ padding: "10px 12px", whiteSpace: "nowrap" }}><RiyalAmount amount={p.required_amount} /></td>
+                          <td style={{ padding: "10px 12px", whiteSpace: "nowrap" }}><RiyalAmount amount={p.paid_cumulative} /></td>
+                          <td style={{ padding: "10px 12px", whiteSpace: "nowrap", fontWeight: p.shortfall_cumulative > 0 ? 700 : 400, color: p.shortfall_cumulative > 0 ? "var(--danger)" : "inherit" }}>
                             <RiyalAmount amount={p.shortfall_cumulative} />
                           </td>
                         </tr>

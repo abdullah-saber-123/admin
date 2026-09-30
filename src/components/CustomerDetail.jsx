@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { X, Phone, MapPin, Receipt, Wallet, ChevronLeft, ChevronRight, ClipboardList, Download, Search, AlertTriangle, Mail, UserCheck, Flame, MessageCircle, CalendarClock, Banknote, TrendingUp, CalendarCheck, CircleDollarSign, Gift, Zap, CreditCard, Send, Megaphone, BarChart3, History, MapPinned, FileText, FileSignature, Scale, Pencil, Files } from "lucide-react";
+import { X, Phone, MapPin, Receipt, Wallet, ChevronLeft, ChevronRight, ClipboardList, Download, Search, AlertTriangle, Mail, UserCheck, Flame, MessageCircle, CalendarClock, Banknote, TrendingUp, CalendarCheck, CircleDollarSign, Gift, Zap, CreditCard, Send, Megaphone, BarChart3, History, MapPinned, FileText, FileSignature, Scale, Pencil, Files, Target } from "lucide-react";
 import { api, BASE } from "../api";
 import { useLang } from "../i18n.jsx";
 import { useToast } from "../toast.jsx";
@@ -34,20 +34,27 @@ function MiniPager({ page, pageSize, total, onPage }) {
   );
 }
 
-export default function CustomerDetail({ partnerId, role, permissions, onClose, onSaved }) {
+export default function CustomerDetail({ partnerId, role, permissions, onClose, onSaved, readOnly = false }) {
   const { t, money, lang, statusLabel } = useLang();
   const { showToast } = useToast();
   const permsList = (permissions || "").split(",").map((p) => p.trim());
   const canSeeAnalytics = role === "admin" || permsList.includes("customerAnalytics") || permsList.includes("customerOwnAnalysis");
   const canSeeReconciliations = role === "admin" || permsList.includes("reconciliations");
-  const canEditPaymentType = role === "admin" || permsList.includes("creditNomination");
-  const canEditLegalHold = role === "admin" || permsList.includes("creditNomination");
-  const canSendLocationLink = role === "admin" || permsList.includes("locationShareLink");
+  const canEditPaymentType = !readOnly && (role === "admin" || permsList.includes("creditNomination"));
+  const canEditLegalHold = !readOnly && (role === "admin" || permsList.includes("creditNomination"));
+  const canSendLocationLink = !readOnly && (role === "admin" || permsList.includes("locationShareLink"));
+  // Retargeting stays available even in read-only inquiry mode - it's the one
+  // mutating action this mode is explicitly allowed to perform (alongside the
+  // read-only statement PDF export).
+  const canRetarget = role === "admin" || permsList.includes("customerRetargeting");
   const customerAnalysisUrl = `${window.location.pathname}?view=customerAnalytics&customer=${partnerId}`;
   useBodyScrollLock(true);
   const [detail, setDetail] = useState(null);
   const [error, setError] = useState(null);
   const [showUrgentModal, setShowUrgentModal] = useState(false);
+  const [showRetargetModal, setShowRetargetModal] = useState(false);
+  const [retargetReason, setRetargetReason] = useState("");
+  const [submittingRetarget, setSubmittingRetarget] = useState(false);
   const [showVisitModal, setShowVisitModal] = useState(false);
   const [visitReason, setVisitReason] = useState("");
   const [requestingVisit, setRequestingVisit] = useState(false);
@@ -168,6 +175,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
 
   const ADD_NEW_PAYMENT_TYPE = "__add_new__";
   const handlePaymentTypeChange = async (value) => {
+    if (readOnly) return;
     if (value === ADD_NEW_PAYMENT_TYPE) {
       const newValue = window.prompt(t("newOptionPrompt"));
       if (!newValue || !newValue.trim()) return;
@@ -207,7 +215,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
   };
 
   const handleNominate = async () => {
-    if (!nominatingOfferId) return;
+    if (readOnly || !nominatingOfferId) return;
     setNominating(true);
     try {
       await api.nominateForCollectionOffer(Number(nominatingOfferId), partnerId);
@@ -222,6 +230,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
   };
 
   const handleToggleNoteExempt = async () => {
+    if (readOnly) return;
     const next = !detail.summary.promissory_note_exempt;
     try {
       await api.updateNoteExempt(partnerId, next);
@@ -233,6 +242,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
   };
 
   const handleToggleLegalHold = async () => {
+    if (readOnly) return;
     const next = !detail.summary.legal_hold;
     let reason = "";
     if (next) {
@@ -249,6 +259,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
   };
 
   const handleSetLocation = () => {
+    if (readOnly) return;
     if (!navigator.geolocation) {
       showToast(t("locationUnavailable"), "error");
       return;
@@ -275,6 +286,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
   };
 
   const handleSendLocationLink = async () => {
+    if (readOnly) return;
     setSendingLocationLink(true);
     try {
       const { token } = await api.createLocationShareLink(partnerId);
@@ -313,7 +325,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
 
   const handleRequestVisit = async (e) => {
     e.preventDefault();
-    if (!visitReason.trim()) return;
+    if (readOnly || !visitReason.trim()) return;
     setRequestingVisit(true);
     try {
       await api.createVisitRequest(partnerId, visitReason.trim());
@@ -328,13 +340,29 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
     }
   };
 
+  const handleRetarget = async (e) => {
+    e.preventDefault();
+    if (!retargetReason.trim()) return;
+    setSubmittingRetarget(true);
+    try {
+      await api.createRetargetCase(partnerId, retargetReason.trim());
+      showToast(t("retargetCaseCreated"), "success");
+      setShowRetargetModal(false);
+      setRetargetReason("");
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      setSubmittingRetarget(false);
+    }
+  };
+
   const loadPaymentPlans = () => {
     api.listCustomerPaymentPlans(partnerId).then(setPaymentPlans).catch((e) => setError(e.message));
   };
 
   const handleCreatePlan = async (e) => {
     e.preventDefault();
-    if (!planTotal || !planCount || !planStartDate) return;
+    if (readOnly || !planTotal || !planCount || !planStartDate) return;
     setCreatingPlan(true);
     try {
       await api.createPaymentPlan(partnerId, {
@@ -353,6 +381,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
   };
 
   const handleMarkPaid = async (planId, installment) => {
+    if (readOnly) return;
     try {
       await api.updateInstallment(planId, installment.id, {
         status: "paid", paid_amount: installment.amount, paid_date: new Date().toISOString().slice(0, 10),
@@ -366,7 +395,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
   };
 
   const handlePartialPay = async (planId, installmentId) => {
-    if (!installmentPaidAmount) return;
+    if (readOnly || !installmentPaidAmount) return;
     try {
       await api.updateInstallment(planId, installmentId, {
         status: "partial", paid_amount: parseFloat(installmentPaidAmount),
@@ -383,6 +412,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
   };
 
   const handleCancelPlan = async (planId) => {
+    if (readOnly) return;
     try {
       await api.cancelPaymentPlan(planId);
       loadPaymentPlans();
@@ -402,7 +432,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
 
   const sendChatMessage = async (e) => {
     e.preventDefault();
-    if (!chatText.trim()) return;
+    if (readOnly || !chatText.trim()) return;
     setSendingChat(true);
     try {
       await api.sendChat(partnerId, chatText.trim());
@@ -461,6 +491,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
   };
 
   const handleSaveSchedule = async () => {
+    if (readOnly) return;
     const percent = Number(schedulePercent);
     const periodDays = Number(schedulePeriodDays);
     const openingBalance = Number(scheduleOpeningBalance);
@@ -483,6 +514,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
 
   const submitFollowup = async (e) => {
     e.preventDefault();
+    if (readOnly) return;
     if (!fuNote.trim()) {
       setError(t("noteRequiredHint"));
       return;
@@ -524,6 +556,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
   };
 
   const handleExport = async () => {
+    if (readOnly) return;
     setExporting(true);
     try {
       await api.exportCustomerDetail(partnerId);
@@ -550,6 +583,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
   };
 
   const handleFullReportExport = async () => {
+    if (readOnly) return;
     setExportingFullReport(true);
     try {
       await api.exportFullReportPdf(partnerId, lang);
@@ -768,14 +802,16 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
                     >
                       {t("locationOpenInMaps")}
                     </a>
-                    <button
-                      className="icon-btn" style={{ width: 18, height: 18 }} title={t("locationUpdateAction")}
-                      onClick={handleSetLocation} disabled={locatingGPS}
-                    >
-                      <Pencil size={10} />
-                    </button>
+                    {!readOnly && (
+                      <button
+                        className="icon-btn" style={{ width: 18, height: 18 }} title={t("locationUpdateAction")}
+                        onClick={handleSetLocation} disabled={locatingGPS}
+                      >
+                        <Pencil size={10} />
+                      </button>
+                    )}
                   </span>
-                ) : (
+                ) : !readOnly ? (
                   <span
                     className="fu-tag faint clickable" style={{ cursor: "pointer" }}
                     title={t("locationSetHint")} onClick={handleSetLocation}
@@ -783,7 +819,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
                     <MapPinned size={11} style={{ verticalAlign: -1, marginInlineEnd: 3 }} />
                     {locatingGPS ? t("locationLocating") : t("locationSetAction")}
                   </span>
-                )}
+                ) : null}
                 {canSendLocationLink && (
                   <span
                     className="fu-tag faint clickable" style={{ cursor: "pointer" }}
@@ -794,32 +830,44 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
                   </span>
                 )}
 
-                <button className="btn-secondary sm detail-export-btn" onClick={handleExport} disabled={exporting}>
-                  <Download size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
-                  {exporting ? t("exporting") : t("export")}
-                </button>
+                {!readOnly && (
+                  <button className="btn-secondary sm detail-export-btn" onClick={handleExport} disabled={exporting}>
+                    <Download size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
+                    {exporting ? t("exporting") : t("export")}
+                  </button>
+                )}
                 <button className="btn-secondary sm" onClick={handlePdfExport} disabled={exportingPdf}>
                   <Receipt size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
                   {exportingPdf ? t("exporting") : t("pdfStatement")}
                 </button>
-                <button className="btn-secondary sm" onClick={handleFullReportExport} disabled={exportingFullReport}>
-                  <Files size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
-                  {exportingFullReport ? t("exporting") : t("fullReportPdf")}
-                </button>
-                <button
-                  className="btn-secondary sm"
-                  onClick={() => setShowVisitModal(true)}
-                  disabled={!!activeVisitRequest}
-                  title={activeVisitRequest ? t("visitAlreadyRequestedHint") : undefined}
-                >
-                  <MapPin size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
-                  {activeVisitRequest ? t(activeVisitRequest.status === "assigned" ? "visitStatus_assigned" : "visitStatus_pending") : t("requestVisitButton")}
-                </button>
+                {!readOnly && (
+                  <button className="btn-secondary sm" onClick={handleFullReportExport} disabled={exportingFullReport}>
+                    <Files size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
+                    {exportingFullReport ? t("exporting") : t("fullReportPdf")}
+                  </button>
+                )}
+                {canRetarget && (
+                  <button className="btn-secondary sm" onClick={() => { setShowRetargetModal(true); setRetargetReason(""); }}>
+                    <Target size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
+                    {t("retargetButton")}
+                  </button>
+                )}
+                {!readOnly && (
+                  <button
+                    className="btn-secondary sm"
+                    onClick={() => setShowVisitModal(true)}
+                    disabled={!!activeVisitRequest}
+                    title={activeVisitRequest ? t("visitAlreadyRequestedHint") : undefined}
+                  >
+                    <MapPin size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
+                    {activeVisitRequest ? t(activeVisitRequest.status === "assigned" ? "visitStatus_assigned" : "visitStatus_pending") : t("requestVisitButton")}
+                  </button>
+                )}
                 <button className="btn-secondary sm" onClick={openVisitHistoryModal}>
                   <MapPinned size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
                   {t("visitHistoryButton")}
                 </button>
-                {nominableOffers.length > 0 && (
+                {!readOnly && nominableOffers.length > 0 && (
                   <button className="btn-secondary sm" onClick={() => { setNominatingOfferId(String(nominableOffers[0].id)); setShowNominateModal(true); }}>
                     <Gift size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
                     {t("nominateButton")}
@@ -837,7 +885,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
                     {t("customerAnalysisButton")}
                   </a>
                 )}
-                {role === "admin" && (
+                {!readOnly && role === "admin" && (
                   <button className="btn-secondary sm danger" onClick={openUrgentModal}>
                     <Megaphone size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
                     {t("markUrgent")}
@@ -927,6 +975,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
 
             <div className="followup-box">
               <h3><ClipboardList size={13} style={{ verticalAlign: -2, marginInlineEnd: 4 }} />{t("logFollowup")}</h3>
+              {!readOnly && (
               <form onSubmit={submitFollowup} className="admin-form">
                 <label>{t("status")}</label>
                 <select value={fuStatus} onChange={(e) => setFuStatus(e.target.value)}>
@@ -973,6 +1022,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
                   {loggingFu ? t("logging") : t("logFollowup")}
                 </button>
               </form>
+              )}
 
               {activityTimeline.length > 0 && (
                 <div className="fu-history">
@@ -1199,13 +1249,13 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
                 <div className="payment-plan-wrap">
                   {!paymentPlans && <div className="loading-state">{t("loadingDots")}</div>}
 
-                  {paymentPlans && !showPlanForm && (
+                  {!readOnly && paymentPlans && !showPlanForm && (
                     <button className="btn-secondary sm" onClick={() => setShowPlanForm(true)} style={{ marginBottom: 12 }}>
                       + {t("createPaymentPlan")}
                     </button>
                   )}
 
-                  {showPlanForm && (
+                  {!readOnly && showPlanForm && (
                     <form onSubmit={handleCreatePlan} className="admin-form payment-plan-form" style={{ maxWidth: 420, marginBottom: 16 }}>
                       <label>{t("totalAmount")}</label>
                       <input type="number" min="0" step="0.01" value={planTotal} onChange={(e) => setPlanTotal(e.target.value)} required />
@@ -1244,7 +1294,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
                             {t(`planStatus_${plan.status}`)}
                           </span>
                         </div>
-                        {plan.status === "active" && (
+                        {!readOnly && plan.status === "active" && (
                           <button className="icon-btn danger" title={t("cancelPlan")} onClick={() => handleCancelPlan(plan.id)}>
                             <X size={14} />
                           </button>
@@ -1268,7 +1318,7 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
                               <div className="payment-plan-installment-paid-note">
                                 {t("paidOn")} {fmtDate(inst.paid_date)}{inst.payment_mode ? ` · ${paymentModeLabel(inst.payment_mode, t)}` : ""}
                               </div>
-                            ) : (
+                            ) : readOnly ? null : (
                               installmentEdit?.installmentId === inst.id ? (
                                 <div className="payment-plan-installment-edit">
                                   <input
@@ -1321,12 +1371,14 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
                       <div className="chat-bubble-time">{fmtDateTime(m.created_at)}</div>
                     </div>
                   ))}
+                  {!readOnly && (
                   <form onSubmit={sendChatMessage} className="chat-input-row">
                     <input value={chatText} onChange={(e) => setChatText(e.target.value)} placeholder={t("typeMessage")} />
                     <button type="submit" className="btn-primary sm" disabled={sendingChat || !chatText.trim()}>
                       <Send size={14} />
                     </button>
                   </form>
+                  )}
                 </div>
               )}
             </div>
@@ -1404,6 +1456,25 @@ export default function CustomerDetail({ partnerId, role, permissions, onClose, 
                 <button type="button" className="btn-secondary" onClick={() => setShowVisitModal(false)}>{t("cancel")}</button>
                 <button type="submit" className="btn-primary" disabled={!visitReason.trim() || requestingVisit}>
                   {requestingVisit ? t("saving") : t("save")}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {showRetargetModal && (
+        <div className="overlay modal-overlay" onClick={() => setShowRetargetModal(false)}>
+          <div className="prompt-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="close-btn" onClick={() => setShowRetargetModal(false)}><X size={16} /></button>
+            <h3><Target size={15} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />{t("retargetButton")}</h3>
+            <p className="prompt-message">{detail.profile.name}</p>
+            <form onSubmit={handleRetarget}>
+              <label>{t("retargetReasonLabel")}</label>
+              <textarea rows={3} value={retargetReason} onChange={(e) => setRetargetReason(e.target.value)} placeholder={t("retargetReasonPlaceholder")} autoFocus />
+              <div className="prompt-actions">
+                <button type="button" className="btn-secondary" onClick={() => setShowRetargetModal(false)}>{t("cancel")}</button>
+                <button type="submit" className="btn-primary" disabled={!retargetReason.trim() || submittingRetarget}>
+                  {submittingRetarget ? t("saving") : t("save")}
                 </button>
               </div>
             </form>

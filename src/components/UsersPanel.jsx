@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { UserPlus, Trash2, KeyRound, Link2, ShieldCheck, Phone, Users2, ShieldHalf, UserCog, UserX, Search, Tag, Globe, Pencil } from "lucide-react";
+import { UserPlus, Trash2, KeyRound, Link2, ShieldCheck, Phone, Users2, ShieldHalf, UserCog, UserX, Search, Tag, Globe, Pencil, EyeOff } from "lucide-react";
 import { api, getSession } from "../api";
 import { useLang } from "../i18n.jsx";
 import { useToast } from "../toast.jsx";
@@ -12,7 +12,7 @@ const PERMISSION_OPTIONS = [
   "reports", "trends", "costOfDebt", "customerScore", "customerAnalytics", "customerOwnAnalysis", "reminders",
   "portalManagement", "invoices", "creditNomination", "paymentProofs", "brokenPromises", "debtWriteOffs",
   "customerRetargeting", "retargetingViewAll", "reconciliations", "discounts", "customerComparison", "contractCases", "locationShareLink",
-  "dashboardCompanyTotals", "debtAging",
+  "dashboardCompanyTotals", "debtAging", "customersInquiry",
 ];
 const PERMISSION_LABEL_KEYS = {
   reports: "permCollectorReports", trends: "permTrends",
@@ -32,6 +32,7 @@ const PERMISSION_LABEL_KEYS = {
   locationShareLink: "permLocationShareLink",
   dashboardCompanyTotals: "permDashboardCompanyTotals",
   debtAging: "debtAgingReportTitle",
+  customersInquiry: "permCustomersInquiry",
 };
 
 export default function UsersPanel({ onOpenUserProfile }) {
@@ -405,6 +406,22 @@ export default function UsersPanel({ onOpenUserProfile }) {
                         {u.role === "staff" && (
                           <button className="icon-btn" title={t("editPermissions")} onClick={() => setPermissionsTarget(u)}>
                             <ShieldCheck size={14} />
+                          </button>
+                        )}
+                        {u.role === "staff" && (
+                          <button
+                            className={`icon-btn ${u.hide_dashboard ? "active-toggle" : ""}`}
+                            title={t("hideDashboardLabel")}
+                            onClick={async () => {
+                              try {
+                                await api.setUserHideDashboard(u.id, !u.hide_dashboard);
+                                load();
+                              } catch (e) {
+                                showToast(e.message, "error");
+                              }
+                            }}
+                          >
+                            <EyeOff size={14} />
                           </button>
                         )}
                         {u.role === "staff" && (

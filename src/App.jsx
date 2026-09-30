@@ -43,6 +43,7 @@ const DailyActivityReport = lazy(() => import("./components/DailyActivityReport.
 const CollectorActivityExplorer = lazy(() => import("./components/CollectorActivityExplorer.jsx"));
 const CostOfDebtReport = lazy(() => import("./components/CostOfDebtReport.jsx"));
 const DebtAgingReport = lazy(() => import("./components/DebtAgingReport.jsx"));
+const CustomersInquiry = lazy(() => import("./components/CustomersInquiry.jsx"));
 const DebtWriteOffsReport = lazy(() => import("./components/DebtWriteOffsReport.jsx"));
 const CreditNominationReport = lazy(() => import("./components/CreditNominationReport.jsx"));
 const CollectionOffers = lazy(() => import("./components/CollectionOffers.jsx"));
@@ -82,7 +83,8 @@ export default function App() {
   const [session, setSessionState] = useState(getSession());
   const [view, setView] = useState(() => {
     const urlView = new URLSearchParams(window.location.search).get("view");
-    return urlView || localStorage.getItem("collect_view") || "dashboard";
+    const initialSession = getSession();
+    return urlView || localStorage.getItem("collect_view") || (initialSession?.hide_dashboard ? "customersInquiry" : "dashboard");
   });
   const [initialAnalyticsPartnerId] = useState(() => {
     const c = new URLSearchParams(window.location.search).get("customer");
@@ -96,6 +98,7 @@ export default function App() {
     return c ? Number(c) : null;
   });
   const [kpis, setKpis] = useState(null);
+  const [readOnlyCustomerId, setReadOnlyCustomerId] = useState(null);
   const [syncStatus, setSyncStatus] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [syncing, setSyncing] = useState(false);
@@ -129,6 +132,9 @@ export default function App() {
   };
 
   const loadKpis = useCallback(() => {
+    // A read-only inquiry account never gets KPI numbers - the server would
+    // refuse it anyway (see get_kpis), so don't even ask.
+    if (session?.hide_dashboard) return;
     const params = {};
     if (cityFilter) params.city = cityFilter;
     if (regionFilter) params.region = regionFilter;
@@ -136,7 +142,7 @@ export default function App() {
     if (hideZeroBalance) params.hide_zero_balance = true;
     if (hideNegativeBalance) params.hide_negative_balance = true;
     api.kpis(params).then(setKpis).catch(() => {});
-  }, [cityFilter, regionFilter, collectorFilter, hideZeroBalance, hideNegativeBalance]);
+  }, [session, cityFilter, regionFilter, collectorFilter, hideZeroBalance, hideNegativeBalance]);
   const loadSyncStatus = useCallback(() => {
     api.syncStatus().then(setSyncStatus).catch(() => {});
   }, []);
@@ -160,6 +166,15 @@ export default function App() {
     localStorage.setItem("collect_view", view);
   }, [view]);
 
+  // A read-only inquiry account must never land on (or navigate back to, via
+  // stale localStorage from before this was turned on) the main dashboard -
+  // send them to their own screen instead.
+  useEffect(() => {
+    if (session?.hide_dashboard && view === "dashboard") {
+      setView("customersInquiry");
+    }
+  }, [session, view]);
+
   // If the token expires or is rejected mid-session (e.g. after hours idle in a tab),
   // drop straight back to the login screen instead of leaving stale data on display.
   useEffect(() => {
@@ -181,7 +196,7 @@ export default function App() {
   }, [session, loadKpis, loadSyncStatus]);
 
   if (!session) {
-    return <Login onLoggedIn={(res) => setSessionState({ token: res.token, role: res.role, username: res.username, permissions: res.permissions })} />;
+    return <Login onLoggedIn={(res) => setSessionState({ token: res.token, role: res.role, username: res.username, permissions: res.permissions, is_supervisor: res.is_supervisor, hide_dashboard: res.hide_dashboard })} />;
   }
 
   const handleLogout = () => { clearSession(); localStorage.removeItem("collect_view"); setSessionState(null); };
@@ -202,7 +217,7 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <Sidebar view={view} setView={setView} role={session.role} username={session.username} displayName={myProfile?.full_name} avatarUrl={myProfile?.avatar_url} permissions={session.permissions} isSupervisor={session.is_supervisor} onLogout={handleLogout} onOpenProfile={() => setProfileModal({ mode: "self" })} />
+      <Sidebar view={view} setView={setView} role={session.role} username={session.username} displayName={myProfile?.full_name} avatarUrl={myProfile?.avatar_url} permissions={session.permissions} isSupervisor={session.is_supervisor} hideDashboard={session.hide_dashboard} onLogout={handleLogout} onOpenProfile={() => setProfileModal({ mode: "self" })} />
 
       <div className="main-col">
         <div className="topbar">
@@ -226,6 +241,7 @@ export default function App() {
               : view === "announcementHistory" ? t("announcementHistoryTitle")
               : view === "costOfDebt" ? t("costOfDebtTitle")
               : view === "debtAging" ? t("debtAgingReportTitle")
+              : view === "customersInquiry" ? t("customersInquiryTitle")
               : view === "debtWriteOffs" ? t("debtWriteOffsTitle")
               : view === "creditNomination" ? t("creditNominationTitle")
               : view === "paymentProofs" ? t("paymentProofsTitle")
@@ -447,6 +463,9 @@ export default function App() {
           {view === "debtAging" && (session.role === "admin" || (session.permissions || "").includes("debtAging")) && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><DebtAgingReport /></Suspense>
           )}
+          {view === "customersInquiry" && (session.role === "admin" || (session.permissions || "").includes("customersInquiry")) && (
+            <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><CustomersInquiry onSelectCustomer={setReadOnlyCustomerId} /></Suspense>
+          )}
           {false && view === "debtWriteOffs" && (session.role === "admin" || (session.permissions || "").includes("debtWriteOffs")) && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><DebtWriteOffsReport onSelectCustomer={setSelectedId} role={session.role} /></Suspense>
           )}
@@ -523,6 +542,16 @@ export default function App() {
           permissions={session.permissions}
           onClose={() => setSelectedId(null)}
           onSaved={() => setRefreshSignal((s) => s + 1)}
+        />
+      )}
+
+      {readOnlyCustomerId && (
+        <CustomerDetail
+          partnerId={readOnlyCustomerId}
+          role={session.role}
+          permissions={session.permissions}
+          onClose={() => setReadOnlyCustomerId(null)}
+          readOnly
         />
       )}
 

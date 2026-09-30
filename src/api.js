@@ -5,6 +5,7 @@ const ROLE_KEY = "collect_role";
 const USERNAME_KEY = "collect_username";
 const PERMISSIONS_KEY = "collect_permissions";
 const IS_SUPERVISOR_KEY = "collect_is_supervisor";
+const HIDE_DASHBOARD_KEY = "collect_hide_dashboard";
 
 // Builds a ws:// or wss:// URL matching the API's own protocol/host - used for
 // the live-call signaling socket.
@@ -22,14 +23,16 @@ export function getSession() {
     username: localStorage.getItem(USERNAME_KEY),
     permissions: localStorage.getItem(PERMISSIONS_KEY) || "",
     is_supervisor: localStorage.getItem(IS_SUPERVISOR_KEY) === "1",
+    hide_dashboard: localStorage.getItem(HIDE_DASHBOARD_KEY) === "1",
   };
 }
-export function setSession(token, role, username, permissions = "", isSupervisor = false) {
+export function setSession(token, role, username, permissions = "", isSupervisor = false, hideDashboard = false) {
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(ROLE_KEY, role);
   localStorage.setItem(USERNAME_KEY, username);
   localStorage.setItem(PERMISSIONS_KEY, permissions || "");
   localStorage.setItem(IS_SUPERVISOR_KEY, isSupervisor ? "1" : "0");
+  localStorage.setItem(HIDE_DASHBOARD_KEY, hideDashboard ? "1" : "0");
 }
 export function clearSession() {
   localStorage.removeItem(TOKEN_KEY);
@@ -37,6 +40,7 @@ export function clearSession() {
   localStorage.removeItem(USERNAME_KEY);
   localStorage.removeItem(PERMISSIONS_KEY);
   localStorage.removeItem(IS_SUPERVISOR_KEY);
+  localStorage.removeItem(HIDE_DASHBOARD_KEY);
 }
 
 // Builds a query string, dropping empty/null/undefined values entirely rather than
@@ -515,6 +519,11 @@ export const api = {
     const qs = buildQueryString(params);
     return request(`/api/reports/debt-aging${qs ? `?${qs}` : ""}`);
   },
+  customersInquiryReport: (params = {}) => {
+    const qs = buildQueryString(params);
+    return request(`/api/reports/customers-inquiry${qs ? `?${qs}` : ""}`);
+  },
+  setUserHideDashboard: (userId, hideDashboard) => request(`/api/admin/users/${userId}/hide-dashboard?hide_dashboard=${hideDashboard}`, { method: "PATCH" }),
   getCostOfDebtBucketSettings: () => request("/api/admin/cost-of-debt-bucket-settings"),
   saveCostOfDebtBucketSettings: (payload) => request("/api/admin/cost-of-debt-bucket-settings", { method: "PUT", body: JSON.stringify(payload) }),
   getDiscountCase: (partnerId, params = {}) => {

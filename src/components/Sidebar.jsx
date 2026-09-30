@@ -4,14 +4,14 @@ import {
   LayoutDashboard, Users, Settings, LogOut, BarChart3, TrendingUp, Languages,
   CalendarClock, ClipboardList, Menu, X, ChevronLeft, ChevronRight, ChevronDown,
   CircleDollarSign, CreditCard, Receipt, Smartphone, BellRing,
-  Gauge, FileText, FileX, HeartCrack, MessageSquare, UserCircle, Moon, Sun, Wallet, History, Share2, Activity, Megaphone, MapPin, Target, ClipboardCheck, Percent, GitCompare, Layers,
+  Gauge, FileText, FileX, HeartCrack, MessageSquare, UserCircle, Moon, Sun, Wallet, History, Share2, Activity, Megaphone, MapPin, Target, ClipboardCheck, Percent, GitCompare, Layers, Search,
   MessageCircle, ShieldCheck, FileSignature, ListChecks, Scale, MapPinned, FileCheck2,
 } from "lucide-react";
 import { useLang } from "../i18n.jsx";
 import swagLogo from "../assets/swag-mark.png";
 import useBodyScrollLock from "../hooks/useBodyScrollLock.js";
 
-export default function Sidebar({ view, setView, role, username, displayName, avatarUrl, permissions, isSupervisor, onLogout, onOpenProfile }) {
+export default function Sidebar({ view, setView, role, username, displayName, avatarUrl, permissions, isSupervisor, hideDashboard, onLogout, onOpenProfile }) {
   const { t, lang, setLanguage, theme, toggleTheme } = useLang();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -48,6 +48,7 @@ export default function Sidebar({ view, setView, role, username, displayName, av
   const canSeeContractCases = role === "admin" || perms.includes("contractCases");
   const canSeeDiscounts = role === "admin" || perms.includes("discounts");
   const canSeeCustomerComparison = role === "admin" || perms.includes("customerComparison");
+  const canSeeCustomersInquiry = role === "admin" || perms.includes("customersInquiry");
   const canSeeLegalHold = role === "admin" || perms.includes("reports");
 
   const go = (v) => {
@@ -119,6 +120,7 @@ export default function Sidebar({ view, setView, role, username, displayName, av
         { view: "contractCases", icon: FileSignature, label: t("contractCasesTitle"), visible: canSeeContractCases, color: "#B9862F" },
         { view: "legalHold", icon: Scale, label: t("legalHoldTitle"), visible: canSeeLegalHold, color: "#e5484d" },
         { view: "customerMap", icon: MapPinned, label: t("customerMapTitle"), visible: true, color: "#2C8397" },
+        { view: "customersInquiry", icon: Search, label: t("customersInquiryTitle"), visible: canSeeCustomersInquiry, color: "#2E8B8B" },
       ],
     },
     {
@@ -190,16 +192,18 @@ export default function Sidebar({ view, setView, role, username, displayName, av
         </div>
 
         <nav className="sidebar-nav">
-          <button
-            className={`nav-item ${view === "dashboard" ? "active" : ""}`}
-            onClick={() => go("dashboard")}
-            title={collapsed ? t("dashboard") : undefined}
-          >
-            <span className="nav-icon-chip" style={{ "--icon-color": "#F7CD1F" }}>
-              <LayoutDashboard size={15} />
-            </span>
-            {!collapsed && t("dashboard")}
-          </button>
+          {!hideDashboard && (
+            <button
+              className={`nav-item ${view === "dashboard" ? "active" : ""}`}
+              onClick={() => go("dashboard")}
+              title={collapsed ? t("dashboard") : undefined}
+            >
+              <span className="nav-icon-chip" style={{ "--icon-color": "#F7CD1F" }}>
+                <LayoutDashboard size={15} />
+              </span>
+              {!collapsed && t("dashboard")}
+            </button>
+          )}
 
           {collapsed ? (
             // Collapsed (icon-only) mode: no room for category headers, so every

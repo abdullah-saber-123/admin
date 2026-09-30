@@ -614,6 +614,10 @@ export const api = {
 
   // notifications (@mentions)
   notifications: () => request("/api/notifications"),
+  notificationsPage: (params = {}) => {
+    const qs = buildQueryString(params);
+    return request(`/api/notifications${qs ? `?${qs}` : ""}`);
+  },
   markNotificationRead: (id) => request(`/api/notifications/${id}/read`, { method: "PATCH" }),
   markAllNotificationsRead: () => request("/api/notifications/read-all", { method: "PATCH" }),
 

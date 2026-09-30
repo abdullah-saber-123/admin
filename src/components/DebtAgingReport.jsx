@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Layers } from "lucide-react";
+import { Layers, Search, ArrowUp, ArrowDown } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 import RiyalAmount from "./RiyalAmount.jsx";
@@ -10,20 +10,46 @@ const GROUP_MODES = ["none", "city", "region", "collector"];
 export default function DebtAgingReport() {
   const { t } = useLang();
   const [groupBy, setGroupBy] = useState("none");
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState("total_balance");
+  const [sortDir, setSortDir] = useState("desc");
+  const [page, setPage] = useState(1);
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
+  const pageSize = 50;
 
   const load = useCallback(() => {
     setError(null);
-    api.debtAgingReport(groupBy).then(setData).catch((e) => setError(e.message));
-  }, [groupBy]);
+    api.debtAgingReport({
+      group_by: groupBy, search: groupBy === "none" ? search : "",
+      sort_by: sortBy, sort_dir: sortDir, page, page_size: pageSize,
+    }).then(setData).catch((e) => setError(e.message));
+  }, [groupBy, search, sortBy, sortDir, page]);
 
   useEffect(load, [load]);
 
-  const groupLabel = (row) => {
-    if (groupBy === "none") return t("debtAgingOverallLabel");
-    return row.group || t("debtAgingUnassignedLabel");
+  // Any filter/grouping change should land back on page 1 - staying on page 4
+  // of a now-much-shorter (or differently sorted) list would just show empty rows.
+  useEffect(() => { setPage(1); }, [groupBy, search, sortBy, sortDir]);
+
+  const toggleSort = (key) => {
+    if (sortBy === key) {
+      setSortDir((d) => (d === "desc" ? "asc" : "desc"));
+    } else {
+      setSortBy(key);
+      setSortDir("desc");
+    }
   };
+
+  const sortIcon = (key) => {
+    if (sortBy !== key) return null;
+    const Icon = sortDir === "desc" ? ArrowDown : ArrowUp;
+    return <Icon size={12} style={{ verticalAlign: -1, marginInlineStart: 3 }} />;
+  };
+
+  const groupLabel = (row) => row.group || t("debtAgingUnassignedLabel");
+
+  const totalPages = data ? Math.max(1, Math.ceil(data.total_rows / pageSize)) : 1;
 
   return (
     <div className="content-stack" style={{ maxWidth: "100%" }}>
@@ -42,6 +68,19 @@ export default function DebtAgingReport() {
               ))}
             </select>
           </div>
+          {groupBy === "none" && (
+            <div className="more-filter-field" style={{ position: "relative" }}>
+              <label>{t("customer")}</label>
+              <div className="input-icon compact">
+                <Search size={13} />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={t("searchPlaceholder")}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {error && <div className="error-state">{error}</div>}
@@ -67,31 +106,46 @@ export default function DebtAgingReport() {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>{groupBy === "none" ? t("debtAgingOverallLabel") : t(`debtAgingViewBy_${groupBy}`)}</th>
+                    <th onClick={() => toggleSort(groupBy === "none" ? "name" : "group")} style={{ cursor: "pointer" }}>
+                      {groupBy === "none" ? t("customer") : t(`debtAgingViewBy_${groupBy}`)}
+                      {sortIcon(groupBy === "none" ? "name" : "group")}
+                    </th>
                     {BUCKETS.map((b) => (
-                      <th key={b}>{t(`debtAgingBucket_${b}`)}</th>
+                      <th key={b} onClick={() => toggleSort(b)} style={{ cursor: "pointer" }}>
+                        {t(`debtAgingBucket_${b}`)}{sortIcon(b)}
+                      </th>
                     ))}
-                    <th>{t("debtAgingTotalCol")}</th>
-                    <th>{t("debtAgingCustomersCol")}</th>
+                    <th onClick={() => toggleSort("total_balance")} style={{ cursor: "pointer" }}>
+                      {t("debtAgingTotalCol")}{sortIcon("total_balance")}
+                    </th>
+                    {groupBy !== "none" && <th>{t("debtAgingCustomersCol")}</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {data.rows.map((row) => (
-                    <tr key={row.group || "overall"}>
+                    <tr key={groupBy === "none" ? row.partner_id : (row.group || "unassigned")}>
                       <td>{groupLabel(row)}</td>
                       {BUCKETS.map((b) => (
                         <td key={b}>{row.buckets[b] ? <RiyalAmount amount={row.buckets[b].balance} /> : "—"}</td>
                       ))}
                       <td style={{ fontWeight: 700 }}><RiyalAmount amount={row.total_balance} /></td>
-                      <td>{row.total_customers}</td>
+                      {groupBy !== "none" && <td>{row.total_customers}</td>}
                     </tr>
                   ))}
                   {data.rows.length === 0 && (
-                    <tr><td colSpan={BUCKETS.length + 3} className="empty-state">{t("noResults")}</td></tr>
+                    <tr><td colSpan={BUCKETS.length + 2} className="empty-state">{t("noResults")}</td></tr>
                   )}
                 </tbody>
               </table>
             </div>
+
+            {groupBy === "none" && totalPages > 1 && (
+              <div className="pagination">
+                <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>{t("prev")}</button>
+                <span className="page-info"><bdi>{page} / {totalPages} · {data.total_rows}</bdi> {t("customersSuffix")}</span>
+                <button disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>{t("next")}</button>
+              </div>
+            )}
           </>
         )}
       </div>

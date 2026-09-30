@@ -45,6 +45,7 @@ const CostOfDebtReport = lazy(() => import("./components/CostOfDebtReport.jsx"))
 const DebtAgingReport = lazy(() => import("./components/DebtAgingReport.jsx"));
 const CustomersInquiry = lazy(() => import("./components/CustomersInquiry.jsx"));
 const UnmatchedCustomerPaymentsReport = lazy(() => import("./components/UnmatchedCustomerPaymentsReport.jsx"));
+const UnknownDepositsReport = lazy(() => import("./components/UnknownDepositsReport.jsx"));
 const DebtWriteOffsReport = lazy(() => import("./components/DebtWriteOffsReport.jsx"));
 const CreditNominationReport = lazy(() => import("./components/CreditNominationReport.jsx"));
 const CollectionOffers = lazy(() => import("./components/CollectionOffers.jsx"));
@@ -245,6 +246,7 @@ export default function App() {
               : view === "debtAging" ? t("debtAgingReportTitle")
               : view === "customersInquiry" ? t("customersInquiryTitle")
               : view === "unmatchedPayments" ? t("unmatchedPaymentsTitle")
+              : view === "unknownDeposits" ? t("unknownDepositsTitle")
               : view === "debtWriteOffs" ? t("debtWriteOffsTitle")
               : view === "creditNomination" ? t("creditNominationTitle")
               : view === "paymentProofs" ? t("paymentProofsTitle")
@@ -278,6 +280,7 @@ export default function App() {
               onGoToDashboard={() => setView("dashboard")}
               onSelectBucket={(b) => { setView("dashboard"); setBucket(b); }}
               onSelectCustomer={setSelectedId}
+              onGoToUnknownDeposits={() => setView("unknownDeposits")}
             />
             {view === "dashboard" && (
               <div className="sync-pill">
@@ -477,6 +480,9 @@ export default function App() {
           )}
           {view === "unmatchedPayments" && (session.role === "admin" || (session.permissions || "").includes("unmatchedPayments")) && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><UnmatchedCustomerPaymentsReport /></Suspense>
+          )}
+          {view === "unknownDeposits" && (session.role === "admin" || (session.permissions || "").includes("unknownDeposits")) && (
+            <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><UnknownDepositsReport /></Suspense>
           )}
           {false && view === "debtWriteOffs" && (session.role === "admin" || (session.permissions || "").includes("debtWriteOffs")) && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><DebtWriteOffsReport onSelectCustomer={setSelectedId} role={session.role} /></Suspense>

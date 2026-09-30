@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Bell, AlertOctagon, CalendarClock, HeartCrack, AtSign } from "lucide-react";
+import { Bell, AlertOctagon, CalendarClock, HeartCrack, AtSign, Banknote } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 import { useToast } from "../toast.jsx";
 import { subscribeSignal } from "../callSocket.js";
 
-export default function NotificationBell({ kpis, syncStatus, isAdmin, onGoToDashboard, onSelectBucket, onSelectCustomer }) {
+export default function NotificationBell({ kpis, syncStatus, isAdmin, onGoToDashboard, onSelectBucket, onSelectCustomer, onGoToUnknownDeposits }) {
   const { t } = useLang();
   const { showToast } = useToast();
   const [open, setOpen] = useState(false);
@@ -80,6 +80,15 @@ export default function NotificationBell({ kpis, syncStatus, isAdmin, onGoToDash
       tone: "danger",
       text: `${kpis.broken_promise_count} ${t("brokenPromises")}`,
       onClick: () => { onSelectBucket("broken_promise"); setOpen(false); },
+    });
+  }
+  if (kpis?.unknown_deposits_count > 0) {
+    items.push({
+      key: "unknownDeposits",
+      icon: Banknote,
+      tone: "danger",
+      text: `${kpis.unknown_deposits_count} ${t("unknownDepositsBanner")}`,
+      onClick: () => { onGoToUnknownDeposits?.(); setOpen(false); },
     });
   }
 

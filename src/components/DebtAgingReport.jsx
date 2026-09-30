@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Layers, Search, ArrowUp, ArrowDown } from "lucide-react";
+import { Layers, Search, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 import RiyalAmount from "./RiyalAmount.jsx";
@@ -41,8 +41,13 @@ export default function DebtAgingReport() {
     }
   };
 
+  // Every sortable header shows an icon, not just the active one - a faint
+  // two-way arrow hints "click me" on the rest, so sorting isn't discoverable
+  // only by accident on whichever column happens to be the current sort.
   const sortIcon = (key) => {
-    if (sortBy !== key) return null;
+    if (sortBy !== key) {
+      return <ArrowUpDown size={12} style={{ verticalAlign: -1, marginInlineStart: 3, opacity: 0.35 }} />;
+    }
     const Icon = sortDir === "desc" ? ArrowDown : ArrowUp;
     return <Icon size={12} style={{ verticalAlign: -1, marginInlineStart: 3 }} />;
   };

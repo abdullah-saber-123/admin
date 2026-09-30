@@ -5,8 +5,9 @@ import { useLang } from "../i18n.jsx";
 import { useToast } from "../toast.jsx";
 import RiyalAmount from "./RiyalAmount.jsx";
 
-const BUCKETS = ["1-30", "31-60", "61-90", "90+", "never_paid"];
+const BUCKETS = ["current", "1-30", "31-60", "61-90", "90+"];
 const GROUP_MODES = ["none", "city", "region", "collector"];
+const AGING_BASES = ["due_date", "invoice_date"];
 // The whole matching set is fetched in one go and rendered as a single
 // continuously-scrolling table (no page-flip pagination) - a plain large
 // cap here is simpler than infinite-scroll and comfortably covers the
@@ -17,6 +18,7 @@ export default function DebtAgingReport() {
   const { t, lang } = useLang();
   const { showToast } = useToast();
   const [groupBy, setGroupBy] = useState("none");
+  const [agingBasis, setAgingBasis] = useState("due_date");
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("total_balance");
   const [sortDir, setSortDir] = useState("desc");
@@ -28,13 +30,16 @@ export default function DebtAgingReport() {
     setError(null);
     api.debtAgingReport({
       group_by: groupBy, search: groupBy === "none" ? search : "",
-      sort_by: sortBy, sort_dir: sortDir, page: 1, page_size: ALL_ROWS_PAGE_SIZE,
+      sort_by: sortBy, sort_dir: sortDir, page: 1, page_size: ALL_ROWS_PAGE_SIZE, aging_basis: agingBasis,
     }).then(setData).catch((e) => setError(e.message));
-  }, [groupBy, search, sortBy, sortDir]);
+  }, [groupBy, search, sortBy, sortDir, agingBasis]);
 
   useEffect(load, [load]);
 
-  const exportParams = { group_by: groupBy, search: groupBy === "none" ? search : "", sort_by: sortBy, sort_dir: sortDir };
+  const exportParams = {
+    group_by: groupBy, search: groupBy === "none" ? search : "",
+    sort_by: sortBy, sort_dir: sortDir, aging_basis: agingBasis,
+  };
 
   const handleExportPdf = async () => {
     setExporting(true);
@@ -109,6 +114,14 @@ export default function DebtAgingReport() {
               ))}
             </select>
           </div>
+          <div className="more-filter-field">
+            <label>{t("debtAgingBasisLabel")}</label>
+            <select value={agingBasis} onChange={(e) => setAgingBasis(e.target.value)}>
+              {AGING_BASES.map((b) => (
+                <option key={b} value={b}>{t(`debtAgingBasis_${b}`)}</option>
+              ))}
+            </select>
+          </div>
           {groupBy === "none" && (
             <div className="more-filter-field" style={{ position: "relative" }}>
               <label>{t("customer")}</label>
@@ -131,7 +144,7 @@ export default function DebtAgingReport() {
           <>
             <div className="insights-kpi-grid" style={{ marginBottom: 18 }}>
               {BUCKETS.map((b) => (
-                <div key={b} className={`insights-kpi-card ${b === "never_paid" || b === "90+" ? "accent-danger" : "accent-violet"}`}>
+                <div key={b} className={`insights-kpi-card ${b === "90+" ? "accent-danger" : "accent-violet"}`}>
                   <div className="insights-kpi-top"><div className="insights-kpi-label">{t(`debtAgingBucket_${b}`)}</div></div>
                   <div className="insights-kpi-value"><RiyalAmount amount={data.bucket_totals[b] || 0} /></div>
                 </div>

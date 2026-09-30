@@ -417,6 +417,7 @@ export const api = {
   updateLegalHold: (id, legal_hold, reason) =>
     request(`/api/customers/${id}/legal-hold`, { method: "PATCH", body: JSON.stringify({ legal_hold, reason }) }),
   legalHoldCustomers: () => request("/api/admin/legal-hold-customers"),
+  exportLegalHoldCustomersPdf: (lang) => requestBlob(`/api/admin/legal-hold-customers/export.pdf?lang=${lang}`),
   createLocationShareLink: (id) => request(`/api/customers/${id}/location-share-link`, { method: "POST" }),
   getCumulativeSchedule: (id) => request(`/api/customers/${id}/cumulative-schedule`),
   saveCumulativeSchedule: (id, data) => request(`/api/customers/${id}/cumulative-schedule`, { method: "PUT", body: JSON.stringify(data) }),

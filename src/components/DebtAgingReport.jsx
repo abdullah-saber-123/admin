@@ -1,36 +1,62 @@
 import { useEffect, useState, useCallback } from "react";
-import { Layers, Search, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { Layers, Search, ArrowUp, ArrowDown, ArrowUpDown, Download } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
+import { useToast } from "../toast.jsx";
 import RiyalAmount from "./RiyalAmount.jsx";
 
 const BUCKETS = ["1-30", "31-60", "61-90", "90+", "never_paid"];
 const GROUP_MODES = ["none", "city", "region", "collector"];
+// The whole matching set is fetched in one go and rendered as a single
+// continuously-scrolling table (no page-flip pagination) - a plain large
+// cap here is simpler than infinite-scroll and comfortably covers the
+// realistic size of this list (hundreds, not tens of thousands, of rows).
+const ALL_ROWS_PAGE_SIZE = 50000;
 
 export default function DebtAgingReport() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const { showToast } = useToast();
   const [groupBy, setGroupBy] = useState("none");
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("total_balance");
   const [sortDir, setSortDir] = useState("desc");
-  const [page, setPage] = useState(1);
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
-  const pageSize = 50;
+  const [exporting, setExporting] = useState(false);
 
   const load = useCallback(() => {
     setError(null);
     api.debtAgingReport({
       group_by: groupBy, search: groupBy === "none" ? search : "",
-      sort_by: sortBy, sort_dir: sortDir, page, page_size: pageSize,
+      sort_by: sortBy, sort_dir: sortDir, page: 1, page_size: ALL_ROWS_PAGE_SIZE,
     }).then(setData).catch((e) => setError(e.message));
-  }, [groupBy, search, sortBy, sortDir, page]);
+  }, [groupBy, search, sortBy, sortDir]);
 
   useEffect(load, [load]);
 
-  // Any filter/grouping change should land back on page 1 - staying on page 4
-  // of a now-much-shorter (or differently sorted) list would just show empty rows.
-  useEffect(() => { setPage(1); }, [groupBy, search, sortBy, sortDir]);
+  const exportParams = { group_by: groupBy, search: groupBy === "none" ? search : "", sort_by: sortBy, sort_dir: sortDir };
+
+  const handleExportPdf = async () => {
+    setExporting(true);
+    try {
+      await api.debtAgingExportPdf({ ...exportParams, lang });
+    } catch (e) {
+      showToast(e.message, "error");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportExcel = async () => {
+    setExporting(true);
+    try {
+      await api.debtAgingExportExcel(exportParams);
+    } catch (e) {
+      showToast(e.message, "error");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const toggleSort = (key) => {
     if (sortBy === key) {
@@ -54,14 +80,24 @@ export default function DebtAgingReport() {
 
   const groupLabel = (row) => row.group || t("debtAgingUnassignedLabel");
 
-  const totalPages = data ? Math.max(1, Math.ceil(data.total_rows / pageSize)) : 1;
-
   return (
     <div className="content-stack" style={{ maxWidth: "100%" }}>
       <div className="panel">
-        <div>
-          <h2><Layers size={15} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />{t("debtAgingReportTitle")}</h2>
-          <p className="panel-sub">{t("debtAgingReportHint")}</p>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
+          <div>
+            <h2><Layers size={15} style={{ verticalAlign: -2, marginInlineEnd: 6 }} />{t("debtAgingReportTitle")}</h2>
+            <p className="panel-sub">{t("debtAgingReportHint")}</p>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="btn-secondary sm" onClick={handleExportPdf} disabled={exporting || !data || data.rows.length === 0}>
+              <Download size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
+              {exporting ? t("exporting") : t("exportPdfButton")}
+            </button>
+            <button className="btn-secondary sm" onClick={handleExportExcel} disabled={exporting || !data || data.rows.length === 0}>
+              <Download size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
+              {exporting ? t("exporting") : t("exportExcelButton")}
+            </button>
+          </div>
         </div>
 
         <div className="more-filters-row" style={{ marginBottom: 14 }}>
@@ -144,11 +180,9 @@ export default function DebtAgingReport() {
               </table>
             </div>
 
-            {groupBy === "none" && totalPages > 1 && (
-              <div className="pagination">
-                <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>{t("prev")}</button>
-                <span className="page-info"><bdi>{page} / {totalPages} · {data.total_rows}</bdi> {t("customersSuffix")}</span>
-                <button disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>{t("next")}</button>
+            {groupBy === "none" && (
+              <div className="table-totals-row" style={{ marginTop: 10 }}>
+                <span><bdi>{data.total_rows}</bdi> {t("customersSuffix")}</span>
               </div>
             )}
           </>

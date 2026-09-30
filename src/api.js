@@ -520,6 +520,14 @@ export const api = {
     const qs = buildQueryString(params);
     return request(`/api/reports/debt-aging${qs ? `?${qs}` : ""}`);
   },
+  debtAgingExportPdf: (params = {}) => {
+    const qs = buildQueryString(params);
+    return requestBlob(`/api/reports/debt-aging/export.pdf${qs ? `?${qs}` : ""}`);
+  },
+  debtAgingExportExcel: (params = {}) => {
+    const qs = buildQueryString(params);
+    return requestBlob(`/api/reports/debt-aging/export.xlsx${qs ? `?${qs}` : ""}`);
+  },
   unmatchedCustomerPaymentsReport: (params = {}) => {
     const qs = buildQueryString(params);
     return request(`/api/reports/unmatched-customer-payments${qs ? `?${qs}` : ""}`);

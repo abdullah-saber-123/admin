@@ -14,7 +14,10 @@ import { useState } from "react";
 // persisted so the choice sticks across visits, same pattern as KpiCards'
 // own customize menu.
 const OPTIONAL_CHART_IDS = ["overdueAging", "cityBreakdown"];
-const DEFAULT_VISIBLE = { overdueAging: true, cityBreakdown: true };
+// Hidden by default for anyone who hasn't customized this yet - once someone
+// toggles either chart, their own explicit choice is saved and this default
+// no longer affects them.
+const DEFAULT_VISIBLE = { overdueAging: false, cityBreakdown: false };
 
 function fmt(n) {
   return Number(n || 0).toLocaleString("en-US", { maximumFractionDigits: 0 });

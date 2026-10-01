@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { SlidersHorizontal } from "lucide-react";
 import { useLang } from "../i18n.jsx";
 import DonutChart from "./DonutChart.jsx";
+import TipCardWidget from "./TipCardWidget.jsx";
 import { ODOO_COLORS } from "../chartColors.js";
 import { useState } from "react";
 
@@ -114,6 +115,7 @@ export default function ChartsRow({
         </div>
       </div>
       <div className="charts-row" dir="ltr">
+      <TipCardWidget />
       <div className="chart-card">
         <h3 dir="auto">{t("dueVsCollected")} — {t("currency")}</h3>
         <ResponsiveContainer width="100%" height={220}>

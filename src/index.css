@@ -1915,6 +1915,65 @@ input, select, textarea { font-family: inherit; }
   justify-content: center;
 }
 
+/* ---- tip/notice carousel card (sits inside .charts-row like any other chart card) ---- */
+.tip-card-widget {
+  border-color: var(--warn-soft);
+  border-inline-start: 3px solid var(--warn);
+}
+.tip-card-widget .tip-card-head {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.tip-card-widget .tip-card-head h3 { margin: 0; text-transform: none; letter-spacing: 0; }
+.tip-card-counter { font-size: 10.5px; color: var(--text-faint); font-weight: 600; flex-shrink: 0; }
+.tip-card-widget .tip-card-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+.tip-card-img {
+  width: 100%;
+  max-height: 110px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  display: block;
+}
+.tip-card-title { font-size: 13px; font-weight: 700; margin: 0 0 5px; color: var(--text); }
+.tip-card-text { font-size: 12px; color: var(--text-dim); line-height: 1.6; margin: 0; flex: 1; white-space: pre-wrap; }
+.tip-card-meta { font-size: 10.5px; color: var(--text-faint); margin-top: 8px; }
+.tip-card-widget .tip-card-footer {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  padding-bottom: 6px;
+}
+.tip-card-nav-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.tip-card-nav-btn:hover { background: var(--card-hover); }
+.tip-card-dots { display: flex; gap: 5px; }
+.tip-card-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--border); cursor: pointer; }
+.tip-card-dot.active { background: var(--warn); width: 14px; border-radius: 3px; }
+
 /* ---------------- Panels & forms ---------------- */
 .panel {
   background: var(--panel);

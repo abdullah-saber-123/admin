@@ -47,6 +47,7 @@ const CustomersInquiry = lazy(() => import("./components/CustomersInquiry.jsx"))
 const UnmatchedCustomerPaymentsReport = lazy(() => import("./components/UnmatchedCustomerPaymentsReport.jsx"));
 const UnknownDepositsReport = lazy(() => import("./components/UnknownDepositsReport.jsx"));
 const NotificationsModule = lazy(() => import("./components/NotificationsModule.jsx"));
+const TipCardsSettings = lazy(() => import("./components/TipCardsSettings.jsx"));
 const DebtWriteOffsReport = lazy(() => import("./components/DebtWriteOffsReport.jsx"));
 const CreditNominationReport = lazy(() => import("./components/CreditNominationReport.jsx"));
 const CollectionOffers = lazy(() => import("./components/CollectionOffers.jsx"));
@@ -264,6 +265,7 @@ export default function App() {
               : view === "unmatchedPayments" ? t("unmatchedPaymentsTitle")
               : view === "unknownDeposits" ? t("unknownDepositsTitle")
               : view === "notificationsModule" ? t("notificationsModuleTitle")
+              : view === "tipCardsSettings" ? t("tipCardsTitle")
               : view === "debtWriteOffs" ? t("debtWriteOffsTitle")
               : view === "creditNomination" ? t("creditNominationTitle")
               : view === "paymentProofs" ? t("paymentProofsTitle")
@@ -545,6 +547,9 @@ export default function App() {
           )}
           {view === "notificationsModule" && session.role === "admin" && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><NotificationsModule onSelectCustomer={setSelectedId} /></Suspense>
+          )}
+          {view === "tipCardsSettings" && session.role === "admin" && (
+            <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><TipCardsSettings /></Suspense>
           )}
           {false && view === "debtWriteOffs" && (session.role === "admin" || (session.permissions || "").includes("debtWriteOffs")) && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><DebtWriteOffsReport onSelectCustomer={setSelectedId} role={session.role} /></Suspense>

@@ -3,10 +3,17 @@ import {
   Cell, Legend,
 } from "recharts";
 import { AnimatePresence, motion } from "framer-motion";
+import { SlidersHorizontal } from "lucide-react";
 import { useLang } from "../i18n.jsx";
 import DonutChart from "./DonutChart.jsx";
 import { ODOO_COLORS } from "../chartColors.js";
 import { useState } from "react";
+
+// Only these two are hideable (the other two charts are always shown) -
+// persisted so the choice sticks across visits, same pattern as KpiCards'
+// own customize menu.
+const OPTIONAL_CHART_IDS = ["overdueAging", "cityBreakdown"];
+const DEFAULT_VISIBLE = { overdueAging: true, cityBreakdown: true };
 
 function fmt(n) {
   return Number(n || 0).toLocaleString("en-US", { maximumFractionDigits: 0 });
@@ -27,6 +34,24 @@ export default function ChartsRow({
 }) {
   const { t, money, statusLabel } = useLang();
   const [hoveredFollowup, setHoveredFollowup] = useState(null);
+  const [visibleCharts, setVisibleCharts] = useState(() => {
+    try {
+      const saved = localStorage.getItem("collect_charts_visible");
+      return saved ? { ...DEFAULT_VISIBLE, ...JSON.parse(saved) } : DEFAULT_VISIBLE;
+    } catch {
+      return DEFAULT_VISIBLE;
+    }
+  });
+  const [showChartMenu, setShowChartMenu] = useState(false);
+
+  const toggleChart = (id) => {
+    setVisibleCharts((prev) => {
+      const next = { ...prev, [id]: !prev[id] };
+      localStorage.setItem("collect_charts_visible", JSON.stringify(next));
+      return next;
+    });
+  };
+
   if (!kpis) {
     return (
       <div className="charts-row">
@@ -64,7 +89,31 @@ export default function ChartsRow({
   const ageTotal = ageData.reduce((s, d) => s + d.amount, 0);
 
   return (
-    <div className="charts-row" dir="ltr">
+    <>
+      <div className="kpi-toolbar">
+        <div className="kpi-menu-wrap">
+          <button className="btn-secondary sm" onClick={() => setShowChartMenu((v) => !v)}>
+            <SlidersHorizontal size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
+            {t("customizeCharts")}
+          </button>
+          {showChartMenu && (
+            <>
+              <div className="columns-menu-backdrop" onClick={() => setShowChartMenu(false)} />
+              <div className="columns-menu">
+                <label className="multiselect-item">
+                  <input type="checkbox" checked={!!visibleCharts.overdueAging} onChange={() => toggleChart("overdueAging")} />
+                  {t("overdueAging")}
+                </label>
+                <label className="multiselect-item">
+                  <input type="checkbox" checked={!!visibleCharts.cityBreakdown} onChange={() => toggleChart("cityBreakdown")} />
+                  {t("cityBreakdown")}
+                </label>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+      <div className="charts-row" dir="ltr">
       <div className="chart-card">
         <h3 dir="auto">{t("dueVsCollected")} — {t("currency")}</h3>
         <ResponsiveContainer width="100%" height={220}>
@@ -133,6 +182,7 @@ export default function ChartsRow({
         )}
       </div>
 
+      {visibleCharts.overdueAging && (
       <div className="chart-card">
         <h3 dir="auto">{t("overdueAging")} — {t("currency")} <span style={{ fontWeight: 400, textTransform: "none", fontSize: 11 }}>({t("clickToFilter")})</span></h3>
         {ageTotal === 0 ? (
@@ -162,8 +212,9 @@ export default function ChartsRow({
           </ResponsiveContainer>
         )}
       </div>
+      )}
 
-      {city_breakdown && city_breakdown.length > 0 && (
+      {visibleCharts.cityBreakdown && city_breakdown && city_breakdown.length > 0 && (
         <div className="chart-card">
           <h3 dir="auto">{t("cityBreakdown")} — {t("currency")} <span style={{ fontWeight: 400, textTransform: "none", fontSize: 11 }}>({t("clickToFilter")})</span></h3>
           <ResponsiveContainer width="100%" height={220}>
@@ -190,6 +241,7 @@ export default function ChartsRow({
           </ResponsiveContainer>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

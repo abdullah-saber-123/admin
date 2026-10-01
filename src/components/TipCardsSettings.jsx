@@ -21,7 +21,14 @@ export default function TipCardsSettings() {
   }, []);
 
   useEffect(load, [load]);
-  useEffect(() => { api.staffChatContacts().then((d) => setContacts(Array.isArray(d) ? d : [])).catch(() => {}); }, []);
+  useEffect(() => {
+    // Every active account, admin's own included - unlike staffChatContacts
+    // (built for messaging, which never lists yourself), admin needs to be
+    // able to target a card at themselves too (e.g. to preview how it looks).
+    api.listUsers()
+      .then((d) => setContacts(Array.isArray(d) ? d.filter((u) => u.active) : []))
+      .catch(() => {});
+  }, []);
 
   const handleToggleActive = async (card) => {
     try {

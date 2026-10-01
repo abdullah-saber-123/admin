@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef, Suspense, lazy } from "react";
-import { RefreshCw, CalendarClock, AlertOctagon, X, BellRing } from "lucide-react";
+import { RefreshCw, CalendarClock, AlertOctagon, X, BellRing, Banknote } from "lucide-react";
 import { api, getSession, clearSession, onSessionExpired } from "./api";
 import { useToast } from "./toast.jsx";
 import { useLang } from "./i18n.jsx";
@@ -70,7 +70,8 @@ const InvoicesReport = lazy(() => import("./components/InvoicesReport.jsx"));
 const DraftInvoiceReadiness = lazy(() => import("./components/DraftInvoiceReadiness.jsx"));
 const ChartsRow = lazy(() => import("./components/ChartsRow.jsx"));
 
-import { parseServerDate } from "./dateUtils.js";
+import { parseServerDate, fmtDate } from "./dateUtils.js";
+import RiyalAmount from "./components/RiyalAmount.jsx";
 
 function timeAgo(iso) {
   if (!iso) return "never";
@@ -102,6 +103,8 @@ export default function App() {
   });
   const [kpis, setKpis] = useState(null);
   const [readOnlyCustomerId, setReadOnlyCustomerId] = useState(null);
+  const [unknownDepositsPreview, setUnknownDepositsPreview] = useState(null);
+  const [showUnknownDepositsPreview, setShowUnknownDepositsPreview] = useState(false);
   const [syncStatus, setSyncStatus] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [syncing, setSyncing] = useState(false);
@@ -203,6 +206,18 @@ export default function App() {
   }
 
   const handleLogout = () => { clearSession(); localStorage.removeItem("collect_view"); setSessionState(null); };
+
+  // Lazy-loaded the first time the dashboard banner is opened - the count alone
+  // (already in kpis) is enough to decide whether to show the banner at all.
+  const toggleUnknownDepositsPreview = () => {
+    setShowUnknownDepositsPreview((v) => {
+      const next = !v;
+      if (next && !unknownDepositsPreview) {
+        api.unknownDepositsReport().then(setUnknownDepositsPreview).catch(() => {});
+      }
+      return next;
+    });
+  };
 
   const handleSync = async (forceLedger = false) => {
     setSyncing(true);
@@ -335,6 +350,48 @@ export default function App() {
                   <CalendarClock size={16} />
                   {kpis.followup_today_count} {t("followupsTodayBanner")}
                   <span className="alert-banner-action">{t("viewList")}</span>
+                </div>
+              )}
+              {kpis?.unknown_deposits_count > 0 && (
+                <div className="alert-banner danger" style={{ cursor: "pointer" }} onClick={toggleUnknownDepositsPreview}>
+                  <Banknote size={16} />
+                  {kpis.unknown_deposits_count} {t("unknownDepositsBanner")}
+                  <span className="alert-banner-action">{t("viewList")}</span>
+                </div>
+              )}
+              {showUnknownDepositsPreview && kpis?.unknown_deposits_count > 0 && (
+                <div className="panel" style={{ marginTop: -6 }}>
+                  {!unknownDepositsPreview ? (
+                    <div className="loading-state">{t("loadingDots")}</div>
+                  ) : (
+                    <>
+                      <div className="table-wrap">
+                        <table className="data-table">
+                          <thead>
+                            <tr>
+                              <th>{t("date")}</th>
+                              <th>{t("unknownDepositsMemoCol")}</th>
+                              <th>{t("amount")}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {unknownDepositsPreview.results.slice(0, 8).map((r) => (
+                              <tr key={r.id}>
+                                <td>{r.date ? fmtDate(r.date) : "—"}</td>
+                                <td>{r.memo || "—"}</td>
+                                <td><RiyalAmount amount={r.amount} /></td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      {unknownDepositsPreview.count > 8 && (
+                        <button className="btn-secondary sm" style={{ marginTop: 10 }} onClick={() => setView("unknownDeposits")}>
+                          {t("unknownDepositsViewAll")}
+                        </button>
+                      )}
+                    </>
+                  )}
                 </div>
               )}
               <div className="dashboard-collector-filter">

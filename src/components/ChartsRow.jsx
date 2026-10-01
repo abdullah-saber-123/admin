@@ -18,6 +18,12 @@ const OPTIONAL_CHART_IDS = ["overdueAging", "cityBreakdown"];
 // toggles either chart, their own explicit choice is saved and this default
 // no longer affects them.
 const DEFAULT_VISIBLE = { overdueAging: false, cityBreakdown: false };
+// Bumped (v2) so this new default actually applies to everyone on deploy,
+// including anyone who already saved an old preference under the old key -
+// a stale "both shown" choice from before would otherwise keep overriding
+// the new default forever, which is exactly what we don't want here (it
+// was crowding the Tips card out of view for people who hadn't touched this).
+const CHARTS_VISIBLE_STORAGE_KEY = "collect_charts_visible_v2";
 
 function fmt(n) {
   return Number(n || 0).toLocaleString("en-US", { maximumFractionDigits: 0 });
@@ -40,7 +46,7 @@ export default function ChartsRow({
   const [hoveredFollowup, setHoveredFollowup] = useState(null);
   const [visibleCharts, setVisibleCharts] = useState(() => {
     try {
-      const saved = localStorage.getItem("collect_charts_visible");
+      const saved = localStorage.getItem(CHARTS_VISIBLE_STORAGE_KEY);
       return saved ? { ...DEFAULT_VISIBLE, ...JSON.parse(saved) } : DEFAULT_VISIBLE;
     } catch {
       return DEFAULT_VISIBLE;
@@ -51,7 +57,7 @@ export default function ChartsRow({
   const toggleChart = (id) => {
     setVisibleCharts((prev) => {
       const next = { ...prev, [id]: !prev[id] };
-      localStorage.setItem("collect_charts_visible", JSON.stringify(next));
+      localStorage.setItem(CHARTS_VISIBLE_STORAGE_KEY, JSON.stringify(next));
       return next;
     });
   };

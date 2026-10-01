@@ -79,14 +79,21 @@ export default function TipCardComposeModal({ contacts, editingCard = null, onCl
         />
 
         {image ? (
-          <div style={{ position: "relative", marginTop: 10, display: "inline-block" }}>
-            <img src={image.dataUrl} alt="" style={{ maxWidth: "100%", maxHeight: 180, borderRadius: 10, display: "block" }} />
-            <button
-              type="button" className="icon-btn" onClick={() => setImage(null)}
-              style={{ position: "absolute", top: 6, insetInlineEnd: 6, background: "rgba(0,0,0,0.55)", color: "#fff" }}
-            >
-              <XIcon size={13} />
-            </button>
+          <div style={{ marginTop: 10 }}>
+            <p className="settings-meta" style={{ marginBottom: 6 }}>{t("tipCardImagePreviewLabel")}</p>
+            {/* Exact same markup/classes as the real card, so the crop (object-fit: cover)
+                shown here is pixel-accurate to how it'll actually look on the dashboard. */}
+            <div className="chart-card tip-card-widget" style={{ maxWidth: 300, position: "relative" }}>
+              <button
+                type="button" className="icon-btn" onClick={() => setImage(null)}
+                style={{ position: "absolute", top: 8, insetInlineEnd: 8, background: "rgba(0,0,0,0.55)", color: "#fff", zIndex: 1 }}
+              >
+                <XIcon size={13} />
+              </button>
+              <div className="tip-card-body">
+                <img className="tip-card-img" src={image.dataUrl} alt="" />
+              </div>
+            </div>
           </div>
         ) : (
           <label className="btn-secondary sm" style={{ marginTop: 10, display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", width: "fit-content" }}>

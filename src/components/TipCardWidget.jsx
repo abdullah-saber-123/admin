@@ -4,6 +4,8 @@ import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 import { fmtDate } from "../dateUtils.js";
 
+const AUTO_ADVANCE_MS = 7000;
+
 // Always-visible, non-blocking card (unlike the full-screen Announcement
 // overlay) that sits in the dashboard's own charts-row grid - renders
 // nothing at all when there are no cards targeted to this viewer, so it
@@ -18,6 +20,17 @@ export default function TipCardWidget() {
   }, []);
 
   useEffect(load, [load]);
+
+  // Auto-advances on its own - restarting the timer from `index` means a
+  // manual click (prev/next/dot) also pushes the next auto-advance back out
+  // a full interval, instead of immediately jumping again right after.
+  useEffect(() => {
+    if (!cards || cards.length <= 1) return;
+    const timer = setTimeout(() => {
+      setIndex((i) => (i + 1) % cards.length);
+    }, AUTO_ADVANCE_MS);
+    return () => clearTimeout(timer);
+  }, [index, cards]);
 
   if (!cards || cards.length === 0) return null;
 

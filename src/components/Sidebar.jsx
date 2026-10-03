@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useLayoutEffect } from "react";
 import Avatar from "./Avatar.jsx";
 import {
   LayoutDashboard, Users, Settings, LogOut, BarChart3, TrendingUp, Languages,
@@ -30,6 +30,23 @@ export default function Sidebar({ view, setView, role, username, displayName, av
   // from scrolling too - a touch-drag meant to scroll the nav list bleeds
   // through and scrolls the background content instead (iOS Safari especially).
   useBodyScrollLock(mobileOpen);
+
+  // Sliding active-item highlight: one shared pill tracked via plain
+  // offsetTop/offsetHeight measurement instead of a library (framer-motion's
+  // layoutId does this well, but it's not already in the main bundle - only
+  // in lazy-loaded chart chunks - and importing it here would add it to the
+  // critical path for every page load just for this one highlight).
+  const navRef = useRef(null);
+  const [pillStyle, setPillStyle] = useState({ opacity: 0 });
+  useLayoutEffect(() => {
+    const navEl = navRef.current;
+    const activeEl = navEl?.querySelector(".nav-item.active");
+    if (!activeEl) {
+      setPillStyle((s) => ({ ...s, opacity: 0 }));
+      return;
+    }
+    setPillStyle({ top: activeEl.offsetTop, height: activeEl.offsetHeight, opacity: 1 });
+  });
 
   const perms = (permissions || "").split(",").map((p) => p.trim());
   const canSeeReports = role === "admin" || perms.includes("reports");
@@ -197,7 +214,8 @@ export default function Sidebar({ view, setView, role, username, displayName, av
           </button>
         </div>
 
-        <nav className="sidebar-nav">
+        <nav className="sidebar-nav" ref={navRef}>
+          <span className="nav-item-pill" style={pillStyle} />
           {!hideDashboard && (
             <button
               className={`nav-item ${view === "dashboard" ? "active" : ""}`}
@@ -207,7 +225,7 @@ export default function Sidebar({ view, setView, role, username, displayName, av
               <span className="nav-icon-chip" style={{ "--icon-color": "#F7CD1F" }}>
                 <LayoutDashboard size={15} />
               </span>
-              {!collapsed && t("dashboard")}
+              {!collapsed && <span className="nav-item-label">{t("dashboard")}</span>}
             </button>
           )}
 
@@ -246,7 +264,7 @@ export default function Sidebar({ view, setView, role, username, displayName, av
                       <span className="nav-icon-chip" style={{ "--icon-color": item.color }}>
                         <item.icon size={15} />
                       </span>
-                      {item.label}
+                      <span className="nav-item-label">{item.label}</span>
                     </button>
                   ))}
                 </div>

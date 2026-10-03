@@ -200,8 +200,10 @@ input, select, textarea { font-family: inherit; }
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+  transition: transform 0.12s ease, opacity 0.12s ease, box-shadow 0.12s ease;
 }
 .btn-primary:hover { opacity: 0.92; }
+.btn-primary:active:not(:disabled) { transform: scale(0.96); }
 .btn-primary:disabled { opacity: 0.5; cursor: default; }
 .btn-primary.full-width { width: 100%; margin-top: 6px; }
 
@@ -213,8 +215,10 @@ input, select, textarea { font-family: inherit; }
   border-radius: 9px;
   font-size: 13px;
   cursor: pointer;
+  transition: transform 0.12s ease, background 0.12s ease;
 }
 .btn-secondary:hover { background: var(--card); }
+.btn-secondary:active:not(:disabled) { transform: scale(0.96); }
 .btn-secondary:disabled { opacity: 0.5; cursor: default; }
 .btn-secondary.sm { padding: 6px 12px; font-size: 12px; }
 .btn-secondary.danger { color: var(--danger); border-color: var(--danger-soft); }
@@ -341,6 +345,7 @@ input, select, textarea { font-family: inherit; }
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: #ffffff26 transparent;
+  position: relative;
 }
 .sidebar-nav::-webkit-scrollbar { width: 5px; }
 .sidebar-nav::-webkit-scrollbar-thumb { background: #ffffff26; border-radius: 4px; }
@@ -395,6 +400,23 @@ input, select, textarea { font-family: inherit; }
   background: var(--icon-color);
   box-shadow: 0 2px 5px -1px color-mix(in srgb, var(--icon-color) 70%, transparent);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  z-index: 1;
+}
+.nav-item-label { position: relative; z-index: 1; }
+/* One shared pill (see Sidebar.jsx's offsetTop/offsetHeight measurement)
+   that slides smoothly from the previously active nav item to the newly
+   active one, instead of each item independently fading its own background
+   in/out. Negative z-index so it paints behind the (non-positioned, so
+   normally painted first) nav-item buttons rather than over their text. */
+.nav-item-pill {
+  position: absolute;
+  inset-inline: 0;
+  z-index: -1;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #5750f1, #7a74f5);
+  box-shadow: 0 6px 18px -4px #5750f177, inset 0 1px 0 #ffffff26;
+  transition: top 0.28s cubic-bezier(0.4, 0, 0.2, 1), height 0.2s ease, opacity 0.2s ease;
 }
 .nav-icon-chip svg { color: #fff; }
 .nav-item:hover {
@@ -405,15 +427,14 @@ input, select, textarea { font-family: inherit; }
 .nav-item:hover .nav-icon-chip { transform: scale(1.06); box-shadow: 0 3px 8px -1px color-mix(in srgb, var(--icon-color) 85%, transparent); }
 .nav-item:hover svg { transform: scale(1.14); }
 .nav-item.active {
-  background: linear-gradient(135deg, #5750f1, #7a74f5);
   color: white;
   font-weight: 600;
   border-color: transparent;
-  box-shadow: 0 6px 18px -4px #5750f177, inset 0 1px 0 #ffffff26;
 }
 .nav-item.active::before {
   content: "";
   position: absolute;
+  z-index: 1;
   inset-inline-start: -6px;
   top: 50%;
   transform: translateY(-50%);
@@ -1127,7 +1148,12 @@ input, select, textarea { font-family: inherit; }
   animation: toast-in 0.2s ease;
 }
 .toast-item.success { border-inline-start: 3px solid var(--ok); color: var(--text); }
-.toast-item.success svg { color: var(--ok); flex-shrink: 0; }
+.toast-item.success svg { color: var(--ok); flex-shrink: 0; animation: toast-icon-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+@keyframes toast-icon-pop {
+  0% { transform: scale(0.4); opacity: 0; }
+  70% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); }
+}
 .toast-item.error { border-inline-start: 3px solid var(--danger); color: var(--text); }
 .toast-item.error svg { color: var(--danger); flex-shrink: 0; }
 .toast-item.info { border-inline-start: 3px solid var(--primary); color: var(--text); }
@@ -3649,6 +3675,18 @@ input, select, textarea { font-family: inherit; }
   font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.fu-tag.faint::before, .fu-tag.teal::before, .fu-tag.violet::before { content: none; }
+.fu-tag::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: currentColor;
 }
 .fu-tag.sm { padding: 2px 7px; font-size: 10px; }
 .fu-tag.ok { background: var(--ok-soft); color: var(--ok); }
@@ -4487,6 +4525,24 @@ input, select, textarea { font-family: inherit; }
   font-size: 13px;
 }
 .empty-state, .loading-state { color: var(--text-dim); }
+/* Generic "empty tray" glyph, shown automatically above every plain-text
+   empty state in the app with zero per-report changes - mask-image (not an
+   <img>) so it's colored via currentColor and follows the theme. */
+.empty-state::before {
+  content: "";
+  display: block;
+  width: 34px;
+  height: 34px;
+  margin: 0 auto 8px;
+  opacity: 0.38;
+  background-color: currentColor;
+  -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4-9-4Z"/><path d="M3 12l9 4 9-4M3 17l9 4 9-4" opacity="0.6"/></svg>');
+  mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4-9-4Z"/><path d="M3 12l9 4 9-4M3 17l9 4 9-4" opacity="0.6"/></svg>');
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
 .loading-state {
   display: flex;
   flex-direction: column;

@@ -36,16 +36,23 @@ export default function Sidebar({ view, setView, role, username, displayName, av
   // layoutId does this well, but it's not already in the main bundle - only
   // in lazy-loaded chart chunks - and importing it here would add it to the
   // critical path for every page load just for this one highlight).
+  // Positioned by mutating the DOM directly (not React state) - this runs on
+  // every render already, and a setState call here that always produces a
+  // new object would re-trigger itself every render forever.
   const navRef = useRef(null);
-  const [pillStyle, setPillStyle] = useState({ opacity: 0 });
+  const pillRef = useRef(null);
   useLayoutEffect(() => {
     const navEl = navRef.current;
+    const pillEl = pillRef.current;
     const activeEl = navEl?.querySelector(".nav-item.active");
+    if (!pillEl) return;
     if (!activeEl) {
-      setPillStyle((s) => ({ ...s, opacity: 0 }));
+      pillEl.style.opacity = "0";
       return;
     }
-    setPillStyle({ top: activeEl.offsetTop, height: activeEl.offsetHeight, opacity: 1 });
+    pillEl.style.top = `${activeEl.offsetTop}px`;
+    pillEl.style.height = `${activeEl.offsetHeight}px`;
+    pillEl.style.opacity = "1";
   });
 
   const perms = (permissions || "").split(",").map((p) => p.trim());
@@ -215,7 +222,7 @@ export default function Sidebar({ view, setView, role, username, displayName, av
         </div>
 
         <nav className="sidebar-nav" ref={navRef}>
-          <span className="nav-item-pill" style={pillStyle} />
+          <span className="nav-item-pill" ref={pillRef} style={{ opacity: 0 }} />
           {!hideDashboard && (
             <button
               className={`nav-item ${view === "dashboard" ? "active" : ""}`}

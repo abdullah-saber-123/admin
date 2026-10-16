@@ -140,6 +140,7 @@ export default function CreditSegmentationReport() {
                   <th className="sortable" onClick={() => toggleSort("grade")}>{t("gradeLabel")} {sortIcon("grade")}</th>
                   <th className="sortable" onClick={() => toggleSort("expected_monthly_revenue")}>{t("creditSegExpectedRevenue")} {sortIcon("expected_monthly_revenue")}</th>
                   <th className="sortable" onClick={() => toggleSort("suggested_credit_limit")}>{t("creditSegLimitChange")} {sortIcon("suggested_credit_limit")}</th>
+                  <th>{t("creditSegSuggestedPlan")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -147,7 +148,7 @@ export default function CreditSegmentationReport() {
                   <tr key={r.partner_id}>
                     <td data-label={t("customer")}><strong>{r.name}</strong></td>
                     {r.status === "insufficient_data" ? (
-                      <td colSpan={7} data-label="">
+                      <td colSpan={8} data-label="">
                         <span className="fu-tag faint sm">{t("creditSegInsufficientRow")} ({r.payments_count})</span>
                       </td>
                     ) : (
@@ -165,12 +166,25 @@ export default function CreditSegmentationReport() {
                         <td data-label={t("creditSegLimitChange")}>
                           <RiyalAmount amount={r.current_credit_limit} /> {"→"} <strong><RiyalAmount amount={r.suggested_credit_limit} /></strong>
                         </td>
+                        <td data-label={t("creditSegSuggestedPlan")}>
+                          {r.has_active_schedule ? (
+                            <span className="fu-tag sm faint" title={t("creditSegHasPlanHint")}>
+                              {t("creditSegHasPlan")}: {r.active_schedule_percent}% / {r.active_schedule_period_days} {t("daysShort")}
+                            </span>
+                          ) : r.trend === "down" || r.trend === "stopped" ? (
+                            <span className="fu-tag sm faint">{t("creditSegNoPlanSuggestion")}</span>
+                          ) : (
+                            <span className="fu-tag sm ok">
+                              {r.suggested_schedule_percent}% / {r.suggested_schedule_period_days} {t("daysShort")}
+                            </span>
+                          )}
+                        </td>
                       </>
                     )}
                   </tr>
                 ))}
                 {filteredRows.length === 0 && (
-                  <tr><td colSpan={8} className="empty-state">{t("noResults")}</td></tr>
+                  <tr><td colSpan={9} className="empty-state">{t("noResults")}</td></tr>
                 )}
               </tbody>
             </table>

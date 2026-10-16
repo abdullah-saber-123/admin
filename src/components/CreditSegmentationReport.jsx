@@ -167,7 +167,12 @@ export default function CreditSegmentationReport() {
                           <div style={{ fontSize: 10, color: "var(--text-faint)" }}>{t("creditSegLongTermAvg")}: <RiyalAmount amount={r.long_term_monthly_avg} /></div>
                         </td>
                         <td data-label={t("creditSegLimitChange")}>
-                          <RiyalAmount amount={r.current_credit_limit} /> {"→"} <strong><RiyalAmount amount={r.suggested_credit_limit} /></strong>
+                          {/* Explicit labels, not a bare "current → suggested" with an arrow -
+                              a plain arrow glyph doesn't flip direction in RTL layout, so it
+                              visually read backwards (looked like "suggested → 0") even though
+                              the underlying values were always correct. */}
+                          <div style={{ fontSize: 10, color: "var(--text-faint)" }}>{t("creditSegCurrentLimit")}: <RiyalAmount amount={r.current_credit_limit} /></div>
+                          <div><strong>{t("creditSegSuggestedLimit")}: <RiyalAmount amount={r.suggested_credit_limit} /></strong></div>
                         </td>
                         <td data-label={t("creditSegSuggestedPlan")}>
                           {r.has_active_schedule ? (

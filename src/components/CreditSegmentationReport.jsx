@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { Layers } from "lucide-react";
+import { Layers, Search, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 import RiyalAmount from "./RiyalAmount.jsx";
@@ -7,15 +7,18 @@ import RiyalAmount from "./RiyalAmount.jsx";
 const BUCKETS = [30, 45, 60, 90, 120];
 const GRADE_TONE = { A: "ok", B: "teal", C: "warn", D: "danger" };
 const STATUS_TONE = { best: "ok", restrict: "danger", stable: "faint", insufficient_data: "faint" };
-const TREND_ICON = { up: "▲", down: "▼", flat: "●" };
-const TREND_TONE = { up: "ok", down: "danger", flat: "faint" };
+const TREND_ICON = { up: "▲", down: "▼", flat: "●", stopped: "■" };
+const TREND_TONE = { up: "ok", down: "danger", flat: "faint", stopped: "danger" };
 
 export default function CreditSegmentationReport() {
-  const { t, money } = useLang();
+  const { t } = useLang();
   const [rows, setRows] = useState(null);
   const [error, setError] = useState(null);
   const [bucketFilter, setBucketFilter] = useState(null);
   const [statusFilter, setStatusFilter] = useState(null);
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState("suggested_credit_limit");
+  const [sortDir, setSortDir] = useState("desc");
 
   useEffect(() => {
     api.creditSegmentation().then(setRows).catch((e) => setError(e.message));
@@ -33,14 +36,42 @@ export default function CreditSegmentationReport() {
     return { bucketCounts, best, restrict, insufficient, netOpportunity, total: rows.length };
   }, [rows]);
 
+  const toggleSort = (col) => {
+    if (sortBy === col) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(col);
+      setSortDir("desc");
+    }
+  };
+  const sortIcon = (col) => {
+    if (sortBy !== col) return <ArrowUpDown size={11} style={{ opacity: 0.4, verticalAlign: -1 }} />;
+    return sortDir === "asc" ? <ArrowUp size={11} style={{ verticalAlign: -1 }} /> : <ArrowDown size={11} style={{ verticalAlign: -1 }} />;
+  };
+
   const filteredRows = useMemo(() => {
     if (!rows) return null;
-    return rows.filter((r) => {
+    let out = rows.filter((r) => {
       if (bucketFilter && r.bucket_days !== bucketFilter) return false;
       if (statusFilter && r.status !== statusFilter) return false;
+      if (search.trim() && !r.name?.toLowerCase().includes(search.trim().toLowerCase())) return false;
       return true;
     });
-  }, [rows, bucketFilter, statusFilter]);
+    out = [...out].sort((a, b) => {
+      // Rows with insufficient data have no numeric fields - always keep them
+      // at the bottom regardless of sort column, instead of scattering them
+      // based on undefined comparisons.
+      const aMissing = a.status === "insufficient_data";
+      const bMissing = b.status === "insufficient_data";
+      if (aMissing !== bMissing) return aMissing ? 1 : -1;
+      let cmp = 0;
+      if (sortBy === "name") cmp = (a.name || "").localeCompare(b.name || "", "ar");
+      else if (sortBy === "grade") cmp = (a.grade || "").localeCompare(b.grade || "");
+      else cmp = (a[sortBy] ?? 0) - (b[sortBy] ?? 0);
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return out;
+  }, [rows, bucketFilter, statusFilter, search, sortBy, sortDir]);
 
   return (
     <div className="content-stack" style={{ maxWidth: "100%" }}>
@@ -81,7 +112,11 @@ export default function CreditSegmentationReport() {
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 14 }}>
+              <div className="input-icon" style={{ maxWidth: 240 }}>
+                <Search size={14} />
+                <input placeholder={t("searchPlaceholder")} value={search} onChange={(e) => setSearch(e.target.value)} />
+              </div>
               <button className={`filter-chip ${bucketFilter === null ? "active" : ""}`} onClick={() => setBucketFilter(null)}>{t("allLabel")}</button>
               {BUCKETS.map((b) => (
                 <button key={b} className={`filter-chip ${bucketFilter === b ? "active" : ""}`} onClick={() => setBucketFilter(b)}>
@@ -97,13 +132,14 @@ export default function CreditSegmentationReport() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>{t("customer")}</th>
-                  <th>{t("creditSegAvgInterval")}</th>
-                  <th>{t("creditSegRatio")}</th>
-                  <th>{t("creditSegBucket")}</th>
+                  <th className="sortable" onClick={() => toggleSort("name")}>{t("customer")} {sortIcon("name")}</th>
+                  <th className="sortable" onClick={() => toggleSort("avg_interval_days")}>{t("creditSegAvgInterval")} {sortIcon("avg_interval_days")}</th>
+                  <th className="sortable" onClick={() => toggleSort("payment_ratio")}>{t("creditSegRatio")} {sortIcon("payment_ratio")}</th>
+                  <th className="sortable" onClick={() => toggleSort("bucket_days")}>{t("creditSegBucket")} {sortIcon("bucket_days")}</th>
                   <th>{t("creditSegTrend")}</th>
-                  <th>{t("gradeLabel")}</th>
-                  <th>{t("creditSegLimitChange")}</th>
+                  <th className="sortable" onClick={() => toggleSort("grade")}>{t("gradeLabel")} {sortIcon("grade")}</th>
+                  <th className="sortable" onClick={() => toggleSort("expected_monthly_revenue")}>{t("creditSegExpectedRevenue")} {sortIcon("expected_monthly_revenue")}</th>
+                  <th className="sortable" onClick={() => toggleSort("suggested_credit_limit")}>{t("creditSegLimitChange")} {sortIcon("suggested_credit_limit")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -111,7 +147,7 @@ export default function CreditSegmentationReport() {
                   <tr key={r.partner_id}>
                     <td data-label={t("customer")}><strong>{r.name}</strong></td>
                     {r.status === "insufficient_data" ? (
-                      <td colSpan={5} data-label="">
+                      <td colSpan={7} data-label="">
                         <span className="fu-tag faint sm">{t("creditSegInsufficientRow")} ({r.payments_count})</span>
                       </td>
                     ) : (
@@ -125,6 +161,7 @@ export default function CreditSegmentationReport() {
                           <span className={`fu-tag sm ${TREND_TONE[r.trend]}`}>{TREND_ICON[r.trend]} {t(`creditSegTrend_${r.trend}`)}</span>
                         </td>
                         <td data-label={t("gradeLabel")}><span className={`fu-tag sm ${GRADE_TONE[r.grade]}`}>{r.grade}</span></td>
+                        <td data-label={t("creditSegExpectedRevenue")}><RiyalAmount amount={r.expected_monthly_revenue} /></td>
                         <td data-label={t("creditSegLimitChange")}>
                           <RiyalAmount amount={r.current_credit_limit} /> {"→"} <strong><RiyalAmount amount={r.suggested_credit_limit} /></strong>
                         </td>
@@ -133,7 +170,7 @@ export default function CreditSegmentationReport() {
                   </tr>
                 ))}
                 {filteredRows.length === 0 && (
-                  <tr><td colSpan={7} className="empty-state">{t("noResults")}</td></tr>
+                  <tr><td colSpan={8} className="empty-state">{t("noResults")}</td></tr>
                 )}
               </tbody>
             </table>

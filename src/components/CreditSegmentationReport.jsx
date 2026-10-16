@@ -162,7 +162,10 @@ export default function CreditSegmentationReport() {
                           <span className={`fu-tag sm ${TREND_TONE[r.trend]}`}>{TREND_ICON[r.trend]} {t(`creditSegTrend_${r.trend}`)}</span>
                         </td>
                         <td data-label={t("gradeLabel")}><span className={`fu-tag sm ${GRADE_TONE[r.grade]}`}>{r.grade}</span></td>
-                        <td data-label={t("creditSegExpectedRevenue")}><RiyalAmount amount={r.expected_monthly_revenue} /></td>
+                        <td data-label={t("creditSegExpectedRevenue")}>
+                          <RiyalAmount amount={r.expected_monthly_revenue} />
+                          <div style={{ fontSize: 10, color: "var(--text-faint)" }}>{t("creditSegLongTermAvg")}: <RiyalAmount amount={r.long_term_monthly_avg} /></div>
+                        </td>
                         <td data-label={t("creditSegLimitChange")}>
                           <RiyalAmount amount={r.current_credit_limit} /> {"→"} <strong><RiyalAmount amount={r.suggested_credit_limit} /></strong>
                         </td>

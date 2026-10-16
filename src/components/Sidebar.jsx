@@ -140,6 +140,7 @@ export default function Sidebar({ view, setView, role, username, displayName, av
       items: [
         { view: "portalManagement", icon: Smartphone, label: t("portalManagementTitle"), visible: canSeePortalManagement, color: "#475577" },
         { view: "customerScore", icon: Gauge, label: t("customerScoreTitle"), visible: canSeeCustomerScore, color: "#F4A460" },
+        { view: "creditSegmentation", icon: Layers, label: t("creditSegmentationTitle"), visible: role === "admin", color: "#2E8B8B" },
         { view: "customerAnalytics", icon: BarChart3, label: t("customerAnalyticsTitle"), visible: canSeeCustomerAnalytics, color: "#5750f1" },
         { view: "customerComparison", icon: GitCompare, label: t("comparisonTitle"), visible: canSeeCustomerComparison, color: "#2E8B8B" },
         { view: "customerShares", icon: Share2, label: t("customerSharesTitle"), visible: true, color: "#9365B8" },

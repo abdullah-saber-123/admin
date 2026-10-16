@@ -62,6 +62,7 @@ const PaymentProofsReport = lazy(() => import("./components/PaymentProofsReport.
 const PortalManagementReport = lazy(() => import("./components/PortalManagementReport.jsx"));
 const RemindersOverview = lazy(() => import("./components/RemindersOverview.jsx"));
 const CustomerScoreReport = lazy(() => import("./components/CustomerScoreReport.jsx"));
+const CreditSegmentationReport = lazy(() => import("./components/CreditSegmentationReport.jsx"));
 const CustomerAnalytics = lazy(() => import("./components/CustomerAnalytics.jsx"));
 const BrokenPromisesReport = lazy(() => import("./components/BrokenPromisesReport.jsx"));
 const LegalHoldReport = lazy(() => import("./components/LegalHoldReport.jsx"));
@@ -272,6 +273,7 @@ export default function App() {
               : view === "portalManagement" ? t("portalManagementTitle")
               : view === "reminders" ? t("remindersOverviewTitle")
               : view === "customerScore" ? t("customerScoreTitle")
+              : view === "creditSegmentation" ? t("creditSegmentationTitle")
               : view === "customerAnalytics" ? t("customerAnalyticsTitle")
               : view === "brokenPromises" ? t("brokenPromisesTitle")
               : view === "legalHold" ? t("legalHoldTitle")
@@ -577,6 +579,9 @@ export default function App() {
           )}
           {view === "customerScore" && (session.role === "admin" || (session.permissions || "").includes("customerScore")) && (
             <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><CustomerScoreReport onSelectCustomer={setSelectedId} /></Suspense>
+          )}
+          {view === "creditSegmentation" && session.role === "admin" && (
+            <Suspense fallback={<div className="loading-state">{t("loadingDots")}</div>}><CreditSegmentationReport /></Suspense>
           )}
           {view === "customerAnalytics" && (
             session.role === "admin"

@@ -143,6 +143,7 @@ export default function CreditSegmentationReport() {
               <thead>
                 <tr>
                   <th className="sortable" onClick={() => toggleSort("name")}>{t("customer")} {sortIcon("name")}</th>
+                  <th className="sortable" onClick={() => toggleSort("current_due")}>{t("creditSegCurrentBalance")} {sortIcon("current_due")}</th>
                   <th className="sortable" onClick={() => toggleSort("avg_monthly_draw")}>{t("creditSegMonthlyDraw")} {sortIcon("avg_monthly_draw")}</th>
                   <th className="sortable" onClick={() => toggleSort("recommended_bucket_days")}>{t("creditSegRecommendedBucket")} {sortIcon("recommended_bucket_days")}</th>
                   <th className="sortable" onClick={() => toggleSort("bucket_days")}>{t("creditSegActualBucket")} {sortIcon("bucket_days")}</th>
@@ -161,11 +162,12 @@ export default function CreditSegmentationReport() {
                       {r.sahab_mismatch && <div><span className="fu-tag sm warn" title={t("creditSegMismatchHint")}>{t("creditSegMismatch")}</span></div>}
                     </td>
                     {r.status === "insufficient_data" ? (
-                      <td colSpan={8} data-label="">
+                      <td colSpan={9} data-label="">
                         <span className="fu-tag faint sm">{t("creditSegInsufficientRow")} ({r.payments_count})</span>
                       </td>
                     ) : (
                       <>
+                        <td data-label={t("creditSegCurrentBalance")}><RiyalAmount amount={r.current_due} /></td>
                         <td data-label={t("creditSegMonthlyDraw")}><RiyalAmount amount={r.avg_monthly_draw} /></td>
                         <td data-label={t("creditSegRecommendedBucket")}>
                           <span className="fu-tag sm ok">{r.recommended_bucket_days} {t("daysShort")}</span>
@@ -212,7 +214,7 @@ export default function CreditSegmentationReport() {
                   </tr>
                 ))}
                 {filteredRows.length === 0 && (
-                  <tr><td colSpan={9} className="empty-state">{t("noResults")}</td></tr>
+                  <tr><td colSpan={10} className="empty-state">{t("noResults")}</td></tr>
                 )}
               </tbody>
             </table>

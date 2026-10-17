@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { Layers, Search, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { Layers, Search, ArrowUp, ArrowDown, ArrowUpDown, AlertTriangle } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 import RiyalAmount from "./RiyalAmount.jsx";
@@ -12,7 +12,7 @@ const TREND_TONE = { up: "ok", down: "danger", flat: "faint", stopped: "danger" 
 
 export default function CreditSegmentationReport() {
   const { t } = useLang();
-  const [rows, setRows] = useState(null);
+  const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [bucketFilter, setBucketFilter] = useState(null);
   const [statusFilter, setStatusFilter] = useState(null);
@@ -21,19 +21,22 @@ export default function CreditSegmentationReport() {
   const [sortDir, setSortDir] = useState("desc");
 
   useEffect(() => {
-    api.creditSegmentation().then(setRows).catch((e) => setError(e.message));
+    api.creditSegmentation().then(setData).catch((e) => setError(e.message));
   }, []);
+
+  const rows = data?.rows ?? null;
 
   const summary = useMemo(() => {
     if (!rows) return null;
     const analyzed = rows.filter((r) => r.status !== "insufficient_data");
-    const bucketCounts = Object.fromEntries(BUCKETS.map((b) => [b, analyzed.filter((r) => r.bucket_days === b).length]));
+    const bucketCounts = Object.fromEntries(BUCKETS.map((b) => [b, analyzed.filter((r) => r.recommended_bucket_days === b).length]));
     const best = rows.filter((r) => r.status === "best");
     const restrict = rows.filter((r) => r.status === "restrict");
     const insufficient = rows.filter((r) => r.status === "insufficient_data");
+    const mismatched = analyzed.filter((r) => r.sahab_mismatch);
     const netOpportunity = best.reduce((s, r) => s + (r.suggested_credit_limit - r.current_credit_limit), 0)
       + restrict.reduce((s, r) => s + (r.suggested_credit_limit - r.current_credit_limit), 0);
-    return { bucketCounts, best, restrict, insufficient, netOpportunity, total: rows.length };
+    return { bucketCounts, best, restrict, insufficient, mismatched, netOpportunity, total: rows.length };
   }, [rows]);
 
   const toggleSort = (col) => {
@@ -52,7 +55,7 @@ export default function CreditSegmentationReport() {
   const filteredRows = useMemo(() => {
     if (!rows) return null;
     let out = rows.filter((r) => {
-      if (bucketFilter && r.bucket_days !== bucketFilter) return false;
+      if (bucketFilter && r.recommended_bucket_days !== bucketFilter) return false;
       if (statusFilter && r.status !== statusFilter) return false;
       if (search.trim() && !r.name?.toLowerCase().includes(search.trim().toLowerCase())) return false;
       return true;
@@ -86,6 +89,13 @@ export default function CreditSegmentationReport() {
 
         {error && <div className="error-state">{error}</div>}
         {!error && !rows && <div className="loading-state">{t("loadingDots")}</div>}
+
+        {data?.concentration_warning && (
+          <div className="alert-banner danger" style={{ marginTop: 12 }}>
+            <AlertTriangle size={16} />
+            {t("creditSegConcentrationWarning")} ({Math.round(data.concentration_ratio * 100)}%)
+          </div>
+        )}
 
         {summary && (
           <>
@@ -133,9 +143,9 @@ export default function CreditSegmentationReport() {
               <thead>
                 <tr>
                   <th className="sortable" onClick={() => toggleSort("name")}>{t("customer")} {sortIcon("name")}</th>
-                  <th className="sortable" onClick={() => toggleSort("avg_interval_days")}>{t("creditSegAvgInterval")} {sortIcon("avg_interval_days")}</th>
-                  <th className="sortable" onClick={() => toggleSort("payment_ratio")}>{t("creditSegRatio")} {sortIcon("payment_ratio")}</th>
-                  <th className="sortable" onClick={() => toggleSort("bucket_days")}>{t("creditSegBucket")} {sortIcon("bucket_days")}</th>
+                  <th className="sortable" onClick={() => toggleSort("avg_monthly_draw")}>{t("creditSegMonthlyDraw")} {sortIcon("avg_monthly_draw")}</th>
+                  <th className="sortable" onClick={() => toggleSort("recommended_bucket_days")}>{t("creditSegRecommendedBucket")} {sortIcon("recommended_bucket_days")}</th>
+                  <th className="sortable" onClick={() => toggleSort("bucket_days")}>{t("creditSegActualBucket")} {sortIcon("bucket_days")}</th>
                   <th>{t("creditSegTrend")}</th>
                   <th className="sortable" onClick={() => toggleSort("grade")}>{t("gradeLabel")} {sortIcon("grade")}</th>
                   <th className="sortable" onClick={() => toggleSort("expected_monthly_revenue")}>{t("creditSegExpectedRevenue")} {sortIcon("expected_monthly_revenue")}</th>
@@ -146,17 +156,23 @@ export default function CreditSegmentationReport() {
               <tbody>
                 {filteredRows.map((r) => (
                   <tr key={r.partner_id}>
-                    <td data-label={t("customer")}><strong>{r.name}</strong></td>
+                    <td data-label={t("customer")}>
+                      <strong>{r.name}</strong>
+                      {r.sahab_mismatch && <div><span className="fu-tag sm warn" title={t("creditSegMismatchHint")}>{t("creditSegMismatch")}</span></div>}
+                    </td>
                     {r.status === "insufficient_data" ? (
                       <td colSpan={8} data-label="">
                         <span className="fu-tag faint sm">{t("creditSegInsufficientRow")} ({r.payments_count})</span>
                       </td>
                     ) : (
                       <>
-                        <td data-label={t("creditSegAvgInterval")}>{r.avg_interval_days} {t("daysShort")}</td>
-                        <td data-label={t("creditSegRatio")}>{Math.round(r.payment_ratio * 100)}%</td>
-                        <td data-label={t("creditSegBucket")}>
+                        <td data-label={t("creditSegMonthlyDraw")}><RiyalAmount amount={r.avg_monthly_draw} /></td>
+                        <td data-label={t("creditSegRecommendedBucket")}>
+                          <span className="fu-tag sm ok">{r.recommended_bucket_days} {t("daysShort")}</span>
+                        </td>
+                        <td data-label={t("creditSegActualBucket")}>
                           <span className={`fu-tag sm ${STATUS_TONE[r.status]}`}>{r.bucket_days} {t("daysShort")}</span>
+                          <div style={{ fontSize: 10, color: "var(--text-faint)" }}>{Math.round(r.payment_ratio * 100)}% {t("creditSegRatio")}</div>
                         </td>
                         <td data-label={t("creditSegTrend")}>
                           <span className={`fu-tag sm ${TREND_TONE[r.trend]}`}>{TREND_ICON[r.trend]} {t(`creditSegTrend_${r.trend}`)}</span>
@@ -169,10 +185,14 @@ export default function CreditSegmentationReport() {
                         <td data-label={t("creditSegLimitChange")}>
                           {/* Explicit labels, not a bare "current → suggested" with an arrow -
                               a plain arrow glyph doesn't flip direction in RTL layout, so it
-                              visually read backwards (looked like "suggested → 0") even though
-                              the underlying values were always correct. */}
+                              visually read backwards even though the values were always correct. */}
                           <div style={{ fontSize: 10, color: "var(--text-faint)" }}>{t("creditSegCurrentLimit")}: <RiyalAmount amount={r.current_credit_limit} /></div>
                           <div><strong>{t("creditSegSuggestedLimit")}: <RiyalAmount amount={r.suggested_credit_limit} /></strong></div>
+                          {r.capacity_cap !== null && r.suggested_credit_limit === r.capacity_cap && (
+                            <div style={{ fontSize: 10, color: "var(--text-faint)" }} title={t("creditSegCapacityCapHint")}>
+                              {t("creditSegCapacityCapped")}
+                            </div>
+                          )}
                         </td>
                         <td data-label={t("creditSegSuggestedPlan")}>
                           {r.has_active_schedule ? (

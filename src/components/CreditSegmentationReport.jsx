@@ -44,13 +44,16 @@ export default function CreditSegmentationReport() {
     if (!rows) return null;
     const analyzed = rows.filter((r) => r.status !== "insufficient_data");
     const bucketCounts = Object.fromEntries(BUCKETS.map((b) => [b, analyzed.filter((r) => r.recommended_bucket_days === b).length]));
+    const bucketRevenue = Object.fromEntries(BUCKETS.map((b) => [
+      b, analyzed.filter((r) => r.recommended_bucket_days === b).reduce((s, r) => s + r.expected_monthly_revenue, 0),
+    ]));
     const best = rows.filter((r) => r.status === "best");
     const restrict = rows.filter((r) => r.status === "restrict");
     const insufficient = rows.filter((r) => r.status === "insufficient_data");
     const mismatched = analyzed.filter((r) => r.sahab_mismatch);
     const netOpportunity = best.reduce((s, r) => s + (r.suggested_credit_limit - r.current_credit_limit), 0)
       + restrict.reduce((s, r) => s + (r.suggested_credit_limit - r.current_credit_limit), 0);
-    return { bucketCounts, best, restrict, insufficient, mismatched, netOpportunity, total: rows.length };
+    return { bucketCounts, bucketRevenue, best, restrict, insufficient, mismatched, netOpportunity, total: rows.length };
   }, [rows]);
 
   const toggleSort = (col) => {
@@ -153,6 +156,27 @@ export default function CreditSegmentationReport() {
                   {b} {t("daysShort")} ({summary.bucketCounts[b] || 0})
                 </button>
               ))}
+            </div>
+
+            <div className="table-wrap" style={{ marginBottom: 14 }}>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>{t("creditSegBucket")}</th>
+                    <th>{t("creditSegAnalyzed")}</th>
+                    <th>{t("creditSegNetRevenuePerBucket")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {BUCKETS.map((b) => (
+                    <tr key={b}>
+                      <td><span className="fu-tag sm ok">{b} {t("daysShort")}</span></td>
+                      <td>{summary.bucketCounts[b] || 0}</td>
+                      <td><strong><RiyalAmount amount={summary.bucketRevenue[b] || 0} /></strong></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </>
         )}

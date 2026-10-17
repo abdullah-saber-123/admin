@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { Layers, Search, ArrowUp, ArrowDown, ArrowUpDown, AlertTriangle, Download } from "lucide-react";
+import { Layers, Search, ArrowUp, ArrowDown, ArrowUpDown, AlertTriangle, Download, BookOpen } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
 import { useToast } from "../toast.jsx";
@@ -22,6 +22,7 @@ export default function CreditSegmentationReport() {
   const [sortBy, setSortBy] = useState("suggested_credit_limit");
   const [sortDir, setSortDir] = useState("desc");
   const [exporting, setExporting] = useState(false);
+  const [exportingMethodology, setExportingMethodology] = useState(false);
 
   useEffect(() => {
     api.creditSegmentation().then(setData).catch((e) => setError(e.message));
@@ -35,6 +36,17 @@ export default function CreditSegmentationReport() {
       showToast(e.message, "error");
     } finally {
       setExporting(false);
+    }
+  };
+
+  const handleExportMethodologyPdf = async () => {
+    setExportingMethodology(true);
+    try {
+      await api.creditSegmentationMethodologyPdf(lang);
+    } catch (e) {
+      showToast(e.message, "error");
+    } finally {
+      setExportingMethodology(false);
     }
   };
 
@@ -104,10 +116,16 @@ export default function CreditSegmentationReport() {
               <p className="panel-sub" style={{ marginTop: 4 }}>{t("creditSegmentationHint")}</p>
             </div>
           </div>
-          <button className="btn-secondary sm" onClick={handleExportPdf} disabled={exporting || !data}>
-            <Download size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
-            {exporting ? t("exporting") : t("exportPdfButton")}
-          </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="btn-secondary sm" onClick={handleExportMethodologyPdf} disabled={exportingMethodology}>
+              <BookOpen size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
+              {exportingMethodology ? t("exporting") : t("methodologyPdfButton")}
+            </button>
+            <button className="btn-secondary sm" onClick={handleExportPdf} disabled={exporting || !data}>
+              <Download size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
+              {exporting ? t("exporting") : t("exportPdfButton")}
+            </button>
+          </div>
         </div>
 
         {error && <div className="error-state">{error}</div>}
@@ -178,6 +196,37 @@ export default function CreditSegmentationReport() {
                 </tbody>
               </table>
             </div>
+
+            {data?.bucket_allocation?.length > 0 && (
+              <div className="table-wrap" style={{ marginBottom: 14 }}>
+                <div style={{ marginBottom: 6 }}>
+                  <strong style={{ fontSize: 13 }}>{t("creditSegAllocationTitle")}</strong>
+                  <p className="panel-sub" style={{ marginTop: 2 }}>{t("creditSegAllocationHint")}</p>
+                </div>
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>{t("creditSegBucket")}</th>
+                      <th>{t("creditSegAllocationCurrentTotal")}</th>
+                      <th>{t("creditSegAllocationTargetTotal")}</th>
+                      <th>{t("creditSegAllocationGap")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.bucket_allocation.map((a) => (
+                      <tr key={a.bucket_days}>
+                        <td><span className="fu-tag sm ok">{a.bucket_days} {t("daysShort")}</span></td>
+                        <td><RiyalAmount amount={a.current_total} /></td>
+                        <td><RiyalAmount amount={a.target_total} /></td>
+                        <td style={{ color: a.gap > 0 ? "var(--ok)" : a.gap < 0 ? "var(--danger)" : "var(--text-faint)", fontWeight: 700 }}>
+                          {a.gap > 0 ? "+" : ""}<RiyalAmount amount={a.gap} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </>
         )}
 
@@ -204,6 +253,9 @@ export default function CreditSegmentationReport() {
                     <td data-label={t("customer")}>
                       <strong>{r.name}</strong>
                       {r.sahab_mismatch && <div><span className="fu-tag sm warn" title={t("creditSegMismatchHint")}>{t("creditSegMismatch")}</span></div>}
+                      {r.is_volatile && (
+                        <div><span className="fu-tag sm faint" title={t("creditSegVolatileHint").replace("{x}", r.volatility_ratio)}>{t("creditSegVolatile")}</span></div>
+                      )}
                     </td>
                     {r.status === "insufficient_data" ? (
                       <td colSpan={9} data-label="">
@@ -233,10 +285,20 @@ export default function CreditSegmentationReport() {
                               a plain arrow glyph doesn't flip direction in RTL layout, so it
                               visually read backwards even though the values were always correct. */}
                           <div style={{ fontSize: 10, color: "var(--text-faint)" }}>{t("creditSegCurrentLimit")}: <RiyalAmount amount={r.current_credit_limit} /></div>
-                          <div><strong>{t("creditSegSuggestedLimit")}: <RiyalAmount amount={r.suggested_credit_limit} /></strong></div>
+                          {/* A volatile customer's fixed limit is dimmed (not bolded like a
+                              normal row) so a quick glance doesn't read it as a reliable
+                              number - the plan cell below is the one to trust instead. */}
+                          <div style={r.is_volatile ? { opacity: 0.55 } : undefined}>
+                            <strong>{t("creditSegSuggestedLimit")}: <RiyalAmount amount={r.suggested_credit_limit} /></strong>
+                          </div>
                           {r.capacity_cap !== null && r.suggested_credit_limit === r.capacity_cap && (
                             <div style={{ fontSize: 10, color: "var(--text-faint)" }} title={t("creditSegCapacityCapHint")}>
                               {t("creditSegCapacityCapped")}
+                            </div>
+                          )}
+                          {r.is_volatile && (
+                            <div style={{ fontSize: 10, color: "var(--warn)" }} title={t("creditSegVolatileHint").replace("{x}", r.volatility_ratio)}>
+                              {t("creditSegLimitApprox")}
                             </div>
                           )}
                         </td>
@@ -248,7 +310,7 @@ export default function CreditSegmentationReport() {
                           ) : r.trend === "down" || r.trend === "stopped" ? (
                             <span className="fu-tag sm faint">{t("creditSegNoPlanSuggestion")}</span>
                           ) : (
-                            <span className="fu-tag sm ok">
+                            <span className="fu-tag sm ok" style={r.is_volatile ? { fontWeight: 800, fontSize: 12 } : undefined}>
                               {r.suggested_schedule_percent}% / {r.suggested_schedule_period_days} {t("daysShort")}
                             </span>
                           )}

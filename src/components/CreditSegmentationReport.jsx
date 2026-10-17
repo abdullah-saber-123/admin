@@ -1,7 +1,8 @@
 import { useEffect, useState, useMemo } from "react";
-import { Layers, Search, ArrowUp, ArrowDown, ArrowUpDown, AlertTriangle } from "lucide-react";
+import { Layers, Search, ArrowUp, ArrowDown, ArrowUpDown, AlertTriangle, Download } from "lucide-react";
 import { api } from "../api";
 import { useLang } from "../i18n.jsx";
+import { useToast } from "../toast.jsx";
 import RiyalAmount from "./RiyalAmount.jsx";
 
 const BUCKETS = [30, 45, 60, 90, 120];
@@ -11,7 +12,8 @@ const TREND_ICON = { up: "▲", down: "▼", flat: "●", stopped: "■" };
 const TREND_TONE = { up: "ok", down: "danger", flat: "faint", stopped: "danger" };
 
 export default function CreditSegmentationReport() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const { showToast } = useToast();
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [bucketFilter, setBucketFilter] = useState(null);
@@ -19,10 +21,22 @@ export default function CreditSegmentationReport() {
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("suggested_credit_limit");
   const [sortDir, setSortDir] = useState("desc");
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     api.creditSegmentation().then(setData).catch((e) => setError(e.message));
   }, []);
+
+  const handleExportPdf = async () => {
+    setExporting(true);
+    try {
+      await api.creditSegmentationExportPdf(lang);
+    } catch (e) {
+      showToast(e.message, "error");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const rows = data?.rows ?? null;
 
@@ -79,12 +93,18 @@ export default function CreditSegmentationReport() {
   return (
     <div className="content-stack" style={{ maxWidth: "100%" }}>
       <div className="panel">
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 4 }}>
-          <Layers size={16} style={{ marginTop: 2 }} />
-          <div>
-            <h2 style={{ margin: 0 }}>{t("creditSegmentationTitle")}</h2>
-            <p className="panel-sub" style={{ marginTop: 4 }}>{t("creditSegmentationHint")}</p>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 4 }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+            <Layers size={16} style={{ marginTop: 2 }} />
+            <div>
+              <h2 style={{ margin: 0 }}>{t("creditSegmentationTitle")}</h2>
+              <p className="panel-sub" style={{ marginTop: 4 }}>{t("creditSegmentationHint")}</p>
+            </div>
           </div>
+          <button className="btn-secondary sm" onClick={handleExportPdf} disabled={exporting || !data}>
+            <Download size={13} style={{ verticalAlign: -2, marginInlineEnd: 5 }} />
+            {exporting ? t("exporting") : t("exportPdfButton")}
+          </button>
         </div>
 
         {error && <div className="error-state">{error}</div>}

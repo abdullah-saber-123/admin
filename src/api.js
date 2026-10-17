@@ -267,6 +267,7 @@ export const api = {
     return request(`/api/admin/customer-scores${qs ? `?${qs}` : ""}`);
   },
   creditSegmentation: () => request("/api/admin/credit-segmentation"),
+  creditSegmentationExportPdf: (lang) => requestBlob(`/api/admin/credit-segmentation/export.pdf?lang=${lang}`),
   customerAnalyticsOverview: (params = {}) => {
     const qs = buildQueryString(params);
     return request(`/api/admin/customer-analytics/overview${qs ? `?${qs}` : ""}`);

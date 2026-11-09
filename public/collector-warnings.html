@@ -98,6 +98,8 @@
   .btn:disabled, .btn[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }
 
   /* recipients */
+  .check { display: flex; align-items: center; gap: 8px; font-weight: 500; margin: 8px 0 0; cursor: pointer; }
+  .check input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
   .rcpt { border: 1px solid var(--border); border-radius: 10px; padding: 10px; background: var(--field); }
   .rcpt + .rcpt { margin-top: 10px; }
   .rcpt .head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
@@ -163,12 +165,13 @@
 
   .sigs { margin-top: auto; padding-top: 28px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; font-size: 13px; }
   .sigs.two { grid-template-columns: repeat(2, 1fr); }
+  .sigs.one { grid-template-columns: minmax(0, 1fr); max-width: 60%; }
   .sig { border: 1px solid #cfd5dd; border-radius: 6px; padding: 8px 10px; min-height: 108px; display: flex; flex-direction: column; }
   .sig b { font-size: 13px; color: #1f4e79; }
   .sig .muted { color: #666; }
   .sig .line { margin-top: auto; border-top: 1px dotted #888; padding-top: 4px; color: #666; font-size: 12px; }
   @media (max-width: 640px) {
-    .sigs, .sigs.two { grid-template-columns: 1fr; }
+    .sigs, .sigs.two, .sigs.one { grid-template-columns: 1fr; max-width: none; }
     table.info td.k { white-space: normal; } table.info td { padding: 5px 6px; }
   }
   .lfoot { margin-top: 12px; font-size: 11px; color: #777; text-align: center; }
@@ -189,6 +192,7 @@
     .letter.skip { display: none; }
     .sigs { grid-template-columns: repeat(3, 1fr); }
     .sigs.two { grid-template-columns: repeat(2, 1fr); }
+    .sigs.one { grid-template-columns: minmax(0, 1fr); }
     table.info td.k { white-space: nowrap; }
   }
 </style>
@@ -249,7 +253,7 @@
     </div>
 
     <div class="section">
-      <h2>٤. جهة الإصدار</h2>
+      <h2>٤. جهة الإصدار والتواقيع</h2>
       <div class="seg three" id="issuerMode">
         <button type="button" data-m="hide">بدون جهة إصدار</button>
         <button type="button" data-m="dept">الإدارة فقط</button>
@@ -275,6 +279,8 @@
           <input id="issuerTitle" placeholder="المدير المالي" />
         </div>
       </div>
+      <label class="check"><input type="checkbox" id="showHr" /> إظهار خانة الموارد البشرية</label>
+      <label class="check"><input type="checkbox" id="showAck" /> إظهار خانة إقرار الاستلام (توقيع المحصل)</label>
     </div>
 
     <div class="actions">
@@ -332,10 +338,10 @@
     <div class="notes" data-f="notesWrap"><b>ملاحظات: </b><span data-f="notes"></span></div>
     <div class="sigs" data-f="sigs">
       <div class="sig" data-f="issuerSig"><b data-f="issuerDept"></b><span data-f="issuerName"></span><span class="muted" data-f="issuerTitle"></span><div class="line">التوقيع</div></div>
-      <div class="sig"><b>الموارد البشرية</b><span>للعلم والحفظ في الملف</span><div class="line">التوقيع والختم</div></div>
-      <div class="sig"><b>إقرار الاستلام</b><span>أقر بأنني استلمت هذا الخطاب واطلعت على محتواه.</span><div class="line">التوقيع: ............ التاريخ: ..../..../........</div></div>
+      <div class="sig" data-f="hrSig"><b>الموارد البشرية</b><span>للعلم والحفظ في الملف</span><div class="line">التوقيع والختم</div></div>
+      <div class="sig" data-f="ackSig"><b>إقرار الاستلام</b><span>أقر بأنني استلمت هذا الخطاب واطلعت على محتواه.</span><div class="line">التوقيع: ............ التاريخ: ..../..../........</div></div>
     </div>
-    <div class="lfoot">نسخة للموظف — نسخة لملف الموظف — نسخة للإدارة</div>
+    <div class="lfoot" data-f="copies"></div>
   </article>
 </template>
 
@@ -358,6 +364,10 @@
 
   // ---------- Ready-made reasons ({incident} = violation date phrase) ----------
   var REASONS = [
+    { id: "monthly_plan", label: "عدم رفع الخطة الشهرية", title: "عدم رفع الخطة الشهرية على المنصة",
+      body: "نود إشعارك بأنه تبيّن عدم قيامك برفع خطة التحصيل الشهرية على المنصة في الموعد المحدد {incident}، رغم التذكير بأهمية رفعها لتتمكن الإدارة من متابعة أعمال التحصيل وتوزيع العملاء ومراجعة المستهدفات.\n\nعليه، نطلب منك رفع الخطة الشهرية على المنصة فوراً، والالتزام برفعها في بداية كل شهر وفي الموعد الذي تحدده الإدارة." },
+    { id: "platform", label: "عدم التواجد في المنصة وتسجيل المتابعات", title: "عدم التواجد داخل المنصة وتسجيل المتابعات",
+      body: "نود إشعارك بأنه تبيّن عدم تواجدك داخل المنصة خلال أوقات العمل وعدم تسجيل متابعاتك مع العملاء عليها {incident}، مما يؤثر على متابعة حسابات العملاء ودقة التقارير ويُعيق الإدارة عن معرفة سير العمل.\n\nعليه، نؤكد عليك ضرورة الدخول إلى المنصة بشكل يومي والتواجد عليها خلال أوقات العمل، وتسجيل جميع الزيارات والاتصالات والمتابعات ونتائجها ووعود السداد أولاً بأول." },
     { id: "late_deposit", label: "تأخير توريد المبالغ", title: "التأخر في توريد المبالغ المحصلة",
       body: "نود إشعارك بأنه تبيّن تأخرك في توريد المبالغ النقدية المحصلة من العملاء {incident}، وعدم إيداعها في الحساب أو تسليمها للخزينة خلال المدة المحددة، وهو ما يخالف إجراءات التحصيل المعتمدة التي تُلزم بتوريد المبالغ في نفس يوم التحصيل.\n\nعليه، نؤكد عليك ضرورة توريد كامل المبالغ المحصلة في وقتها وتسليم ما يثبت ذلك للإدارة." },
     { id: "shortage", label: "عجز في العهدة", title: "وجود عجز في المبالغ المحصلة / العهدة",
@@ -401,7 +411,9 @@
   var state = {
     type: "w1", reason: null, bodyEdited: false, consEdited: false,
     refBase: newRefBase(), recipients: [blankRcpt()], regView: "sum",
-    issuerMode: load("cw_issuer_mode", "dept")
+    issuerMode: load("cw_issuer_mode", "dept"),
+    showHr: load("cw_show_hr", true) !== false,
+    showAck: load("cw_show_ack", true) !== false
   };
   if (["hide", "dept", "full"].indexOf(state.issuerMode) < 0) state.issuerMode = "dept";
 
@@ -485,6 +497,9 @@
     state.issuerMode = b.dataset.m; save("cw_issuer_mode", state.issuerMode);
     refresh();
   });
+
+  $("showHr").addEventListener("change", function (e) { state.showHr = e.target.checked; save("cw_show_hr", state.showHr); refresh(); });
+  $("showAck").addEventListener("change", function (e) { state.showAck = e.target.checked; save("cw_show_ack", state.showAck); refresh(); });
 
   function selectReason(id) {
     if (els.body.value.trim() && state.bodyEdited && !confirm("سيتم استبدال نص الخطاب الذي عدّلته. متابعة؟")) return;
@@ -616,8 +631,17 @@
     fill(el, "body", els.body.value.trim(), "اختر صيغة جاهزة من الأسباب أو اكتب نص الخطاب يدوياً.");
     var c = fill(el, "consequence", cons); c.style.color = t.color; c.style.display = cons ? "" : "none";
     fill(el, "notes", notes); el.querySelector('[data-f="notesWrap"]').style.display = notes ? "" : "none";
-    if (!iss.show) { el.querySelector('[data-f="issuerSig"]').remove(); el.querySelector('[data-f="sigs"]').classList.add("two"); }
+    if (!iss.show) el.querySelector('[data-f="issuerSig"]').remove();
     else { fill(el, "issuerDept", iss.dept); fill(el, "issuerName", iss.name); fill(el, "issuerTitle", iss.title); }
+    if (!state.showHr) el.querySelector('[data-f="hrSig"]').remove();
+    if (!state.showAck) el.querySelector('[data-f="ackSig"]').remove();
+    var sigs = el.querySelector('[data-f="sigs"]'), nSig = sigs.children.length;
+    if (!nSig) sigs.remove(); else if (nSig === 2) sigs.classList.add("two"); else if (nSig === 1) sigs.classList.add("one");
+    var copies = ["نسخة للموظف"];
+    if (state.showHr) copies.push("نسخة لملف الموظف");
+    if (iss.show) copies.push("نسخة " + (iss.dept.indexOf("ال") === 0 ? "لل" + iss.dept.slice(2) : "ل" + iss.dept));
+    var cp = fill(el, "copies", copies.length > 1 ? copies.join(" — ") : "");
+    if (copies.length < 2) cp.remove();
     return el;
   }
   function renderLetters() {
@@ -840,6 +864,8 @@
   var iss = load("cw_issuer", null);
   els.dept.value = (iss && iss.d) || "الإدارة المالية";
   if (iss) { els.issuer.value = iss.n || ""; els.issuerTitle.value = iss.t || ""; }
+  $("showHr").checked = state.showHr;
+  $("showAck").checked = state.showAck;
   buildRecipients();
   refresh();
   renderRegister();

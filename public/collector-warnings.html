@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>إنذارات المحصلين</title>
+<link rel="icon" href="/swag-mark.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --panel: #ffffff;
+    --text: #1d2330;
+    --muted: #6b7280;
+    --border: #e3e6eb;
+    --accent: #1f4e79;
+    --accent-soft: #e8eff7;
+    --field: #fbfbfc;
+    --notice: #b7791f;
+    --w1: #c05621;
+    --w2: #c53030;
+    --final: #822727;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b1f27; --text: #e6e8ec; --muted: #9aa1ad;
+      --border: #2c323d; --accent: #7fb0e0; --accent-soft: #1f2a38; --field: #161a21;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b1f27; --text: #e6e8ec; --muted: #9aa1ad;
+    --border: #2c323d; --accent: #7fb0e0; --accent-soft: #1f2a38; --field: #161a21;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: "IBM Plex Sans Arabic", Tahoma, sans-serif; font-size: 15px; line-height: 1.6;
+  }
+  header.top {
+    display: flex; align-items: center; gap: 12px; padding: 14px 20px;
+    background: var(--panel); border-bottom: 1px solid var(--border);
+  }
+  header.top img { width: 34px; height: 34px; }
+  header.top h1 { font-size: 18px; margin: 0; }
+  header.top p { margin: 0; color: var(--muted); font-size: 13px; }
+
+  .layout {
+    display: grid; grid-template-columns: minmax(320px, 440px) 1fr; gap: 20px;
+    padding: 20px; max-width: 1400px; margin: 0 auto;
+  }
+  @media (max-width: 960px) { .layout { grid-template-columns: minmax(0, 1fr); padding: 16px; } }
+  .layout > * { min-width: 0; }
+  .row > * { min-width: 0; }
+
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+  .panel h2 { font-size: 15px; margin: 0 0 12px; color: var(--accent); }
+  .section + .section { margin-top: 18px; padding-top: 16px; border-top: 1px dashed var(--border); }
+
+  label { display: block; font-size: 13px; font-weight: 600; margin: 10px 0 4px; }
+  label .opt { font-weight: 400; color: var(--muted); }
+  input, textarea, select {
+    width: 100%; font: inherit; color: var(--text); background: var(--field);
+    border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px;
+  }
+  textarea { resize: vertical; min-height: 140px; }
+  input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .types { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  @media (max-width: 420px) { .types { grid-template-columns: repeat(2, 1fr); } }
+  .types button {
+    font: inherit; font-size: 13px; font-weight: 600; padding: 8px 4px; border-radius: 8px; cursor: pointer;
+    background: var(--field); color: var(--text); border: 1px solid var(--border);
+  }
+  .types button[aria-pressed="true"] { color: #fff; border-color: transparent; }
+  .types button[data-t="notice"][aria-pressed="true"] { background: var(--notice); }
+  .types button[data-t="w1"][aria-pressed="true"] { background: var(--w1); }
+  .types button[data-t="w2"][aria-pressed="true"] { background: var(--w2); }
+  .types button[data-t="final"][aria-pressed="true"] { background: var(--final); }
+
+  .reasons { display: flex; flex-wrap: wrap; gap: 6px; }
+  .reasons button {
+    font: inherit; font-size: 13px; padding: 5px 10px; border-radius: 999px; cursor: pointer;
+    background: var(--field); color: var(--text); border: 1px solid var(--border);
+  }
+  .reasons button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .reasons button.custom { border-style: dashed; }
+
+  .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .btn {
+    font: inherit; font-weight: 600; font-size: 14px; padding: 9px 16px; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--field); color: var(--text);
+  }
+  .btn.primary { background: var(--accent); color: #fff; border-color: transparent; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* ---------- Letter (A4) ---------- */
+  .preview-wrap { overflow-x: auto; }
+  .letter {
+    background: #fff; color: #111; width: 100%; max-width: 210mm; min-height: 297mm; margin: 0 auto;
+    padding: 18mm 18mm 16mm; border-radius: 4px; box-shadow: 0 4px 24px rgba(0,0,0,.12);
+    display: flex; flex-direction: column; font-size: 14.5px; line-height: 1.9;
+  }
+  @media (max-width: 640px) { .letter { padding: 20px 16px; min-height: auto; font-size: 13.5px; } }
+  .lh { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1f4e79; padding-bottom: 10px; }
+  .lh .brand { display: flex; align-items: center; gap: 10px; }
+  .lh .brand img { width: 46px; height: 46px; }
+  .lh .brand b { font-size: 17px; color: #1f4e79; display: block; line-height: 1.3; }
+  .lh .brand span { font-size: 12px; color: #555; }
+  .lh .meta { font-size: 12.5px; text-align: left; line-height: 1.7; }
+  .lh .meta div span { color: #666; }
+
+  .title { text-align: center; margin: 22px 0 6px; }
+  .title h3 {
+    display: inline-block; margin: 0; font-size: 22px; padding: 4px 26px; border-radius: 6px;
+    border: 2px solid currentColor;
+  }
+  .title .sub { font-size: 13px; color: #555; margin-top: 6px; }
+
+  table.info { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13.5px; }
+  table.info td { border: 1px solid #cfd5dd; padding: 6px 10px; }
+  table.info td.k { background: #f1f4f8; font-weight: 600; width: 22%; white-space: nowrap; }
+
+  .salute { margin: 6px 0 4px; font-weight: 600; }
+  .body { white-space: pre-wrap; text-align: justify; }
+  .consequence {
+    margin-top: 14px; padding: 10px 14px; border-right: 4px solid currentColor; background: #f8f8f8;
+    font-weight: 500;
+  }
+  .notes { margin-top: 12px; font-size: 13.5px; }
+  .notes b { display: block; }
+
+  .sigs { margin-top: auto; padding-top: 28px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; font-size: 13px; }
+  .sig { border: 1px solid #cfd5dd; border-radius: 6px; padding: 8px 10px; min-height: 108px; display: flex; flex-direction: column; }
+  .sig b { font-size: 13px; color: #1f4e79; }
+  .sig .line { margin-top: auto; border-top: 1px dotted #888; padding-top: 4px; color: #666; font-size: 12px; }
+  @media (max-width: 640px) { .sigs { grid-template-columns: 1fr; } table.info td.k { white-space: normal; } table.info td { padding: 5px 6px; } }
+  .foot { margin-top: 12px; font-size: 11px; color: #777; text-align: center; }
+
+  .empty { color: #b0b6c0; }
+
+  /* history */
+  .history { margin-top: 10px; max-height: 240px; overflow: auto; font-size: 13px; }
+  .history .h {
+    display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border);
+  }
+  .history .h small { color: var(--muted); }
+  .pill { font-size: 11px; padding: 1px 8px; border-radius: 999px; color: #fff; white-space: nowrap; }
+  .counter { font-size: 12px; margin-top: 6px; padding: 6px 10px; border-radius: 8px; background: var(--accent-soft); color: var(--accent); display: none; }
+
+  @media print {
+    @page { size: A4; margin: 0; }
+    body { background: #fff; }
+    header.top, .form-col, .no-print { display: none !important; }
+    .layout { display: block; padding: 0; max-width: none; }
+    .panel { border: 0; padding: 0; background: #fff; }
+    .letter { box-shadow: none; border-radius: 0; max-width: none; width: 210mm; min-height: 297mm; padding: 16mm 18mm 14mm; font-size: 14.5px; }
+    .sigs { grid-template-columns: repeat(3, 1fr); }
+    .consequence, table.info td.k { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <img src="/swag-mark.png" alt="" />
+  <div>
+    <h1>خطابات التنبيه والإنذار للمحصلين</h1>
+    <p>اكتب اسم المحصل، اختر نوع الخطاب والسبب من الصيغ الجاهزة أو اكتبه يدوياً، ثم اطبع أو احفظ PDF</p>
+  </div>
+</header>
+
+<main class="layout">
+  <!-- ============ FORM ============ -->
+  <section class="panel form-col">
+    <div class="section">
+      <h2>١. نوع الخطاب</h2>
+      <div class="types" id="types">
+        <button type="button" data-t="notice">تنبيه</button>
+        <button type="button" data-t="w1">إنذار أول</button>
+        <button type="button" data-t="w2">إنذار ثانٍ</button>
+        <button type="button" data-t="final">إنذار نهائي</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>٢. بيانات المحصل</h2>
+      <label for="name">اسم المحصل *</label>
+      <input id="name" list="namesList" autocomplete="off" placeholder="مثال: محمد عبدالله" />
+      <datalist id="namesList"></datalist>
+      <div class="counter" id="counter"></div>
+      <div class="row">
+        <div>
+          <label for="empId">الرقم الوظيفي <span class="opt">(اختياري)</span></label>
+          <input id="empId" />
+        </div>
+        <div>
+          <label for="area">الفرع / المنطقة <span class="opt">(اختياري)</span></label>
+          <input id="area" />
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label for="date">تاريخ الخطاب</label>
+          <input id="date" type="date" />
+        </div>
+        <div>
+          <label for="incidentDate">تاريخ المخالفة <span class="opt">(اختياري)</span></label>
+          <input id="incidentDate" type="date" />
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>٣. سبب الخطاب</h2>
+      <div class="reasons" id="reasons"></div>
+      <label for="reasonTitle">السبب (يظهر في الخطاب)</label>
+      <input id="reasonTitle" placeholder="اكتب سبب الإنذار" />
+      <label for="body">نص الخطاب</label>
+      <textarea id="body" rows="9" placeholder="اختر صيغة جاهزة أو اكتب نص الخطاب يدوياً"></textarea>
+      <div class="hint">تقدر تعدّل النص بحرية. اسم المحصل يتحدّث تلقائياً في الصيغ الجاهزة ما لم تعدّل النص.</div>
+      <label for="consequence">الإجراء المترتب</label>
+      <textarea id="consequence" rows="3" style="min-height:70px"></textarea>
+      <label for="notes">ملاحظات / تفاصيل إضافية <span class="opt">(اختياري)</span></label>
+      <textarea id="notes" rows="3" style="min-height:70px" placeholder="مثال: رقم العميل، المبلغ، أرقام السندات..."></textarea>
+    </div>
+
+    <div class="section">
+      <h2>٤. جهة الإصدار</h2>
+      <div class="row">
+        <div>
+          <label for="issuer">اسم المُصدِر</label>
+          <input id="issuer" placeholder="مدير التحصيل" />
+        </div>
+        <div>
+          <label for="issuerTitle">المسمى الوظيفي</label>
+          <input id="issuerTitle" placeholder="مدير إدارة التحصيل" />
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" id="printBtn" type="button">طباعة / حفظ PDF</button>
+      <button class="btn" id="copyBtn" type="button">نسخ النص</button>
+      <button class="btn" id="resetBtn" type="button">خطاب جديد</button>
+    </div>
+    <div class="hint" id="status" role="status"></div>
+
+    <div class="section">
+      <h2>سجل الخطابات المطبوعة <span class="opt" style="font-weight:400;color:var(--muted);font-size:12px">(محفوظ على هذا الجهاز فقط)</span></h2>
+      <div class="history" id="history"></div>
+    </div>
+  </section>
+
+  <!-- ============ PREVIEW ============ -->
+  <section class="panel">
+    <div class="preview-wrap">
+      <article class="letter" id="letter">
+        <div class="lh">
+          <div class="brand">
+            <img src="/swag-mark.png" alt="" />
+            <div><b>إدارة التحصيل</b><span>خطاب داخلي — سري</span></div>
+          </div>
+          <div class="meta">
+            <div><span>الرقم: </span><b id="pRef"></b></div>
+            <div><span>التاريخ: </span><b id="pDate"></b></div>
+          </div>
+        </div>
+
+        <div class="title"><h3 id="pType"></h3><div class="sub" id="pReasonSub"></div></div>
+
+        <table class="info">
+          <tr><td class="k">اسم المحصل</td><td id="pName"></td><td class="k">الرقم الوظيفي</td><td id="pEmp"></td></tr>
+          <tr><td class="k">الفرع / المنطقة</td><td id="pArea"></td><td class="k">تاريخ المخالفة</td><td id="pIncident"></td></tr>
+          <tr><td class="k">سبب الخطاب</td><td id="pReason" colspan="3"></td></tr>
+        </table>
+
+        <div class="salute" id="pSalute"></div>
+        <div class="body" id="pBody"></div>
+        <div class="consequence" id="pConsequence"></div>
+        <div class="notes" id="pNotesWrap"><b>ملاحظات:</b><span id="pNotes" style="white-space:pre-wrap"></span></div>
+
+        <div class="sigs">
+          <div class="sig"><b>المُصدِر</b><span id="pIssuer"></span><span id="pIssuerTitle" style="color:#666"></span><div class="line">التوقيع</div></div>
+          <div class="sig"><b>الموارد البشرية</b><span>للعلم والحفظ في الملف</span><div class="line">التوقيع والختم</div></div>
+          <div class="sig"><b>إقرار الاستلام</b><span>أقر بأنني استلمت هذا الخطاب واطلعت على محتواه.</span><div class="line">التوقيع: ............ التاريخ: ..../..../........</div></div>
+        </div>
+        <div class="foot">نسخة للموظف — نسخة لملف الموظف — نسخة لإدارة التحصيل</div>
+      </article>
+    </div>
+  </section>
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------- Letter types ----------
+  var TYPES = {
+    notice: {
+      label: "تنبيه", color: "#b7791f",
+      consequence: "يُعد هذا الخطاب تنبيهاً كتابياً، ونأمل منك الالتزام وعدم تكرار ذلك مستقبلاً، علماً بأنه في حال التكرار سيتم توجيه إنذار رسمي."
+    },
+    w1: {
+      label: "إنذار أول", color: "#c05621",
+      consequence: "يُعد هذا الخطاب إنذاراً أول، وفي حال تكرار المخالفة سيتم اتخاذ الإجراء النظامي المناسب وفق لائحة تنظيم العمل المعتمدة في الشركة."
+    },
+    w2: {
+      label: "إنذار ثانٍ", color: "#c53030",
+      consequence: "يُعد هذا الخطاب إنذاراً ثانياً، وفي حال تكرار المخالفة سيتم تطبيق الجزاء المنصوص عليه في لائحة تنظيم العمل، بما في ذلك الحسم من الأجر."
+    },
+    final: {
+      label: "إنذار نهائي", color: "#822727",
+      consequence: "يُعد هذا الخطاب إنذاراً نهائياً، وفي حال تكرار المخالفة أو أي مخالفة أخرى سيتم اتخاذ الإجراءات النظامية التي قد تصل إلى إنهاء العلاقة التعاقدية وفق نظام العمل ولائحة تنظيم العمل."
+    }
+  };
+
+  // ---------- Ready-made reasons ----------
+  // {name} is replaced with the collector's name, {incident} with the violation date phrase.
+  var REASONS = [
+    { id: "late_deposit", label: "تأخير توريد المبالغ",
+      title: "التأخر في توريد المبالغ المحصلة",
+      body: "نود إشعارك بأنه تبيّن تأخرك في توريد المبالغ النقدية المحصلة من العملاء {incident}، وعدم إيداعها في الحساب أو تسليمها للخزينة خلال المدة المحددة، وهو ما يخالف إجراءات التحصيل المعتمدة التي تُلزم بتوريد المبالغ في نفس يوم التحصيل.\n\nعليه، نؤكد عليك ضرورة توريد كامل المبالغ المحصلة في وقتها وتسليم ما يثبت ذلك لإدارة التحصيل." },
+    { id: "shortage", label: "عجز في العهدة",
+      title: "وجود عجز في المبالغ المحصلة / العهدة",
+      body: "نود إشعارك بأنه عند مطابقة المبالغ المحصلة مع السندات والمبالغ الموردة {incident}، تبيّن وجود عجز في العهدة المسلّمة إليك دون مبرر مقبول.\n\nعليه، نطلب منك تسوية مبلغ العجز فوراً وتقديم التوضيح اللازم لإدارة التحصيل، مع الالتزام بالدقة التامة في استلام وتسليم المبالغ." },
+    { id: "no_receipt", label: "تحصيل بدون سند",
+      title: "تحصيل مبالغ دون إصدار سند قبض",
+      body: "نود إشعارك بأنه تبيّن قيامك باستلام مبالغ من العملاء {incident} دون إصدار سند قبض رسمي أو دون تسجيلها في النظام، وهو ما يخالف سياسة الشركة ويعرّض حقوق الشركة والعميل للخطر.\n\nعليه، نؤكد عليك ضرورة إصدار سند قبض رسمي لكل مبلغ يتم تحصيله وتسجيله في النظام فوراً." },
+    { id: "no_logging", label: "عدم تسجيل المتابعات",
+      title: "عدم تسجيل الزيارات والمتابعات في النظام",
+      body: "نود إشعارك بأنه تبيّن عدم قيامك بتسجيل زياراتك واتصالاتك ومتابعاتك مع العملاء في النظام بشكل منتظم {incident}، مما يؤثر على دقة التقارير ومتابعة حسابات العملاء.\n\nعليه، نؤكد عليك ضرورة تسجيل جميع المتابعات ونتائجها ووعود السداد في النظام أولاً بأول." },
+    { id: "target", label: "عدم تحقيق المستهدف",
+      title: "عدم تحقيق المستهدف من التحصيل",
+      body: "نود إشعارك بأنه بمراجعة أدائك {incident}، تبيّن انخفاض نسبة التحصيل عن المستهدف المعتمد لك بشكل ملحوظ دون مبررات مقبولة، رغم المتابعة والتوجيه المستمر من الإدارة.\n\nعليه، نأمل منك بذل الجهد اللازم ووضع خطة واضحة لرفع نسبة التحصيل وتحقيق المستهدف خلال الفترة القادمة." },
+    { id: "plan", label: "عدم الالتزام بخطة الزيارات",
+      title: "عدم الالتزام بخطة الزيارات اليومية",
+      body: "نود إشعارك بأنه تبيّن عدم التزامك بخطة الزيارات المعتمدة {incident}، وعدم زيارة العملاء المحددين دون إبلاغ مسبق أو مبرر مقبول.\n\nعليه، نؤكد عليك ضرورة الالتزام بخطة الزيارات اليومية وإبلاغ مديرك المباشر مسبقاً عند وجود أي ظرف يمنع تنفيذها." },
+    { id: "promises", label: "وعود سداد غير موثقة",
+      title: "متابعة ضعيفة لوعود السداد",
+      body: "نود إشعارك بأنه تبيّن وجود وعود سداد مسجلة باسمك لم تتم متابعتها في مواعيدها {incident}، مما أدى إلى تأخر تحصيل مستحقات الشركة.\n\nعليه، نؤكد عليك ضرورة متابعة جميع وعود السداد في مواعيدها وتحديث حالتها في النظام، والتصعيد لمديرك المباشر في حال إخلال العميل بوعده." },
+    { id: "authority", label: "تجاوز الصلاحيات",
+      title: "منح خصومات أو مهل سداد دون صلاحية",
+      body: "نود إشعارك بأنه تبيّن قيامك بالاتفاق مع عميل/عملاء على خصومات أو تقسيط أو مهل سداد {incident} دون الحصول على موافقة مسبقة من الإدارة، وهو ما يتجاوز صلاحياتك المحددة.\n\nعليه، نؤكد عليك عدم الالتزام بأي اتفاق مع العملاء خارج حدود صلاحياتك إلا بعد الحصول على موافقة كتابية من الإدارة." },
+    { id: "conduct", label: "سوء التعامل مع العملاء",
+      title: "سوء التعامل مع العملاء",
+      body: "نود إشعارك بأنه وردتنا ملاحظة/شكوى بخصوص أسلوب تعاملك مع أحد العملاء {incident}، وهو ما لا يتوافق مع قيم الشركة ويسيء إلى سمعتها وعلاقتها مع عملائها.\n\nعليه، نؤكد عليك ضرورة الالتزام بالأسلوب المهني واللباقة في التعامل مع جميع العملاء مهما كانت الظروف." },
+    { id: "attendance", label: "التأخر / الغياب",
+      title: "التأخر عن الدوام أو الغياب دون عذر",
+      body: "نود إشعارك بأنه تبيّن تأخرك عن مواعيد العمل الرسمية / غيابك دون عذر مقبول أو إذن مسبق {incident}.\n\nعليه، نؤكد عليك ضرورة الالتزام بمواعيد العمل الرسمية وإبلاغ مديرك المباشر مسبقاً في حال وجود أي ظرف طارئ." },
+    { id: "unreachable", label: "عدم الرد على الإدارة",
+      title: "عدم الرد على اتصالات الإدارة أثناء العمل",
+      body: "نود إشعارك بأنه تبيّن عدم ردك على اتصالات ورسائل الإدارة أثناء ساعات العمل الميداني {incident}، مما أعاق متابعة سير العمل.\n\nعليه، نؤكد عليك ضرورة أن تكون متاحاً على وسائل التواصل طوال ساعات العمل والرد على الإدارة دون تأخير." },
+    { id: "docs", label: "عدم تسليم المستندات",
+      title: "عدم تسليم السندات والمستندات في وقتها",
+      body: "نود إشعارك بأنه تبيّن عدم تسليمك لسندات القبض والشيكات والمستندات الخاصة بالتحصيل لإدارة التحصيل في الوقت المحدد {incident}.\n\nعليه، نؤكد عليك ضرورة تسليم جميع المستندات الأصلية في نهاية كل يوم عمل أو في الموعد المحدد من الإدارة." }
+  ];
+  var CUSTOM = "custom";
+
+  // ---------- State ----------
+  var state = { type: "w1", reason: null, bodyEdited: false, titleEdited: false, consEdited: false, ref: newRef() };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var els = {
+    name: $("name"), empId: $("empId"), area: $("area"), date: $("date"), incidentDate: $("incidentDate"),
+    reasonTitle: $("reasonTitle"), body: $("body"), consequence: $("consequence"), notes: $("notes"),
+    issuer: $("issuer"), issuerTitle: $("issuerTitle")
+  };
+
+  function store(key, val) {
+    try {
+      if (val === undefined) return JSON.parse(localStorage.getItem(key) || "null");
+      localStorage.setItem(key, JSON.stringify(val));
+    } catch (e) { return null; }
+  }
+
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function todayISO() { var d = new Date(); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function newRef() {
+    var d = new Date();
+    return "WRN-" + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + "-" + Math.floor(100 + Math.random() * 900);
+  }
+  function fmtDate(iso) {
+    if (!iso) return "";
+    var p = iso.split("-");
+    var g = p[2] + "/" + p[1] + "/" + p[0] + "م";
+    try {
+      var h = new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura-nu-latn", { day: "numeric", month: "numeric", year: "numeric" })
+        .format(new Date(+p[0], +p[1] - 1, +p[2]));
+      return g + " الموافق " + h.replace(/\s?هـ$/, "") + "هـ";
+    } catch (e) { return g; }
+  }
+  function incidentPhrase() {
+    var d = els.incidentDate.value;
+    if (!d) return "مؤخراً";
+    var p = d.split("-");
+    return "بتاريخ " + p[2] + "/" + p[1] + "/" + p[0] + "م";
+  }
+  function fillTemplate(text) {
+    var name = els.name.value.trim() || "المحصل";
+    return text.replace(/\{name\}/g, name).replace(/\s?\{incident\}/g, " " + incidentPhrase()).replace(/ +،/g, "،");
+  }
+  function reasonById(id) { for (var i = 0; i < REASONS.length; i++) if (REASONS[i].id === id) return REASONS[i]; return null; }
+
+  // ---------- Build UI ----------
+  var reasonsEl = $("reasons");
+  REASONS.forEach(function (r) {
+    var b = document.createElement("button");
+    b.type = "button"; b.textContent = r.label; b.dataset.id = r.id;
+    reasonsEl.appendChild(b);
+  });
+  var cb = document.createElement("button");
+  cb.type = "button"; cb.className = "custom"; cb.textContent = "✎ سبب آخر (كتابة يدوية)"; cb.dataset.id = CUSTOM;
+  reasonsEl.appendChild(cb);
+
+  reasonsEl.addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    selectReason(b.dataset.id);
+  });
+  $("types").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    state.type = b.dataset.t;
+    if (!state.consEdited) els.consequence.value = TYPES[state.type].consequence;
+    render();
+  });
+
+  function selectReason(id) {
+    var hasText = els.body.value.trim() && state.bodyEdited;
+    if (hasText && !confirm("سيتم استبدال نص الخطاب الذي عدّلته. متابعة؟")) return;
+    state.reason = id;
+    state.bodyEdited = false; state.titleEdited = false;
+    if (id === CUSTOM) {
+      els.reasonTitle.value = "";
+      els.body.value = "";
+      state.bodyEdited = true; state.titleEdited = true;
+      els.reasonTitle.focus();
+    } else {
+      var r = reasonById(id);
+      els.reasonTitle.value = r.title;
+      els.body.value = fillTemplate(r.body);
+    }
+    render();
+  }
+
+  els.body.addEventListener("input", function () { state.bodyEdited = true; render(); });
+  els.reasonTitle.addEventListener("input", function () { state.titleEdited = true; render(); });
+  els.consequence.addEventListener("input", function () { state.consEdited = true; render(); });
+  [els.name, els.incidentDate].forEach(function (el) {
+    el.addEventListener("input", function () {
+      if (state.reason && state.reason !== CUSTOM && !state.bodyEdited) els.body.value = fillTemplate(reasonById(state.reason).body);
+      render();
+    });
+  });
+  [els.empId, els.area, els.date, els.notes, els.issuer, els.issuerTitle].forEach(function (el) {
+    el.addEventListener("input", render);
+  });
+  [els.issuer, els.issuerTitle].forEach(function (el) {
+    el.addEventListener("change", function () { store("cw_issuer", { n: els.issuer.value, t: els.issuerTitle.value }); });
+  });
+
+  // ---------- Render preview ----------
+  function setText(id, val, placeholder) {
+    var el = $(id);
+    el.textContent = val || placeholder || "";
+    el.classList.toggle("empty", !val);
+  }
+  function render() {
+    var t = TYPES[state.type];
+    document.querySelectorAll("#types button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.t === state.type)); });
+    document.querySelectorAll("#reasons button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.id === state.reason)); });
+
+    var name = els.name.value.trim();
+    $("pType").textContent = t.label;
+    $("pType").parentElement.style.color = t.color;
+    $("pConsequence").style.color = t.color;
+    setText("pRef", state.ref);
+    setText("pDate", fmtDate(els.date.value));
+    setText("pName", name, "—");
+    setText("pEmp", els.empId.value.trim(), "—");
+    setText("pArea", els.area.value.trim(), "—");
+    setText("pIncident", els.incidentDate.value ? fmtDate(els.incidentDate.value) : "", "—");
+    setText("pReason", els.reasonTitle.value.trim(), "— اختر السبب —");
+    $("pReasonSub").textContent = els.reasonTitle.value.trim() ? "بشأن: " + els.reasonTitle.value.trim() : "";
+    $("pSalute").textContent = "المكرم / " + (name || "..................") + "      المحترم\nالسلام عليكم ورحمة الله وبركاته،،";
+    $("pSalute").style.whiteSpace = "pre-wrap";
+    setText("pBody", els.body.value.trim(), "اختر صيغة جاهزة من الأسباب أو اكتب نص الخطاب يدوياً.");
+    $("pConsequence").textContent = els.consequence.value.trim();
+    $("pConsequence").style.display = els.consequence.value.trim() ? "" : "none";
+    var notes = els.notes.value.trim();
+    $("pNotesWrap").style.display = notes ? "" : "none";
+    $("pNotes").textContent = notes;
+    setText("pIssuer", els.issuer.value.trim(), "");
+    setText("pIssuerTitle", els.issuerTitle.value.trim(), "");
+
+    var ok = name && els.reasonTitle.value.trim() && els.body.value.trim();
+    $("printBtn").disabled = !ok;
+    $("printBtn").title = ok ? "" : "أدخل اسم المحصل والسبب ونص الخطاب";
+    renderCounter(name);
+  }
+
+  // ---------- History (this device only) ----------
+  function getHistory() { return store("cw_history") || []; }
+  function renderCounter(name) {
+    var c = $("counter");
+    if (!name) { c.style.display = "none"; return; }
+    var list = getHistory().filter(function (h) { return h.name === name; });
+    if (!list.length) { c.style.display = "none"; return; }
+    var counts = {};
+    list.forEach(function (h) { counts[h.type] = (counts[h.type] || 0) + 1; });
+    c.textContent = "سبق إصدار " + list.length + " خطاب لهذا المحصل: " +
+      Object.keys(counts).map(function (k) { return TYPES[k].label + " (" + counts[k] + ")"; }).join("، ") +
+      " — آخرها: " + list[0].reason;
+    c.style.display = "block";
+  }
+  function renderHistory() {
+    var list = getHistory(), box = $("history"), dl = $("namesList");
+    box.innerHTML = ""; dl.innerHTML = "";
+    if (!list.length) { box.innerHTML = '<div class="hint">لا توجد خطابات مطبوعة بعد.</div>'; return; }
+    var seen = {};
+    list.forEach(function (h) {
+      var row = document.createElement("div"); row.className = "h";
+      var left = document.createElement("div");
+      var nm = document.createElement("div"); nm.textContent = h.name;
+      var sm = document.createElement("small"); sm.textContent = h.reason + " · " + h.date + " · " + h.ref;
+      left.appendChild(nm); left.appendChild(sm);
+      var pill = document.createElement("span"); pill.className = "pill";
+      pill.textContent = TYPES[h.type].label; pill.style.background = TYPES[h.type].color;
+      row.appendChild(left); row.appendChild(pill); box.appendChild(row);
+      if (!seen[h.name]) { seen[h.name] = 1; var o = document.createElement("option"); o.value = h.name; dl.appendChild(o); }
+    });
+  }
+  function logIssued() {
+    var list = getHistory();
+    if (list.length && list[0].ref === state.ref) return; // same letter re-printed
+    list.unshift({ ref: state.ref, name: els.name.value.trim(), type: state.type, reason: els.reasonTitle.value.trim(), date: els.date.value });
+    store("cw_history", list.slice(0, 300));
+    renderHistory();
+  }
+
+  // ---------- Actions ----------
+  $("printBtn").addEventListener("click", function () {
+    logIssued();
+    var prev = document.title;
+    document.title = TYPES[state.type].label + " - " + els.name.value.trim() + " - " + els.date.value;
+    window.print();
+    document.title = prev;
+    renderCounter(els.name.value.trim());
+  });
+
+  $("copyBtn").addEventListener("click", function () {
+    var t = TYPES[state.type], name = els.name.value.trim();
+    var txt = [
+      t.label + (els.reasonTitle.value.trim() ? " — بشأن: " + els.reasonTitle.value.trim() : ""),
+      "الرقم: " + state.ref + "   التاريخ: " + fmtDate(els.date.value),
+      "",
+      "المكرم / " + (name || "...") + " المحترم",
+      "السلام عليكم ورحمة الله وبركاته،،",
+      "",
+      els.body.value.trim(),
+      "",
+      els.consequence.value.trim(),
+      els.notes.value.trim() ? "\nملاحظات: " + els.notes.value.trim() : "",
+      "",
+      [els.issuer.value.trim(), els.issuerTitle.value.trim()].filter(Boolean).join(" — ")
+    ].join("\n").replace(/\n{3,}/g, "\n\n").trim();
+    var done = function () { flash("تم نسخ النص ✓"); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(done, function () { fallbackCopy(txt); done(); });
+    } else { fallbackCopy(txt); done(); }
+  });
+  function fallbackCopy(txt) {
+    var ta = document.createElement("textarea"); ta.value = txt; document.body.appendChild(ta);
+    ta.select(); try { document.execCommand("copy"); } catch (e) {} ta.remove();
+  }
+  function flash(msg) { var s = $("status"); s.textContent = msg; setTimeout(function () { s.textContent = ""; }, 2500); }
+
+  $("resetBtn").addEventListener("click", function () {
+    if (els.body.value.trim() && !confirm("بدء خطاب جديد ومسح البيانات الحالية؟")) return;
+    ["name", "empId", "area", "incidentDate", "reasonTitle", "body", "notes"].forEach(function (k) { els[k].value = ""; });
+    els.date.value = todayISO();
+    state.reason = null; state.bodyEdited = false; state.titleEdited = false; state.consEdited = false;
+    state.ref = newRef();
+    els.consequence.value = TYPES[state.type].consequence;
+    render(); els.name.focus();
+  });
+
+  // ---------- Init ----------
+  els.date.value = todayISO();
+  els.consequence.value = TYPES[state.type].consequence;
+  var iss = store("cw_issuer");
+  if (iss) { els.issuer.value = iss.n || ""; els.issuerTitle.value = iss.t || ""; }
+  renderHistory();
+  render();
+})();
+</script>
+</body>
+</html>

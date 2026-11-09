@@ -537,8 +537,10 @@
         '<div class="row"><div><label>الرقم الوظيفي <span class="opt">(اختياري)</span></label><input data-k="empId" /></div>' +
         '<div><label>الفرع / المنطقة <span class="opt">(اختياري)</span></label><input data-k="area" /></div></div>' +
         '<div class="count" data-f="count"></div>' +
-        '<div class="foot"><a class="btn sm wa" data-act="wa" target="_blank" rel="noopener">إرسال واتساب</a>' +
-        '<button type="button" class="btn sm" data-act="share">مشاركة</button><span class="sent" data-f="sent"></span></div>';
+        '<div class="foot"><button type="button" class="btn sm primary" data-act="print">طباعة / PDF لهذا المحصل</button>' +
+        '<a class="btn sm wa" data-act="wa" target="_blank" rel="noopener">إرسال واتساب</a>' +
+        '<button type="button" class="btn sm" data-act="share">مشاركة</button><span class="sent" data-f="sent"></span></div>' +
+        '<div class="hint fname" data-f="fname"></div>';
       box.querySelector(".head b").textContent = "محصل " + (i + 1);
       box.querySelector('[data-act="remove"]').style.visibility = state.recipients.length > 1 ? "" : "hidden";
       ["name", "phone", "empId", "area"].forEach(function (k) { box.querySelector('[data-k="' + k + '"]').value = r[k]; });
@@ -558,6 +560,8 @@
       var link = ok ? waLink(r.phone, letterText(r, i)) : null;
       if (link) { a.href = link; a.removeAttribute("aria-disabled"); a.title = ""; }
       else { a.removeAttribute("href"); a.setAttribute("aria-disabled", "true"); a.title = ok ? "أدخل رقم الجوال" : "أكمل الاسم والسبب ونص الخطاب"; }
+      box.querySelector('[data-act="print"]').disabled = !ok;
+      box.querySelector('[data-f="fname"]').textContent = ok ? "اسم الملف: " + fileName(r) + ".pdf" : "";
       var sh = box.querySelector('[data-act="share"]');
       sh.disabled = !ok; sh.style.display = navigator.share ? "" : "none";
       box.querySelector('[data-f="sent"]').textContent = r.sentVia ? "✓ تم التسجيل (" + r.sentVia + ")" : "";
@@ -580,6 +584,7 @@
     var t = e.target.closest("[data-act]"); if (!t) return;
     var box = t.closest(".rcpt"), i = findRcpt(+box.dataset.key), r = state.recipients[i];
     if (t.dataset.act === "remove") { state.recipients.splice(i, 1); buildRecipients(); refresh(); return; }
+    if (t.dataset.act === "print") { if (canSend(r)) printLetters([i]); return; }
     if (t.dataset.act === "wa") {
       if (t.getAttribute("aria-disabled")) { e.preventDefault(); flash(t.title); return; }
       logIssued([i], "واتساب");
@@ -594,6 +599,12 @@
     var inputs = rcptBox.querySelectorAll('[data-k="name"]'); inputs[inputs.length - 1].focus();
   });
 
+  // e.g. "إنذار أول - محمد عبدالله - 09-11-2026 - عدم رفع الخطة الشهرية على المنصة"
+  function fileName(r) {
+    var d = els.date.value ? els.date.value.split("-").reverse().join("-") : "";
+    return [TYPES[state.type].label, norm(r.name), d, norm(els.reasonTitle.value)]
+      .filter(Boolean).join(" - ").replace(/[\\\/:*?"<>|]+/g, "-").slice(0, 150);
+  }
   function canSend(r) { return !!(r.name.trim() && els.reasonTitle.value.trim() && els.body.value.trim()); }
   function waLink(phone, text) {
     var d = (phone || "").replace(/[^\d]/g, "");
@@ -670,7 +681,7 @@
   function updateButtons() {
     var n = state.recipients.filter(canSend).length;
     $("printBtn").disabled = !n;
-    $("printBtn").textContent = n > 1 ? "طباعة الكل (" + n + ") / PDF" : "طباعة / حفظ PDF";
+    $("printBtn").textContent = n > 1 ? "طباعة الكل مجمّع (" + n + ") / PDF" : "طباعة / حفظ PDF";
     $("copyBtn").disabled = !n;
   }
 
@@ -824,13 +835,25 @@
   });
 
   // ---------- Actions ----------
+  // Print only the given recipients' letters; the PDF file name comes from document.title.
+  var restoreTitle = null;
+  function printLetters(idx) {
+    if (!idx.length) return;
+    logIssued(idx, "طباعة");
+    renderLetters();
+    Array.prototype.forEach.call(lettersBox.children, function (el, i) { el.classList.toggle("skip", idx.indexOf(i) < 0); });
+    if (restoreTitle === null) restoreTitle = document.title;
+    document.title = idx.length === 1 ? fileName(state.recipients[idx[0]])
+      : [TYPES[state.type].label, idx.length + " محصلين", els.date.value.split("-").reverse().join("-"), norm(els.reasonTitle.value)].filter(Boolean).join(" - ").replace(/[\\\/:*?"<>|]+/g, "-");
+    window.print();
+  }
+  window.addEventListener("afterprint", function () {
+    if (restoreTitle !== null) { document.title = restoreTitle; restoreTitle = null; }
+    renderLetters();
+  });
   $("printBtn").addEventListener("click", function () {
     var idx = []; state.recipients.forEach(function (r, i) { if (canSend(r)) idx.push(i); });
-    logIssued(idx, "طباعة");
-    var prev = document.title;
-    document.title = TYPES[state.type].label + " - " + (idx.length === 1 ? norm(state.recipients[idx[0]].name) : idx.length + " محصلين") + " - " + els.date.value;
-    window.print();
-    document.title = prev;
+    printLetters(idx);
   });
 
   $("copyBtn").addEventListener("click", function () {
